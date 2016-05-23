@@ -17,12 +17,11 @@ import org.mapdb.Fun.Tuple2Comparator;
 
 import com.google.common.primitives.UnsignedBytes;
 
+import database.serializer.BlockSerializer;
 import qora.block.Block;
 import utils.Converter;
 import utils.ObserverMessage;
 import utils.ReverseComparator;
-import database.DBSet;
-import database.serializer.BlockSerializer;
 
 public class BlockMap extends DBMap<byte[], Block> 
 {
@@ -48,11 +47,11 @@ public class BlockMap extends DBMap<byte[], Block>
 		
 		//LAST BLOCK
 		this.lastBlockVar = database.getAtomicVar("lastBlock");
-		this.lastBlockSignature = lastBlockVar.get();
+		this.lastBlockSignature = this.lastBlockVar.get();
 		
 		//PROCESSING
 		this.processingVar = database.getAtomicVar("processingBlock");
-		this.processing = processingVar.get();
+		this.processing = this.processingVar.get();
 	}
 
 	public BlockMap(BlockMap parent) 

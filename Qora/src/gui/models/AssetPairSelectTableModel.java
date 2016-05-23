@@ -10,6 +10,7 @@ import java.util.Observer;
 
 import javax.swing.table.AbstractTableModel;
 
+import org.apache.log4j.Logger;
 import org.mapdb.Fun.Tuple6;
 
 import qora.assets.Asset;
@@ -18,6 +19,7 @@ import utils.NumberAsString;
 import utils.ObserverMessage;
 import controller.Controller;
 import database.DBSet;
+import lang.Lang;
 
 @SuppressWarnings("serial")
 public class AssetPairSelectTableModel extends AbstractTableModel implements Observer
@@ -29,8 +31,11 @@ public class AssetPairSelectTableModel extends AbstractTableModel implements Obs
 	private static final int COLUMN_TRADES_COUNT = 4;
 	private static final int COLUMN_TRADES_VOLUME = 5;
 	
+	private static final Logger LOGGER = Logger
+			.getLogger(AssetPairSelectTableModel.class);
+	
 	public long key;
-	private String[] columnNames = {"Key", "Name", "<html>Orders<br>Count</html>", "Orders Volume", "<html>Trades<br>Count</html>", "Trades Volume"};
+	private String[] columnNames = {Lang.getInstance().translate("Key"), Lang.getInstance().translate("Name"), "<html>" + Lang.getInstance().translate("Orders<br>Count") + "</html>", Lang.getInstance().translate("Orders Volume"), "<html>" + Lang.getInstance().translate("Trades<br>Count") + "</html>", Lang.getInstance().translate("Trades Volume")};
 	public List<Asset> assets;
 	Map<Long, Tuple6<Integer, Integer, BigDecimal, BigDecimal, BigDecimal, BigDecimal>> all; 
 	
@@ -132,7 +137,7 @@ public class AssetPairSelectTableModel extends AbstractTableModel implements Obs
 		
 		} catch ( NullPointerException e)
 		{
-			
+			LOGGER.error(e.getMessage(),e);
 		}
 		
 		return null;
@@ -156,7 +161,8 @@ public class AssetPairSelectTableModel extends AbstractTableModel implements Obs
 		ObserverMessage message = (ObserverMessage) arg;
 		
 		//CHECK IF LIST UPDATED
-		if(message.getType() == ObserverMessage.ADD_BALANCE_TYPE || message.getType() == ObserverMessage.REMOVE_BALANCE_TYPE)
+		if(( message.getType() == ObserverMessage.NETWORK_STATUS && (int) message.getValue() == Controller.STATUS_OK )
+				||	(Controller.getInstance().getStatus() == Controller.STATUS_OK && (message.getType() == ObserverMessage.ADD_BALANCE_TYPE || message.getType() == ObserverMessage.REMOVE_BALANCE_TYPE)))
 		{
 			this.fireTableDataChanged();
 		}

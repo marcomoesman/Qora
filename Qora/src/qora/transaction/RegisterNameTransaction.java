@@ -3,23 +3,24 @@ package qora.transaction;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.json.simple.JSONObject;
-
-import qora.account.Account;
-import qora.account.PrivateKeyAccount;
-import qora.account.PublicKeyAccount;
-import qora.crypto.Crypto;
-import qora.naming.Name;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
 
+import database.BalanceMap;
 import database.DBSet;
+import qora.account.Account;
+import qora.account.PrivateKeyAccount;
+import qora.account.PublicKeyAccount;
+import qora.crypto.Crypto;
+import qora.naming.Name;
 
 public class RegisterNameTransaction extends Transaction 
 {
@@ -278,14 +279,18 @@ public class RegisterNameTransaction extends Transaction
 
 
 	@Override
-	public List<Account> getInvolvedAccounts() 
+	public HashSet<Account> getInvolvedAccounts()
 	{
-		List<Account> accounts = new ArrayList<Account>();
+		HashSet<Account> accounts = new HashSet<Account>();
 		accounts.add(this.registrant);
 		accounts.add(this.name.getOwner());
 		return accounts;
 	}
 
+	@Override
+	public HashSet<Account> getRecipientAccounts() {
+		return new HashSet<Account>();
+	}
 
 	@Override
 	public boolean isInvolved(Account account) 
@@ -312,6 +317,16 @@ public class RegisterNameTransaction extends Transaction
 		return BigDecimal.ZERO;
 	}
 
+	@Override
+	public Map<String, Map<Long, BigDecimal>> getAssetAmount() 
+	{
+		Map<String, Map<Long, BigDecimal>> assetAmount = new LinkedHashMap<>();
+		
+		assetAmount = subAssetAmount(assetAmount, this.registrant.getAddress(), BalanceMap.QORA_KEY, this.fee);
+		
+		return assetAmount;
+	}
+	
 	public static byte[] generateSignature(DBSet db, PrivateKeyAccount creator, Name name, BigDecimal fee, long timestamp) 
 	{
 		byte[] data = new byte[0];

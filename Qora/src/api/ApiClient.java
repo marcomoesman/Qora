@@ -1,7 +1,6 @@
 package api;
 
 import java.io.BufferedReader;
-import java.io.IOError;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -13,6 +12,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.log4j.Logger;
+
 import settings.Settings;
 import utils.StrJSonFine;
 
@@ -23,6 +24,9 @@ public class ApiClient {
 	public static final int SELF_CALL = 10;
 
 	private static List<String> allowedcalls = new CopyOnWriteArrayList<>();
+	
+	
+	private static final Logger LOGGER = Logger.getLogger(ApiClient.class);
 	
 	
 	String[] [] helpStrings =
@@ -93,6 +97,11 @@ public class ApiClient {
 				""
 			},
 			{
+				"GET peers/preset",
+				"Returns an array of all preset peers. From settings.json, peers.json, Internet, -peers=<address[,...]>",
+				""
+			},
+			{
 				"DELETE peers/known",
 				"Forget all known peers with all statistics.",
 				""
@@ -128,6 +137,11 @@ public class ApiClient {
 				""
 			},
 			{
+				"GET transactions/unconfirmedof/<address>", 
+				"Returns an array of all the unconfirmed transactions of address known to the client.",
+				""
+			},
+			{
 				"POST transactions/scan {\"start\": \"<startBlockSign>, \"blocklimit\":<amountBlocks>, \"transactionlimit\":<amountTransactions>, \"type\":<type>, \"service\":<service>, \"address\":\"<address>\"}", 
 				"Returns all the transactions that match the filters. All filters are optional but please limit that amount of transactions or blocks to scan to avoid running into issues. Requests that don't specify a blocklimit <= 360 will be denied to remote users. Return the last block it scanned, the amount of blocks it scanned and the scanned transactions.",
 				"Filters:\nstart - The signature of the starting block. \nblocklimit - The maximum amount of blocks to scan. \ntransactionlimit - The maximum amount of transactions to return.\ntype - Only return transactions with the given type.\nservice - Only return Arbitrary Transactions with the given service.\naddress - Only return transactions where the given address is involved.\nErrors: 1 -Json error. 102 - Invalid address. 101 - Invalid signature. 301 - Block does not exist.",
@@ -139,13 +153,18 @@ public class ApiClient {
 			},
 			{
 				"GET transactions/sender/<address>/limit/<limit>",
-				"Returns an array of the last <limit> transactions with a specific sender.",
+				"Returns an array of the <limit> transactions with a specific sender.",
 				""
 			},
 			{
 				"GET transactions/address/<address>/type/<type>/limit/<limit>",
 				"Returns an array of the last <limit> transactions of a specific address and type.",
 				""
+			},
+			{
+				"POST transactions/find {\"address\":\"<address>\", \"sender\":\"<sender>\", \"recipient\":\"<recipient>\", \"type\":<type>, \"service\":<service>, \"offset\":<offset>, \"limit\":<limit>, \"minHeight\":<minHeight>, \"maxHeight\":<maxHeight>, \"desc\":<true/false>, \"count\":<true/false>}",
+				"Returns an array of the <limit> transactions from given <offset> with a specific params. Set parameter \"count\" to true to find out the number of transactions. Set parameter \"desc\" to true for reverse order. Parameter \"service\" means service of ArbitraryTransaction. \"minHeight\" and \"maxHeight\" means height of blocks. All params are optional, but must be specified at least one address field.",
+				"Errors: 102 - Invalid address."
 			},
 			{
 				"GET blocks", 
@@ -283,6 +302,16 @@ public class ApiClient {
 				"Errors: 102 - Invalid address."
 			},
 			{
+				"GET addresses/lastreference/{address}", 
+				"Returns the 64-byte long base58-encoded signature of last transaction where the address is delivered as creator. Or the first incoming transaction. Returns \"false\" if there is no transactions.",
+				"Errors: 102 - Invalid address."
+			},
+			{
+				"GET addresses/lastreference/{address}/unconfirmed", 
+				"Returns the 64-byte long base58-encoded signature of last transaction including unconfirmed where the address is delivered as creator. Or the first incoming transaction. Returns \"false\" if there is no transactions.",
+				"Errors: 102 - Invalid address."
+			},
+			{
 				"GET wallet", 
 				"Returns general information about the wallet.",
 				"{\"exists\":true,\"isunlocked\":false}" 
@@ -303,7 +332,7 @@ public class ApiClient {
 				"Errors: 201 - Wallet does not exist."
 			},
 			{
-				"POST wallet {\"seed\":\"/<seed>\", \"password\":\"<password>\", \"recover\":<false/true>,  \"amount\":<amount>} ", 
+				"POST wallet {\"seed\":\"<seed>\", \"password\":\"<password>\", \"recover\":<false/true>,  \"amount\":<amount>} ", 
 				"Creates a wallet using the given 32-byte long base58-encoded seed, password,recover flag and amount.",
 				"Errors: 1 - Json error. 103 - Invalid seed. 104 - Invalid amount. 204 - Wallet already exists."
 			},
@@ -329,8 +358,13 @@ public class ApiClient {
 			},
 			{
 				"GET names/address/<address>", 
-				"Returns an array of all the names owned by a specific address in your wallet.",
-				"Errors: 102 - Invalid address. 201 - Wallet does not exist. 202 - Address does not exist in wallet."
+				"Returns an array of all the names owned by a specific address.",
+				"Errors: 102 - Invalid address."
+			},
+			{
+				"GET names/address/<address>/values", 
+				"Returns an array of all the names with values owned by a specific address.",
+				"Errors: 102 - Invalid address."
 			},
 			{
 				"GET names/<name>", 
@@ -726,15 +760,9 @@ public class ApiClient {
 			}
 			
 		}
-		catch(IOError ioe)
+		catch(Exception ioe)
 		{
-			//ioe.printStackTrace();	
-			return "Invalid command! \n" +
-				"Type help to get a list of commands.";
-		}
-		catch(Exception e)
-		{
-			//e.printStackTrace();	
+			LOGGER.info(ioe);	
 			return "Invalid command! \n" +
 				"Type help to get a list of commands.";
 		}

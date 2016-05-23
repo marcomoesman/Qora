@@ -11,21 +11,27 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
+import org.apache.log4j.Logger;
+
 import settings.Settings;
 import utils.ObserverMessage;
 import controller.Controller;
+import lang.Lang;
 import network.Peer;
 
 @SuppressWarnings("serial")
 public class KnownPeersTableModel extends AbstractTableModel implements Observer{
 
+	
+	private static final Logger LOGGER = Logger
+			.getLogger(KnownPeersTableModel.class);
 	private static final int COLUMN_ADDRESS = 0;
 	public static final int COLUMN_CONNECTED = 1;
 	
 	private List<Peer> peers;
 	private ArrayList<Boolean> peersStatus = new ArrayList<Boolean>();
 	
-	private String[] columnNames = {"IP", "Connected now"};
+	private String[] columnNames = {"IP", Lang.getInstance().translate("Connected now")};
 	
 	public List<String> getPeers()
 	{
@@ -47,8 +53,7 @@ public class KnownPeersTableModel extends AbstractTableModel implements Observer
 			peersStatus.add(false);
 			this.fireTableDataChanged();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 		}
 	}
 	
@@ -57,8 +62,8 @@ public class KnownPeersTableModel extends AbstractTableModel implements Observer
 	{
 		String address = this.getValueAt(row, 0).toString();
 		int n = JOptionPane.showConfirmDialog(
-				new JFrame(), "Do you want to remove address "+ address +"?",
-                "Confirmation",
+				new JFrame(), Lang.getInstance().translate("Do you want to remove address %address%?").replace("%address%", address),
+				Lang.getInstance().translate("Confirmation"),
                 JOptionPane.YES_NO_OPTION);
 		if (n == JOptionPane.YES_OPTION) {
 			peers.remove(row);

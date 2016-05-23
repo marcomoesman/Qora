@@ -142,11 +142,13 @@
           <div class="col-lg-8 col-centered">
         <div class="form-horizontal">
           <!-- <fieldset> -->
-            <legend>Settings</legend>
+            <legend class='translate'>Settings</legend>
 			<div id=result></div>
-            	{{result}}
+            {%if result == "needToRegisterAName"%}
+				<div class="alert alert-danger" role="alert"><span class="translate">You need to register a name to create a profile.</span><br></div>
+			{%endif%}
             <div class="form-group">
-              <label for="select-name" class="col-lg-2 control-label">Name</label>
+              <label for="select-name" class="col-lg-2 control-label translate">Name</label>
               <div class="col-lg-10">
                 <select class="form-control" id="select-name">
                   {% for name in names %}
@@ -156,63 +158,63 @@
                 </select>
                 <div class="checkbox">
                   <label>
-                    <br><input type="checkbox" id="profile-status"> Enable Profile
+                    <br><input type="checkbox" id="profile-status"> <span class="translate">Enable Profile</span>
                   </label>
                 </div>
               </div>
             </div>
             <div class="form-group">
-              <label for="Banner" class="col-lg-2 control-label">Profile Banner</label>
+              <label for="Banner" class="col-lg-2 control-label translate">Profile Banner</label>
               <div class="col-lg-10">
-                <input type="url" class="form-control" id="banner" placeholder="Profile Banner" disabled="">
+                <input type="url" class="form-control translate" id="banner" placeholder="Profile Banner" disabled="">
               </div>
             </div>
             <div class="form-group">
-              <label for="avatar" class="col-lg-2 control-label">Profile Picture</label>
+              <label for="avatar" class="col-lg-2 control-label translate">Profile Picture</label>
               <div class="col-lg-10">
-                <input type="url" class="form-control" id="avatar" placeholder="Profile Picture" disabled="">
+                <input type="url" class="form-control translate" id="avatar" placeholder="Profile Picture" disabled="">
                 <div class="checkbox">
                   <label>
-                    <br><input type="checkbox" id="blog-status"> Enable Blog
+                    <br><input type="checkbox" id="blog-status"> <span class="translate">Enable Blog</span>
                   </label>
                 </div>
               </div>
             </div>
             <div class="form-group">
-              <label for="blogtitle" class="col-lg-2 control-label">Blog Title</label>
+              <label for="blogtitle" class="col-lg-2 control-label translate">Blog Title</label>
               <div class="col-lg-10">
-                <input type="text" class="form-control" id="blogtitle" placeholder="Blog Title" disabled="">
+                <input type="text" class="form-control translate" id="blogtitle" placeholder="Blog Title" disabled="">
               </div>
             </div>
             <div class="form-group">
-              <label for="blogdescription" class="col-lg-2 control-label">Blog Description</label>
+              <label for="blogdescription" class="col-lg-2 control-label translate">Blog Description</label>
               <div class="col-lg-10">
-                <input type="text" class="form-control" id="blogdescription" placeholder="Blog Description" disabled="">
+                <input type="text" class="form-control translate" id="blogdescription" placeholder="Blog Description" disabled="">
               </div>
             </div>
             <div class="form-group">
             <div class="checkbox">
               <label for="blockComments" class="col-lg-2 control-label"></label>
                   <label>
-                    <br><input type="checkbox" id="blockComments"> Disable Comments
+                    <br><input type="checkbox" id="blockComments"> <span class="translate">Disable Comments</span>
                   </label>
             </div>
             </div>
 
 			<div class="form-group">
-              <label for="blogdescription" class="col-lg-2 control-label">Black/Whitelist </label>
+              <label for="blogdescription" class="col-lg-2 control-label translate">Black/Whitelist</label>
 
               <div class="col-lg-10">
                 <select class="form-control" id="select-list-type">
-					<option selected="selected" value=black>Blacklist</option>
-					<option value=white>Whitelist</option>
+					<option selected="selected" value=black class="translate">Blacklist</option>
+					<option value=white class="translate">Whitelist</option>
                 </select>
 				<br>
 				<div style="border: 2px solid #ddd;  border-radius: 6px; padding: 10px;">
 				<table id="tblData" width=100%>
 				<thead>
 				<tr>
-				<th>Addresses:</th>
+				<th class="translate">Addresses:</th>
 				<th></th>
 				</tr>
 				</thead>
@@ -220,14 +222,14 @@
 				</tbody>
 				</table>
 				<br>
-				<button id="btnAddd" class="btn btn-default">New Address</button>
+				<button id="btnAddd" class="btn btn-default translate">New Address</button>
 				</div>
 				<br><br>
             </div>
             <div class="form-group">
               <div class="col-lg-10 col-lg-offset-2">
-                <button type="reset" id="btncancel" onclick="javascript:reload()" class="btn btn-default">Cancel</button>
-            	 <button type="submit" id="btnsubmit" onclick="javascript:updateValue()" class="btn btn-primary pull-right">Submit</button>
+                <button type="reset" id="btncancel" onclick="javascript:reload()" class="btn btn-default translate">Cancel</button>
+            	 <button type="submit" id="btnsubmit" onclick="javascript:updateValue()" class="btn btn-primary pull-right translate">Submit</button>
               </div>
             </div>
           <!-- </fieldset> -->
@@ -236,11 +238,7 @@
       </div>
       </div>
     </div>
-    <script src="/index/libs/jquery/jquery.2.js"></script>
-    <script src="/index/libs/bootstrap/3/js/bootstrap.min.js"></script>
-    <script src="/index/libs/angular/angular.1.4.js"></script>
-    <script src="/index/libs/js/sidebar.js"></script>
-    <script type="text/javascript">
+	<script type="text/javascript">
     var transformToAssocArray;
     transformToAssocArray = function(prmstr) {
         var i, params, prmarr, tmparr;
@@ -293,15 +291,21 @@
 			.done( function(data) {
 				if (data.type == 'settingsSuccessfullySaved')
 				{
-					document.getElementById('result').innerHTML = "<div class=\"alert alert-success\" role=\"alert\">Settings successfully saved.<br></div>";
+					document.getElementById('result').innerHTML = "<div class=\"alert alert-success\" role=\"alert\">" 
+																+ Lang.getInstance().translate("Settings successfully saved.")
+																+ "<br></div>";
 				}
 				else if(data.type == 'parametersMissing')
 				{
-					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">Some parameters are missing.<br></div>";
+					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">" 
+																+ Lang.getInstance().translate("Some parameters are missing.")
+																+ "<br></div>";
 				}
 				else if(data.type == 'profileNameisnotAllowed')
 				{
-					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">Profile Name is not Allowed.<br></div>";
+					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">" 
+																+ Lang.getInstance().translate("Profile Name is not Allowed.") 
+																+ "<br></div>";
 				}
 				else if (data.type == 'error')
 				{
@@ -312,15 +316,21 @@
 						message = data.error;
 					}
 
-					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">An error occurred while saving settings.<br>"+message+"<br></div>";
+					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">" 
+																+ Lang.getInstance().translate("An error occurred while saving settings.")
+																+ "<br>"+message+"<br></div>";
 				}
 				else
 				{
-					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">Unknown response:<br>"+data+"<br></div>";
+					document.getElementById('result').innerHTML = "<div class=\"alert alert-danger\" role=\"alert\">" 
+																+ Lang.getInstance().translate("Unknown response")
+																+ ":<br>"+data+"<br></div>";
 				}
 			})
 			.fail( function(xhr, textStatus, errorThrown) {
-				document.getElementById('result').innerHTML = '<div class=\"alert alert-danger\" role=\"alert\">ERROR<br>'+xhr.responseText+'<br></div>';
+				document.getElementById('result').innerHTML = '<div class=\"alert alert-danger\" role=\"alert\">' 
+															+ Lang.getInstance().translate('ERROR') 
+															+ '<br>'+xhr.responseText+'<br></div>';
 			});
     };
 
@@ -495,6 +505,8 @@
           $('#btncancel').attr('disabled', true);
           $('#btnShow').attr('disabled', true);
 		{%endif%}
+		
+		Lang.getInstance().translateByClass();
     });
     {% endautoescape %}
 

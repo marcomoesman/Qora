@@ -4,18 +4,13 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-
-import ntp.NTP;
+import java.util.Map;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
-import qora.account.Account;
-import qora.account.PrivateKeyAccount;
-import qora.account.PublicKeyAccount;
-import qora.crypto.Crypto;
-import qora.payment.Payment;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
@@ -23,6 +18,12 @@ import com.google.common.primitives.Longs;
 
 import database.BalanceMap;
 import database.DBSet;
+import ntp.NTP;
+import qora.account.Account;
+import qora.account.PrivateKeyAccount;
+import qora.account.PublicKeyAccount;
+import qora.crypto.Crypto;
+import qora.payment.Payment;
 
 public class MultiPaymentTransaction extends Transaction {
 
@@ -365,10 +366,18 @@ public class MultiPaymentTransaction extends Transaction {
 	}
 	
 	@Override
-	public List<Account> getInvolvedAccounts()
+	public HashSet<Account> getInvolvedAccounts()
 	{
-		List<Account> accounts = new ArrayList<Account>();
+		HashSet<Account> accounts = new HashSet<Account>();
 		accounts.add(this.sender);
+		accounts.addAll(this.getRecipientAccounts());
+		return accounts;
+	}
+	
+	@Override
+	public HashSet<Account> getRecipientAccounts()
+	{
+		HashSet<Account> accounts = new HashSet<>();
 		
 		for(Payment payment: this.payments)
 		{
@@ -427,6 +436,22 @@ public class MultiPaymentTransaction extends Transaction {
 		}
 		
 		return amount;
+	}
+	
+	@Override
+	public Map<String, Map<Long, BigDecimal>> getAssetAmount() 
+	{
+		Map<String, Map<Long, BigDecimal>> assetAmount = new LinkedHashMap<>();
+		
+		assetAmount = subAssetAmount(assetAmount, this.sender.getAddress(), BalanceMap.QORA_KEY, this.fee);
+		
+		for(Payment payment: this.payments)
+		{
+			assetAmount = subAssetAmount(assetAmount, this.sender.getAddress(), payment.getAsset(), payment.getAmount());
+			assetAmount = addAssetAmount(assetAmount, payment.getRecipient().getAddress(), payment.getAsset(), payment.getAmount());
+		}
+		
+		return assetAmount;
 	}
 	
 	public static byte[] generateSignature(DBSet db, PrivateKeyAccount sender, List<Payment> payments, BigDecimal fee, long timestamp) 

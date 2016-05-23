@@ -3,6 +3,8 @@ package gui.models;
 import java.util.Observable;
 import java.util.Observer;
 
+import org.apache.log4j.Logger;
+
 import qora.transaction.Transaction;
 import utils.DateTimeFormat;
 import utils.NumberAsString;
@@ -10,6 +12,7 @@ import utils.ObserverMessage;
 import controller.Controller;
 import database.SortableList;
 import database.TransactionMap;
+import lang.Lang;
 
 @SuppressWarnings("serial")
 public class TransactionsTableModel extends QoraTableModel<byte[], Transaction> implements Observer {
@@ -18,10 +21,12 @@ public class TransactionsTableModel extends QoraTableModel<byte[], Transaction> 
 	public static final int COLUMN_TYPE = 1;
 	public static final int COLUMN_FEE = 2;
 	
+	private static final Logger LOGGER = Logger
+			.getLogger(TransactionsTableModel.class);
 	private SortableList<byte[], Transaction> transactions;
 	
-	private String[] columnNames = {"Timestamp", "Type", "Fee"};
-	private String[] transactionTypes = {"", "Genesis", "Payment", "Name Registration", "Name Update", "Name Sale", "Cancel Name Sale", "Name Purchase", "Poll Creation", "Poll Vote", "Arbitrary Transaction", "Asset Issue", "Asset Transfer", "Order Creation", "Cancel Order", "Multi Payment", "Deploy AT", "Message Transaction"};
+	private String[] columnNames = Lang.getInstance().translate(new String[]{"Timestamp", "Type", "Fee"});
+	private String[] transactionTypes = Lang.getInstance().translate(new String[]{"", "Genesis", "Payment", "Name Registration", "Name Update", "Name Sale", "Cancel Name Sale", "Name Purchase", "Poll Creation", "Poll Vote", "Arbitrary Transaction", "Asset Issue", "Asset Transfer", "Order Creation", "Cancel Order", "Multi Payment", "Deploy AT", "Message Transaction"});
 
 	public TransactionsTableModel()
 	{
@@ -92,7 +97,7 @@ public class TransactionsTableModel extends QoraTableModel<byte[], Transaction> 
 			return null;
 			
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return null;
 		}
 	}

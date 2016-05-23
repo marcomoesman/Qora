@@ -11,6 +11,7 @@ import java.util.List;
 
 import ntp.NTP;
 
+import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.mapdb.Fun.Tuple2;
@@ -31,6 +32,7 @@ import at.AT_Constants;
 import at.AT_Controller;
 import at.AT_Exception;
 import at.AT_Transaction;
+import controller.Controller;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
@@ -40,7 +42,8 @@ import database.DBSet;
 
 
 public class Block {
-
+	
+	private static final Logger LOGGER = Logger.getLogger(Block.class);
 	public static final int MAX_BLOCK_BYTES = 1048576;
 	public static final int VERSION_LENGTH = 4;
 	public static final int REFERENCE_LENGTH = 128;
@@ -214,6 +217,8 @@ public class Block {
 		return null;
 	}
 
+
+	
 	public byte[] getBlockATs()
 	{
 		return this.atBytes;
@@ -644,7 +649,7 @@ public class Block {
 			}
 			catch(NoSuchAlgorithmException | AT_Exception e)
 			{
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(),e);
 				return false;
 			}
 		}
@@ -754,15 +759,22 @@ public class Block {
 		int seq = 1;
 		for(Transaction transaction: this.getTransactions())
 		{
-			db.getTransactionFinalMap().add( height , seq, transaction);
+			db.getTransactionFinalMap().add( height, seq, transaction);
 			seq++;
 		}
 
+		if(height % 2000 == 0) 
+		{
+			Controller.getInstance().blockchainSyncStatusUpdate(height);
+		}
+		
 		//ADD TO DB
 		db.getBlockMap().add(this);
 
 		//UPDATE LAST BLOCK
-		db.getBlockMap().setLastBlock(this);	
+		db.getBlockMap().setLastBlock(this);
+		
+		System.out.println("Process Block " + height);
 	}
 
 	public void orphan()
@@ -838,4 +850,31 @@ public class Block {
 		}
 	}
 
+	public int getTransactionSeq(byte[] signature)
+	{
+		int seq = 1;
+		for(Transaction transaction: this.getTransactions())
+		{
+			if(Arrays.equals(transaction.getSignature(), signature))
+			{
+				return seq;
+			}
+			seq ++;
+		}
+
+		return -1;
+	}
+	
+	@Override 
+	public boolean equals(Object otherObject)
+	{
+		if(otherObject instanceof Block)
+		{
+			Block otherBlock = (Block) otherObject;
+			
+			return Arrays.equals(this.getSignature(), otherBlock.getSignature());
+		}
+		
+		return false;
+	}
 }

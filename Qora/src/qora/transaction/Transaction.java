@@ -3,8 +3,11 @@ package qora.transaction;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
 import controller.Controller;
@@ -17,6 +20,8 @@ import settings.Settings;
 
 public abstract class Transaction {
 	
+	
+	private static final Logger LOGGER = Logger.getLogger(Transaction.class);
 	//VALIDATION CODE
 	public static final int VALIDATE_OK = 1;
 	public static final int INVALID_ADDRESS = 2;
@@ -64,6 +69,8 @@ public abstract class Transaction {
 	public static final int INVALID_TYPE_LENGTH = 38;
 	
 	public static final int FEE_LESS_REQUIRED = 40;
+	
+	public static final int INVALID_RAW_DATA = 41;
 	
 	public static final int NOT_YET_RELEASED = 1000;
 	
@@ -228,12 +235,7 @@ public abstract class Transaction {
 		}
 		else
 		{
-			
-			if(recommendedFee.compareTo(MINIMUM_FEE) > 0 )
-			{
-				recommendedFee = recommendedFee.setScale(0, BigDecimal.ROUND_UP); 
-			}
-			
+			recommendedFee = recommendedFee.setScale(0, BigDecimal.ROUND_UP); 
 		}
 		
 		return recommendedFee.setScale(8);
@@ -298,11 +300,22 @@ public abstract class Transaction {
 	
 	public abstract PublicKeyAccount getCreator();
 	
-	public abstract List<Account> getInvolvedAccounts();
+	public abstract HashSet<Account> getInvolvedAccounts();
+	
+	public abstract HashSet<Account> getRecipientAccounts();
 		
 	public abstract boolean isInvolved(Account account);
 	
 	public abstract BigDecimal getAmount(Account account);
+	
+	public int getSeq()
+	{
+		if(this.isConfirmed())
+		{
+			return this.getParent().getTransactionSeq(this.signature);
+		}
+		return -1;
+	}
 	
 	@Override 
 	public boolean equals(Object object)
@@ -347,7 +360,7 @@ public abstract class Transaction {
 
 		}catch(Exception e)
 		{
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return 0;
 		}
 	}
@@ -362,5 +375,46 @@ public abstract class Transaction {
 		
 		// IF UNCONFIRMED
 		return Controller.getInstance().getLastBlock().getNextBlockVersion(DBSet.getInstance());	
+	}
+
+	public abstract Map<String, Map<Long, BigDecimal>> getAssetAmount();
+	
+	public static Map<String, Map<Long, BigDecimal>> subAssetAmount(Map<String, Map<Long, BigDecimal>> allAssetAmount, String address, Long assetKey, BigDecimal amount) 
+	{
+		return addAssetAmount(allAssetAmount, address, assetKey, BigDecimal.ZERO.setScale(8).subtract(amount));
+	}
+	
+	public static Map<String, Map<Long, BigDecimal>> addAssetAmount(Map<String, Map<Long, BigDecimal>> allAssetAmount, String address, Long assetKey, BigDecimal amount) 
+	{
+		Map<String, Map<Long, BigDecimal>> newAllAssetAmount;
+		if(allAssetAmount != null) {
+			newAllAssetAmount = new LinkedHashMap<String, Map<Long, BigDecimal>>(allAssetAmount);
+		} else {
+			newAllAssetAmount = new LinkedHashMap<String, Map<Long, BigDecimal>>();
+		}
+
+		Map<Long, BigDecimal> newAssetAmountOfAddress;
+		
+		if(!newAllAssetAmount.containsKey(address)){
+			newAssetAmountOfAddress = new LinkedHashMap<Long, BigDecimal>();
+			newAssetAmountOfAddress.put(assetKey, amount);
+			
+			newAllAssetAmount.put(address, newAssetAmountOfAddress);
+		} else {
+			if(!newAllAssetAmount.get(address).containsKey(assetKey)) {
+				newAssetAmountOfAddress = new LinkedHashMap<Long, BigDecimal>(newAllAssetAmount.get(address));
+				newAssetAmountOfAddress.put(assetKey, amount);
+
+				newAllAssetAmount.put(address, newAssetAmountOfAddress);
+			} else {
+				newAssetAmountOfAddress = new LinkedHashMap<Long, BigDecimal>(newAllAssetAmount.get(address));
+				BigDecimal newAmount = newAllAssetAmount.get(address).get(assetKey).add(amount);
+				newAssetAmountOfAddress.put(assetKey, newAmount);
+				
+				newAllAssetAmount.put(address, newAssetAmountOfAddress);
+			}
+		}
+		
+		return newAllAssetAmount;
 	}
 }

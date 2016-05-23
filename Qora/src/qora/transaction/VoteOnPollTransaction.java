@@ -3,26 +3,25 @@ package qora.transaction;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-
-import ntp.NTP;
+import java.util.HashSet;
+import java.util.Map;
 
 import org.json.simple.JSONObject;
 
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import database.BalanceMap;
+import database.DBSet;
+import ntp.NTP;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Crypto;
 import qora.voting.Poll;
 import qora.voting.PollOption;
-
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 
 public class VoteOnPollTransaction extends Transaction 
 {
@@ -348,14 +347,19 @@ public class VoteOnPollTransaction extends Transaction
 
 
 	@Override
-	public List<Account> getInvolvedAccounts() 
+	public HashSet<Account> getInvolvedAccounts() 
 	{
-		List<Account> accounts = new ArrayList<Account>();
+		HashSet<Account> accounts = new HashSet<>();
 		accounts.add(this.creator);
 		return accounts;
 	}
 
-
+	@Override
+	public HashSet<Account> getRecipientAccounts()
+	{
+		return new HashSet<>();
+	}
+	
 	@Override
 	public boolean isInvolved(Account account) 
 	{
@@ -381,6 +385,12 @@ public class VoteOnPollTransaction extends Transaction
 		return BigDecimal.ZERO;
 	}
 
+	@Override
+	public Map<String, Map<Long, BigDecimal>> getAssetAmount() 
+	{
+		return subAssetAmount(null, this.creator.getAddress(), BalanceMap.QORA_KEY, this.fee);
+	}
+	
 	public static byte[] generateSignature(DBSet db, PrivateKeyAccount creator, String poll, int option, BigDecimal fee, long timestamp) 
 	{
 		byte[] data = new byte[0];

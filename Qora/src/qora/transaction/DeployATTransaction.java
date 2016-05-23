@@ -6,29 +6,30 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.eclipse.jetty.util.StringUtil;
 import org.json.simple.JSONObject;
 
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import at.AT;
+import at.AT_Constants;
+import at.AT_Controller;
+import at.AT_Exception;
+import database.BalanceMap;
+import database.DBSet;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
 import qora.crypto.Crypto;
 import utils.Converter;
-import at.AT;
-import at.AT_Constants;
-import at.AT_Controller;
-import at.AT_Exception;
-
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 
 public class DeployATTransaction extends Transaction
 {
@@ -555,13 +556,22 @@ public class DeployATTransaction extends Transaction
 	}
 
 	@Override
-	public List<Account> getInvolvedAccounts() 
+	public HashSet<Account> getInvolvedAccounts() 
 	{
-		List<Account> accounts = new ArrayList<Account>();
+		HashSet<Account> accounts = new HashSet<>();
 		accounts.add(this.creator);
+		accounts.addAll(this.getRecipientAccounts());
 		return accounts;
 	}
 
+	@Override
+	public HashSet<Account> getRecipientAccounts()
+	{
+		HashSet<Account> accounts = new HashSet<>();
+		accounts.add(this.getATaccount());
+		return accounts;
+	}
+	
 	@Override
 	public boolean isInvolved(Account account) 
 	{
@@ -572,6 +582,11 @@ public class DeployATTransaction extends Transaction
 			return true;
 		}
 
+		if(address.equals(this.getATaccount().getAddress()))
+		{
+			return true;
+		}
+		
 		return false;
 	}
 
@@ -582,10 +597,28 @@ public class DeployATTransaction extends Transaction
 		{
 			return BigDecimal.ZERO.setScale(8).subtract(this.amount.add(this.fee));
 		}
+		
+		if(account.getAddress().equals(this.getATaccount().getAddress()))
+		{
+			return this.amount;
+		}
 
 		return BigDecimal.ZERO;
 	}
 
+	@Override
+	public Map<String, Map<Long, BigDecimal>> getAssetAmount() 
+	{
+		Map<String, Map<Long, BigDecimal>> assetAmount = new LinkedHashMap<>();
+		
+		assetAmount = subAssetAmount(assetAmount, this.creator.getAddress(), BalanceMap.QORA_KEY, this.fee);
+		
+		assetAmount = subAssetAmount(assetAmount, this.creator.getAddress(), BalanceMap.QORA_KEY, this.amount);
+		assetAmount = addAssetAmount(assetAmount, this.getATaccount().getAddress(), BalanceMap.QORA_KEY, this.amount);
+		
+		return assetAmount;
+	}
+	
 	public static byte[] generateSignature(DBSet db, PrivateKeyAccount creator, String name, String description, byte[] creationBytes, BigDecimal amount, BigDecimal fee, long timestamp) 
 	{
 		byte[] data = new byte[0];

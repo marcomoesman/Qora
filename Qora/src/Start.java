@@ -1,33 +1,79 @@
+import gui.Gui;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Scanner;
 
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
-import api.ApiClient;
-import controller.Controller;
-import gui.Gui;
+import lang.Lang;
+
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 import settings.Settings;
 import utils.SysTray;
+import api.ApiClient;
+import controller.Controller;
 
 public class Start {
+	
+	static Logger LOGGER = Logger.getLogger(Start.class.getName());
 
-	public static void main(String args[])
+	public static void main(String args[]) throws IOException
 	{	
+		
+		File log4j = new File("log4j.properties");
+		if(log4j.exists())
+		{
+			PropertyConfigurator.configure(log4j.getAbsolutePath());
+		}else
+		{
+			try( InputStream resourceAsStream = ClassLoader.class.getResourceAsStream("/log4j/log4j.default");)
+			{
+				PropertyConfigurator.configure(resourceAsStream);
+				LOGGER.error("log4j.properties not found, search path is " + log4j.getAbsolutePath() + " using default!");
+			}
+		}
+		
 		boolean cli = false;
+		
+		
 		
 		for(String arg: args)
 		{
 			if(arg.equals("-cli"))
 			{
 				cli = true;
-			} if(arg.equals("-testnet")) {
-				Settings.getInstance().setGenesisStamp(System.currentTimeMillis());
-			} else if(arg.startsWith("-testnet=") && arg.length() > 9) {
-				try
+			} 
+			else 
+			{
+				if(arg.startsWith("-peers=") && arg.length() > 7) 
 				{
-					Settings.getInstance().setGenesisStamp(Long.parseLong(arg.substring(9)));
-				} catch(Exception e) {
-					Settings.getInstance().setGenesisStamp(Settings.DEFAULT_MAINNET_STAMP);
+					Settings.getInstance().setDefaultPeers(arg.substring(7).split(","));
+				}
+				
+				if(arg.equals("-testnet")) 
+				{
+					Settings.getInstance().setGenesisStamp(System.currentTimeMillis());
+				} 
+				else if(arg.startsWith("-testnet=") && arg.length() > 9) 
+				{
+					try
+					{
+						long testnetstamp = Long.parseLong(arg.substring(9));
+						
+						if (testnetstamp == 0)
+						{
+							testnetstamp = System.currentTimeMillis();
+						}
+							
+						Settings.getInstance().setGenesisStamp(testnetstamp);
+					} catch(Exception e) {
+						Settings.getInstance().setGenesisStamp(Settings.DEFAULT_MAINNET_STAMP);
+					}
 				}
 			}
 		}
@@ -36,13 +82,18 @@ public class Start {
 		{			
 			try
 			{
+				
 				//ONE MUST BE ENABLED
 				if(!Settings.getInstance().isGuiEnabled() && !Settings.getInstance().isRpcEnabled())
 				{
-					throw new Exception("Both gui and rpc cannot be disabled!");
+					throw new Exception(Lang.getInstance().translate("Both gui and rpc cannot be disabled!"));
 				}
 				
-				System.out.println("Starting Qora / version: "+ Controller.getInstance().getVersion() + " / build date: " + Controller.getInstance().getBuildDateString() + " / ...");
+				LOGGER.info(Lang.getInstance().translate("Starting %qora% / version: %version% / build date: %builddate% / ...")
+						.replace("%version%", Controller.getInstance().getVersion())
+						.replace("%builddate%", Controller.getInstance().getBuildDateString())
+						.replace("%qora%", Lang.getInstance().translate("Qora"))
+						);
 				
 				//STARTING NETWORK/BLOCKCHAIN/RPC
 				Controller.getInstance().start();
@@ -55,26 +106,26 @@ public class Start {
 							SysTray.getInstance().createTrayIcon();
 						}
 				} catch(Exception e) {
-					System.out.println("GUI ERROR: " + e.getMessage());
+					LOGGER.error(Lang.getInstance().translate("GUI ERROR") ,e);
 				}
 				
 			} catch(Exception e) {
 				
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(),e);
 				
 				//USE SYSTEM STYLE
 		        try {
 					UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 				} catch (Exception e2) {
-					e2.printStackTrace();
+					LOGGER.error(e2);
 				}
 				
 				//ERROR STARTING
-				System.out.println("STARTUP ERROR: " + e.getMessage());
+				LOGGER.error(Lang.getInstance().translate("STARTUP ERROR") + ": " + e.getMessage());
 				
 				if(Gui.isGuiStarted())
 				{
-					JOptionPane.showMessageDialog(null, e.getMessage(), "Startup Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(null, e.getMessage(), Lang.getInstance().translate("Startup Error"), JOptionPane.ERROR_MESSAGE);
 				}
 				
 				//FORCE SHUTDOWN

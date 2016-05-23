@@ -3,6 +3,7 @@ package gui.assets;
 import gui.models.BuyOrdersTableModel;
 import gui.models.SellOrdersTableModel;
 import gui.models.TradesTableModel;
+import lang.Lang;
 
 import java.awt.Dimension;
 import java.awt.Font;
@@ -41,12 +42,12 @@ public class ExchangeFrame extends JFrame
 	
 	public ExchangeFrame(Asset have, Asset want) 
 	{
-		super("Qora - Asset Exchange");
+		super(Lang.getInstance().translate("Qora") + " - " + Lang.getInstance().translate("Asset Exchange"));
 		
 		this.have = have;
 		this.want = want;
 		
-		this.setTitle("Qora - Asset Exchange - " + this.have.toString() + " / " + this.want.toString());
+		this.setTitle(Lang.getInstance().translate("Qora") + " - " + Lang.getInstance().translate("Asset Exchange")+" - " + this.have.toString() + " / " + this.want.toString());
 		
 		//ICON
 		List<Image> icons = new ArrayList<Image>();
@@ -97,13 +98,14 @@ public class ExchangeFrame extends JFrame
 		
 		//CREATE BUY LABEL
 		labelGBC.gridy = 1;
-		JLabel lblBuy = new JLabel( "Buy " + this.have.toString() + " \u2014 Sell " + this.want.toString());
+		JLabel lblBuy = new JLabel( Lang.getInstance().translate("Buy %have% \u2014 Sell %want%").replace("%have%", this.have.toString()).replace("%want%", this.want.toString()));
 		lblBuy.setFont(new Font("Serif", Font.PLAIN, 18));
 		this.add(lblBuy, labelGBC);
 		
 		//CREATE SELL LABEL
 		labelGBC.gridx = 1;
-		JLabel lblSell = new JLabel( "Sell " + this.have.toString()	+ " \u2014 Buy " + this.want.toString());
+		JLabel lblSell = new JLabel( Lang.getInstance().translate("Sell %have% \u2014 Buy %want%").replace("%have%", this.have.toString()).replace("%sell%", this.want.toString()));
+
 		lblSell.setFont(new Font("Serif", Font.PLAIN, 18));
 		this.add(lblSell, labelGBC);
 		
@@ -129,13 +131,13 @@ public class ExchangeFrame extends JFrame
 		//CREATE SELL ORDERS LABEL
 		labelGBC.gridx = 0;
 		labelGBC.gridy = 3;
-		JLabel lblSellOrders = new JLabel("Sell orders");
+		JLabel lblSellOrders = new JLabel(Lang.getInstance().translate("Sell Orders"));
 		lblSellOrders.setFont(new Font("Serif", Font.PLAIN, 18));
 		this.add(lblSellOrders, labelGBC);
 		
 		//CREATE BUY ORDERS LABEL
 		labelGBC.gridx = 1;
-		JLabel lblBuyOrders = new JLabel("Buy orders");
+		JLabel lblBuyOrders = new JLabel(Lang.getInstance().translate("Buy Orders"));
 		lblBuyOrders.setFont(new Font("Serif", Font.PLAIN, 18));
 		this.add(lblBuyOrders, labelGBC);
 						
@@ -185,7 +187,7 @@ public class ExchangeFrame extends JFrame
 		//CREATE TRADE HISTORY LABEL
 		labelGBC.gridx = 0;
 		labelGBC.gridy = 5;
-		JLabel lblTradeHistory = new JLabel("Trade History");
+		JLabel lblTradeHistory = new JLabel(Lang.getInstance().translate("Trade History"));
 		lblTradeHistory.setFont(new Font("Serif", Font.PLAIN, 18));
 		this.add(lblTradeHistory, labelGBC);
 		

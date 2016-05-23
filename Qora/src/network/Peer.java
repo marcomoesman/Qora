@@ -11,14 +11,17 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
-import controller.Controller;
-import database.DBSet;
+import lang.Lang;
 import network.message.Message;
 import network.message.MessageFactory;
 import ntp.NTP;
+
+import org.apache.log4j.Logger;
+
 import settings.Settings;
+import controller.Controller;
+import database.DBSet;
 
 public class Peer extends Thread{
 
@@ -31,6 +34,7 @@ public class Peer extends Thread{
 	private long pingCounter;
 	private long connectionTime;
 	
+	private static final Logger LOGGER = Logger.getLogger(Peer.class);
 	private Map<Integer, BlockingQueue<Message>> messages;
 	
 	public Peer(InetAddress address)
@@ -71,8 +75,9 @@ public class Peer extends Thread{
 		}
 		catch(Exception e)
 		{
+			LOGGER.debug(e.getMessage(),e);
 			//FAILED TO CONNECT NO NEED TO BLACKLIST
-			Logger.getGlobal().info("Failed to connect to : " + address);
+			LOGGER.info("Failed to connect to : " + address);
 		}
 	}
 	
@@ -137,8 +142,8 @@ public class Peer extends Thread{
 		}
 		catch(Exception e)
 		{
-			//FAILED TO CONNECT NO NEED TO BLACKLIST
-			Logger.getGlobal().info("Failed to connect to : " + address);
+			LOGGER.debug(e.getMessage(),e);
+			LOGGER.info(Lang.getInstance().translate("Failed to connect to : ") + address);
 		}
 	}
 	
@@ -176,14 +181,14 @@ public class Peer extends Thread{
 				else
 				{
 					//ERROR
-					callback.onError(this, "received message with wrong magic");
+					callback.onError(this, Lang.getInstance().translate("received message with wrong magic"));
 					return;
 				}
 			}
 		} 
 		catch (Exception e) 
 		{
-			//e.printStackTrace();
+			LOGGER.debug(e.getMessage(),e);
 			
 			//DISCONNECT
 			callback.onDisconnect(this);
@@ -199,7 +204,7 @@ public class Peer extends Thread{
 			if(!this.socket.isConnected())
 			{
 				//ERROR
-				callback.onError(this, "socket not still alive");
+				callback.onError(this, Lang.getInstance().translate("socket not still alive"));
 				
 				return false;
 			}
@@ -216,6 +221,7 @@ public class Peer extends Thread{
 		}
 		catch (Exception e) 
 		{
+			LOGGER.debug(e.getMessage(),e);
 			//ERROR
 			callback.onError(this, e.getMessage());
 			
@@ -300,7 +306,7 @@ public class Peer extends Thread{
 		}
 		catch(Exception e)
 		{
-			
+			LOGGER.debug(e.getMessage(),e);
 		}		
 	}
 }

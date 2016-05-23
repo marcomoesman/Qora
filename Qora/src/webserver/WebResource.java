@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -43,12 +42,12 @@ import javax.ws.rs.core.UriInfo;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import org.eclipse.jetty.util.StringUtil;
 import org.glassfish.jersey.media.multipart.FormDataBodyPart;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -62,12 +61,15 @@ import api.NameStorageResource;
 import controller.Controller;
 import database.DBSet;
 import database.NameMap;
+import lang.Lang;
+import lang.LangFile;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.blockexplorer.BlockExplorer;
 import qora.crypto.Base58;
 import qora.crypto.Base64;
 import qora.naming.Name;
+import qora.payment.Payment;
 import qora.transaction.ArbitraryTransaction;
 import qora.transaction.Transaction;
 import qora.web.BlogBlackWhiteList;
@@ -85,7 +87,6 @@ import settings.Settings;
 import utils.AccountBalanceComparator;
 import utils.BlogUtils;
 import utils.DiffHelper;
-import utils.JSonWriter;
 import utils.NameUtils;
 import utils.NameUtils.NameResult;
 import utils.Pair;
@@ -100,6 +101,8 @@ public class WebResource {
 	@Context
 	HttpServletRequest request;
 
+	
+	private static final Logger LOGGER = Logger.getLogger(WebResource.class);
 	@GET
 	public Response Default() {
 
@@ -140,7 +143,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -173,7 +176,7 @@ public class WebResource {
 
 		return Response.status(200)
 				.header("Content-Type", "application/json; charset=utf-8")
-				.entity(StrJSonFine.convert(JSONValue.toJSONString(output)))
+				.entity(StrJSonFine.convert(output))
 				.build();
 	}
 
@@ -192,7 +195,7 @@ public class WebResource {
 
 			return Response.ok(content, "text/html; charset=utf-8").build();
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -217,7 +220,7 @@ public class WebResource {
 					"text/html; charset=utf-8").build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -306,14 +309,13 @@ public class WebResource {
 			} else {
 				pebbleHelper
 						.getContextMap()
-						.put("result",
-								"<div class=\"alert alert-danger\" role=\"alert\">You need to register a name to create a website.<br></div>");
+						.put("result", "needToRegisterAName");
 			}
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -332,7 +334,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -385,7 +387,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -401,7 +403,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -421,7 +423,7 @@ public class WebResource {
 			return enhanceAndShowWebsite(website);
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -438,12 +440,8 @@ public class WebResource {
 		String apiurl = form.getFirst("apiurl");
 
 		String jsonContent = form.getFirst("json");
-		JSONObject json = new JSONObject();
 		JSONObject jsonanswer = new JSONObject();
-		if (StringUtils.isNotBlank(jsonContent)) {
-			json = (JSONObject) JSONValue.parse(jsonContent);
-		}
-
+		
 		if (StringUtils.isBlank(type)
 				|| (!type.equalsIgnoreCase("get")
 						&& !type.equalsIgnoreCase("post") && !type
@@ -455,6 +453,7 @@ public class WebResource {
 
 			return Response.status(200)
 					.header("Content-Type", "application/json; charset=utf-8")
+					.header("Access-Control-Allow-Origin", "*")
 					.entity(jsonanswer.toJSONString()).build();
 		}
 
@@ -465,6 +464,7 @@ public class WebResource {
 
 			return Response.status(200)
 					.header("Content-Type", "application/json; charset=utf-8")
+					.header("Access-Control-Allow-Origin", "*")
 					.entity(jsonanswer.toJSONString()).build();
 		}
 
@@ -484,7 +484,7 @@ public class WebResource {
 		if (type.equalsIgnoreCase("POST")) {
 			connection.setDoOutput(true);
 			connection.getOutputStream().write(
-					json.toJSONString().getBytes(StandardCharsets.UTF_8));
+					jsonContent.getBytes(StandardCharsets.UTF_8));
 			connection.getOutputStream().flush();
 			connection.getOutputStream().close();
 		}
@@ -506,12 +506,14 @@ public class WebResource {
 			jsonanswer.put("errordetail", result);
 			return Response.status(200)
 					.header("Content-Type", "application/json; charset=utf-8")
+					.header("Access-Control-Allow-Origin", "*")
 					.entity(jsonanswer.toJSONString()).build();
 		} else {
 			jsonanswer.put("type", "success");
 			jsonanswer.put("result", result);
 			return Response.status(200)
 					.header("Content-Type", "application/json; charset=utf-8")
+					.header("Access-Control-Allow-Origin", "*")
 					.entity(jsonanswer.toJSONString()).build();
 		}
 
@@ -549,7 +551,7 @@ public class WebResource {
 					.entity(json.toJSONString()).build();
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 		}
 
 		return null;
@@ -641,7 +643,7 @@ public class WebResource {
 				}
 
 			} catch (Throwable e) {
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(),e);
 			}
 
 			if (storageJsonObject == null) {
@@ -739,7 +741,7 @@ public class WebResource {
 
 			try {
 
-				profile.saveProfile();
+				profile.saveProfile(null);
 
 				json.put("type", "settingsSuccessfullySaved");
 				return Response
@@ -762,7 +764,7 @@ public class WebResource {
 			}
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 
 			json.put("type", "error");
 			json.put("error", e.getMessage());
@@ -806,7 +808,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -840,8 +842,7 @@ public class WebResource {
 		} else {
 			pebbleHelper
 					.getContextMap()
-					.put("result",
-							"<div class=\"alert alert-danger\" role=\"alert\">You need to register a name to create a profile.<br></div>");
+					.put("result", "needToRegisterAName");
 		}
 	}
 
@@ -868,7 +869,7 @@ public class WebResource {
 					"text/html; charset=utf-8").build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -884,7 +885,7 @@ public class WebResource {
 
 			pebbleHelper.getContextMap().put(
 					"walletstatus",
-					Controller.getInstance().isWalletUnlocked() ?  "<img src=\"/index/img/unlocked.png\" /> Wallet is unlocked" : "<img src=\"/index/img/locked.png\" /> Wallet is locked");
+					Controller.getInstance().isWalletUnlocked() ?  "<img src=\"/index/img/unlocked.png\" /> <span class=\"translate\">Wallet is unlocked</span>" : "<img src=\"/index/img/locked.png\" /> <span class=\"translate\">Wallet is locked</span>");
 			pebbleHelper.getContextMap().put(
 					"forgestatus",
 					Controller.getInstance().getForgingStatus().getName());
@@ -897,19 +898,19 @@ public class WebResource {
 			//TODO this needs to be moved to another place
 			
 			if(Controller.getInstance().getWalletSyncHeight() > 0) {
-				statustext = "Wallet Synchronizing ";
+				statustext = "<span class=\"translate\">Wallet Synchronizing</span> ";
 				statustext += 100 * Controller.getInstance().getWalletSyncHeight()/Controller.getInstance().getHeight() + "%<br>";
-				statustext += "Height: " + Controller.getInstance().getWalletSyncHeight() + "/" + Controller.getInstance().getHeight() + "/" + Controller.getInstance().getMaxPeerHeight();
+				statustext += "<span class=\"translate\">Height</span>: " + Controller.getInstance().getWalletSyncHeight() + "/" + Controller.getInstance().getHeight() + "/" + Controller.getInstance().getMaxPeerHeight();
 			} else if(status == Controller.STATUS_OK) {
 				statustext = "OK<br>";
-				statustext += "Height: " + Controller.getInstance().getHeight();
+				statustext += "<span class=\"translate\">Height</span>: " + Controller.getInstance().getHeight();
 			} else if(status == Controller.STATUS_NO_CONNECTIONS) {
-				statustext = "No connections<br>";
-				statustext += "Height: " + Controller.getInstance().getHeight();
+				statustext = "<span class=\"translate\">No connections</span><br>";
+				statustext += "<span class=\"translate\">Height</span>: " + Controller.getInstance().getHeight();
 			} else if(status == Controller.STATUS_SYNCHRONIZING) {
-				statustext = "Synchronizing ";
+				statustext = "<span class=\"translate\">Synchronizing</span> ";
 				statustext += 100 * Controller.getInstance().getHeight()/Controller.getInstance().getMaxPeerHeight() + "%<br>";
-				statustext += "Height: " + Controller.getInstance().getHeight() + "/" + Controller.getInstance().getMaxPeerHeight();
+				statustext += "<span class=\"translate\">Height</span>: " + Controller.getInstance().getHeight() + "/" + Controller.getInstance().getMaxPeerHeight();
 			} 
 						
 			pebbleHelper.getContextMap().put(
@@ -919,7 +920,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (PebbleException e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return Response.status(404).build();
 		}
 	}
@@ -1130,6 +1131,18 @@ public class WebResource {
 		}
 	}
 
+	@Path("index/libs/js/clipboard.js")
+	@GET
+	public Response clipboard() {
+		File file = new File("web/libs/js/clipboard.js");
+
+		if (file.exists()) {
+			return Response.ok(file, "text/javascript").build();
+		} else {
+			return error404(request, null);
+		}
+	}
+
 	@Path("index/libs/js/third-party/ZeroClipboard.min.js")
 	@GET
 	public Response ZeroClipboardmin() {
@@ -1141,7 +1154,7 @@ public class WebResource {
 			return error404(request, null);
 		}
 	}
-
+	
 	@Path("index/libs/js/third-party/ZeroClipboard.swf")
 	@GET
 	public Response ZeroClipboard() {
@@ -1393,9 +1406,7 @@ public class WebResource {
 
 				pebbleHelper
 						.getContextMap()
-						.put("errormessage",
-								"<div id=\"result\"><div class=\"alert alert-dismissible alert-danger\" role=\"alert\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\">x</button>You can't post to this blog! None of your accounts has balance or the blog owner did not allow your accounts to post!<br></div></div>");
-
+						.put("errormessage", "you_can_t_post_to_this_blog");
 			}
 
 			Profile activeProfileOpt = ProfileHelper.getInstance()
@@ -1412,7 +1423,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -1470,9 +1481,7 @@ public class WebResource {
 
 				pebbleHelper
 						.getContextMap()
-						.put("errormessage",
-								"<div id=\"result\"><div class=\"alert alert-dismissible alert-danger\" role=\"alert\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\">x</button>You can't post to this blog! None of your accounts has balance or the blog owner did not allow your accounts to post!<br></div></div>");
-
+						.put("errormessage", "you_can_t_post_to_this_blog");
 			}
 
 			Profile activeProfileOpt = ProfileHelper.getInstance()
@@ -1489,7 +1498,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -1570,7 +1579,7 @@ public class WebResource {
 							try {
 
 								activeProfileOpt.addFollowedBlog(blogname);
-								result = activeProfileOpt.saveProfile();
+								result = activeProfileOpt.saveProfile(null);
 								result = "<div class=\"alert alert-success\" role=\"alert\">You follow this blog now<br>"
 										+ result + "</div>";
 
@@ -1611,7 +1620,7 @@ public class WebResource {
 							activeProfileOpt.removeFollowedBlog(blogname);
 							String result;
 							try {
-								result = activeProfileOpt.saveProfile();
+								result = activeProfileOpt.saveProfile(null);
 								result = "<div class=\"alert alert-success\" role=\"alert\">Unfollow successful<br>"
 										+ result + "</div>";
 
@@ -1647,7 +1656,7 @@ public class WebResource {
 
 			return getBlog(null);
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return Response.status(200)
 					.header("Content-Type", "application/json; charset=utf-8")
 					.entity("{}").build();
@@ -1698,11 +1707,6 @@ public class WebResource {
 
 				String creator = BlogUtils.getCreatorOrBlogOwnerOpt(blogEntryOpt);
 				
-				
-//				if(profileOpt != null && )
-				
-				
-
 				if (creator == null) {
 					jsonanswer.put("type", "deleteError");
 					jsonanswer
@@ -1753,7 +1757,7 @@ public class WebResource {
 					.entity(jsonanswer.toJSONString()).build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 
 			jsonanswer.put("type", "deleteError");
 			jsonanswer.put("errordetail", e.getMessage());
@@ -1836,7 +1840,7 @@ public class WebResource {
 					jsonanswer.put("type", "deleteError");
 					jsonanswer
 							.put("errordetail",
-									"You are not allowed to delete this post!You need to be owner of the blog or author of the blogpost!");
+									"You are not allowed to delete this post! You need to be owner of the blog or author of the blogpost!");
 
 					return Response
 							.status(200)
@@ -1882,7 +1886,7 @@ public class WebResource {
 					.entity(jsonanswer.toJSONString()).build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 
 			jsonanswer.put("type", "deleteError");
 			jsonanswer.put("errordetail", e.getMessage());
@@ -1987,7 +1991,7 @@ public class WebResource {
 			}
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 
 			json.put("type", "error");
 			json.put("error", e.getMessage());
@@ -2066,7 +2070,15 @@ public class WebResource {
 						activeProfileOpt.addLikePost(signature);
 						try {
 
-							result = activeProfileOpt.saveProfile();
+							String creator = blogEntryOpt.getCreator();
+							List<Payment> payments = new ArrayList<>();
+							if(creator != null)
+							{
+								BigDecimal amount = BigDecimal.TEN;
+								amount = amount.setScale(8);
+								payments.add(new Payment(new Account(creator), 0L,amount ));
+							}
+							result = activeProfileOpt.saveProfile(payments);
 
 							json.put("type", "LikeSuccessful");
 							json.put("result", result);
@@ -2089,7 +2101,7 @@ public class WebResource {
 							activeProfileOpt.removeLikeProfile(signature);
 							String result;
 							try {
-								result = activeProfileOpt.saveProfile();
+								result = activeProfileOpt.saveProfile(null);
 
 								json.put("type", "LikeRemovedSuccessful");
 								json.put("result", result);
@@ -2113,7 +2125,7 @@ public class WebResource {
 			}
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 
 			json.put("type", "error");
 			json.put("error", e.getMessage());
@@ -2174,7 +2186,7 @@ public class WebResource {
 					"text/html; charset=utf-8").build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -2245,7 +2257,7 @@ public class WebResource {
 					"text/html; charset=utf-8").build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -2320,7 +2332,7 @@ public class WebResource {
 					"text/html; charset=utf-8").build();
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -2430,7 +2442,7 @@ public class WebResource {
 			return Response.ok(pebbleHelper.evaluate(),
 					"text/html; charset=utf-8").build();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}
@@ -2459,6 +2471,18 @@ public class WebResource {
 		}
 	}
 
+	@Path("/index/libs/third-party/jquery.cookie.js")
+	@GET
+	public Response getjquerycookiejs() {
+		File file = new File("web/libs/js/third-party/jquery.cookie.js");
+
+		if (file.exists()) {
+			return Response.ok(file, "text/javascript").build();
+		} else {
+			return error404(request, null);
+		}
+	}
+
 	@Path("/index/libs/third-party/jquery.form.min.js")
 	@GET
 	public Response getFormMin() {
@@ -2470,7 +2494,7 @@ public class WebResource {
 			return error404(request, null);
 		}
 	}
-
+	
 	@Path("index/libs/jquery/jquery.{version}.js")
 	@GET
 	public Response jquery(@PathParam("version") String version) {
@@ -3003,6 +3027,76 @@ public class WebResource {
 			return error404(request, null);
 		}
 	}
+
+	@SuppressWarnings("unchecked")
+	@Path("index/translation/available.json")
+	@GET
+	public Response availabletranslationsjson() {
+
+		JSONArray langlist = new JSONArray();
+		for (LangFile langFile : Lang.getInstance().getLangListAvailable()) {
+			JSONObject lang = new JSONObject();
+			lang.put("file", langFile.getFileName());
+			lang.put("name", langFile.getName());
+			lang.put("selected", langFile.getFileName().equals(Settings.getInstance().getLang()));
+			langlist.add(lang);
+		}
+
+		return Response.status(200)
+				.header("Content-Type", "application/json; charset=utf-8")
+				.entity(StrJSonFine.convert(langlist))
+				.build();
+	}
+	
+	@Path("index/translation/{filename}")
+	@GET
+	public Response translationjson(@PathParam("filename") String filename) {
+
+		if(filename.equals("en.json"))
+		{
+			return Response.status(200)
+					.header("Content-Type", "application/json; charset=utf-8")
+					.entity("{}")
+					.build();
+		}
+		
+		if( !Lang.getInstance().getFileListAvailable().contains(filename) )
+		{
+			filename = Settings.getInstance().getLang();
+		}
+		
+		File file = new File("languages/" + filename);
+		
+		if (file.exists()) {
+			return Response.ok(file, "application/json").build();
+		} else {
+			return error404(request, null);
+		}
+	}
+	
+	@Path("index/libs/js/translation.js")
+	@GET
+	public Response translationjs() {
+		File file = new File("web/libs/js/translation.js");
+
+		if (file.exists()) {
+			return Response.ok(file, "text/javascript").build();
+		} else {
+			return error404(request, null);
+		}
+	}
+	
+	@Path("index/libs/js/third-party/qrcode.js")
+	@GET
+	public Response qrcodejs() {
+		File file = new File("web/libs/js/third-party/qrcode.js");
+
+		if (file.exists()) {
+			return Response.ok(file, "text/javascript").build();
+		} else {
+			return error404(request, null);
+		}
+	}
 	
 	public Response error404(HttpServletRequest request, String titleOpt) {
 
@@ -3019,7 +3113,7 @@ public class WebResource {
 					.header("Content-Type", "text/html; charset=utf-8")
 					.entity(pebbleHelper.evaluate()).build();
 		} catch (PebbleException e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return Response.status(404).build();
 		}
 	}
@@ -3064,7 +3158,7 @@ public class WebResource {
 			}
 
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 
@@ -3075,29 +3169,8 @@ public class WebResource {
 			return readFile("web/main.mini.html", StandardCharsets.UTF_8);
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return "ERROR";
-		}
-	}
-
-	public String jsonToFineSting(String str) {
-		Writer writer = new JSonWriter();
-		Object jsonResult = JSONValue.parse(str);
-
-		try {
-			if (jsonResult instanceof JSONArray) {
-				((JSONArray) jsonResult).writeJSONString(writer);
-				return writer.toString();
-			}
-			if (jsonResult instanceof JSONObject) {
-				((JSONObject) jsonResult).writeJSONString(writer);
-				return writer.toString();
-			}
-			writer.close();
-			return "";
-		} catch (IOException e) {
-			e.printStackTrace();
-			return "";
 		}
 	}
 
@@ -3122,7 +3195,7 @@ public class WebResource {
 				try {
 					return error404(request, "This key is empty");
 				} catch (Throwable e) {
-					e.printStackTrace();
+					LOGGER.error(e.getMessage(),e);
 					return error404(request, null);
 				}
 
@@ -3130,7 +3203,7 @@ public class WebResource {
 
 			return enhanceAndShowWebsite(website);
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(), e);
 			return error404(request, null);
 		}
 	}
@@ -3156,7 +3229,7 @@ public class WebResource {
 							request,
 							"This name has currently no <a href=\"/index/namestorage.html\">website<a/>!");
 				} catch (Throwable e) {
-					e.printStackTrace();
+					LOGGER.error(e.getMessage(),e);
 					return error404(request, null);
 				}
 
@@ -3164,7 +3237,7 @@ public class WebResource {
 
 			return enhanceAndShowWebsite(website);
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 			return error404(request, null);
 		}
 	}

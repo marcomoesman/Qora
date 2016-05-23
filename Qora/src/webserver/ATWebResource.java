@@ -53,7 +53,7 @@ public class ATWebResource {
 		Collection<String> ats = DBSet.getInstance().getATMap().getTypeATsList(type);
 		for (String at : ats)
 		{
-			String[] tags = DBSet.getInstance().getATMap().get(at).getTags().split(",");;
+			String[] tags = DBSet.getInstance().getATMap().get(at).getTags().split(",");
 			
 			for (String tag : tags)
 			{
@@ -215,7 +215,7 @@ public class ATWebResource {
 	
 	public List<Transaction> getMessageTransactions(String address)
 	{
-		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().getTransactionsByTypeAndAddress(address, 17, 50);
+		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().getTransactionsByTypeAndAddress(address, Transaction.MESSAGE_TRANSACTION, 50);
 		return txs;
 		
 	}

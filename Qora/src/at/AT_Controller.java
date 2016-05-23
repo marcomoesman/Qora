@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import qora.account.Account;
@@ -27,6 +28,8 @@ import database.DBSet;
 
 public abstract class AT_Controller {
 
+	
+	private static final Logger LOGGER = Logger.getLogger(AT_Controller.class);
 
 	public static int runSteps( AT_Machine_State state , int blockHeight )
 	{
@@ -317,7 +320,7 @@ public abstract class AT_Controller {
 				}
 				catch ( Exception e )
 				{
-					e.printStackTrace();
+					LOGGER.error(e.getMessage(),e);
 
 				}
 			}
@@ -343,7 +346,7 @@ public abstract class AT_Controller {
 		catch ( NoSuchAlgorithmException e )
 		{
 			//should not reach ever here
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 		}
 
 
@@ -354,7 +357,7 @@ public abstract class AT_Controller {
 
 	public static AT_Block validateATs( byte[] blockATs , int blockHeight , DBSet dbSet ) throws NoSuchAlgorithmException, AT_Exception {
 
-		System.out.println("Validate ATs");
+		LOGGER.trace("Validate ATs");
 		if ( blockATs == null )
 		{
 			return new AT_Block( 0 , 0 , null , true );
@@ -429,7 +432,7 @@ public abstract class AT_Controller {
 			}
 			catch ( Exception e )
 			{
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(),e);
 				throw new AT_Exception( "ATs error. Block rejected" );
 			}
 		}
@@ -441,7 +444,7 @@ public abstract class AT_Controller {
 		{
 			String atId = Base58.encode( at.getId() );
 			Account account = new Account(atId);
-			System.out.println("AT : " + account.getAddress() + " total balance: " + account.getConfirmedBalance(dbSet));
+			LOGGER.trace("AT : " + account.getAddress() + " total balance: " + account.getConfirmedBalance(dbSet));
 			//atLastState.put( atId ,  tempAtStates.get( atId ) );
 			dbSet.getATMap().update( at , blockHeight );
 			dbSet.getATStateMap().addOrUpdate( blockHeight , at.getId(), at.getState() );
@@ -551,7 +554,7 @@ public abstract class AT_Controller {
 					totalFees += tx.getAmount();
 				}
 				sender.setConfirmedBalance( sender.getConfirmedBalance( dbSet ).subtract( BigDecimal.valueOf( tx.getAmount() , 8 ) ) , dbSet );
-				System.out.println("Sender :" + sender.getAddress() + " total balance :" + sender.getConfirmedBalance(dbSet));
+				LOGGER.trace("Sender :" + sender.getAddress() + " total balance :" + sender.getConfirmedBalance(dbSet));
 			}
 
 		}

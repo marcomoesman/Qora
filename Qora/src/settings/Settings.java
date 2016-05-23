@@ -9,12 +9,12 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -23,11 +23,14 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import controller.Controller;
+import lang.Lang;
 import network.Peer;
 import ntp.NTP;
 
 public class Settings {
 
+	
+	private static final Logger LOGGER = Logger.getLogger(Settings.class);
 	//NETWORK
 	private static final int DEFAULT_MIN_CONNECTIONS = 10;
 	private static final int DEFAULT_MAX_CONNECTIONS = 50;
@@ -36,7 +39,6 @@ public class Settings {
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 10000;
 	private static final int DEFAULT_PING_INTERVAL = 30000;
 	private static final boolean DEFAULT_TRYING_CONNECT_TO_BAD_PEERS = true;
-	private static final String[] DEFAULT_PEERS = { };
 
 	//TESTNET 
 	public static final long DEFAULT_MAINNET_STAMP = 1400247274336L; // QORA RELEASE
@@ -58,9 +60,6 @@ public class Settings {
 	//GUI
 	private static final boolean DEFAULT_GUI_ENABLED = true;
 	
-	//SETTINGS.JSON FILE
-	private static final String DEFAULT_SETTINGS_PATH = "settings.json";
-	
 	//DATA
 	private static final String DEFAULT_DATA_DIR = "data";
 	private static final String DEFAULT_WALLET_DIR = "wallet";
@@ -76,26 +75,30 @@ public class Settings {
 	private static final boolean ALLOW_FEE_LESS_REQUIRED = false;
 	
 	private static final BigDecimal DEFAULT_BIG_FEE = new BigDecimal(1000);
-	private static final String DEFAULT_BIG_FEE_MESSAGE = "Do you really want to set such a large fee?\nThese coins will go to the forgers.";
-	
+
 	//DATE FORMAT
 	private static final String DEFAULT_TIME_ZONE = "";
 	private static final String DEFAULT_TIME_FORMAT = "";
 	
 	private static final boolean DEFAULT_NS_UPDATE = false;
+	private static final boolean DEFAULT_FORGING_ENABLED = true;
+	
+	public static String DEFAULT_LANGUAGE = "en.json";
 	
 	private static Settings instance;
 	
 	private JSONObject settingsJSON;
 	private JSONObject peersJSON;
 
-	private String currentSettingsPath;
-	private String currentPeersPath;
-	
+	private String userPath = "";
+
 	private InetAddress localAddress;
 	
 	List<Peer> cacheInternetPeers;
 	long timeLoadInternetPeers;
+
+	private String[] defaultPeers = { };
+
 	
 	public static Settings getInstance()
 	{
@@ -119,15 +122,14 @@ public class Settings {
 	{
 		this.localAddress = this.getCurrentIp();
 		int alreadyPassed = 0;
-		String settingsFilePath = "settings.json";
 		
+		File file = new File("");
 		try
 		{
 			while(alreadyPassed<2)
 			{
 				//OPEN FILE
-				File file = new File(settingsFilePath);
-				currentSettingsPath = settingsFilePath;
+				file = new File(this.userPath + "settings.json");
 				
 				//CREATE FILE IF IT DOESNT EXIST
 				if(!file.exists())
@@ -140,17 +142,30 @@ public class Settings {
 				
 				String jsonString = "";
 				for(String line : lines){
+					
+					//correcting single backslash bug
+					if(line.contains("userpath"))
+					{
+						line = line.replace("\\", "/");
+					}
+					
 					jsonString += line;
 				}
 				
 				//CREATE JSON OBJECT
 				this.settingsJSON = (JSONObject) JSONValue.parse(jsonString);
+				settingsJSON =	settingsJSON == null ? new JSONObject() : settingsJSON;
 				
 				alreadyPassed++;
 				
-				if(this.settingsJSON.containsKey("settingspath"))
+				if(this.settingsJSON.containsKey("userpath"))
 				{
-					settingsFilePath = (String) this.settingsJSON.get("settingspath");
+					this.userPath = (String) this.settingsJSON.get("userpath");
+					
+					if (!(this.userPath.endsWith("\\") || this.userPath.endsWith("/")))
+					{
+						this.userPath += "/"; 
+					}
 				}
 				else
 				{
@@ -160,16 +175,16 @@ public class Settings {
 		}
 		catch(Exception e)
 		{
-			//STOP
-			System.out.println("ERROR reading settings.json. closing");
-			System.exit(0);
+			LOGGER.info("Error while reading/creating settings.json " + file.getAbsolutePath() + " using default!");
+			LOGGER.error(e.getMessage(),e);
+			settingsJSON =	new JSONObject();
 		}
 		
 		//TRY READ PEERS.JSON
 		try
 		{
 			//OPEN FILE
-			File file = new File(this.getCurrentPeersPath());
+			file = new File(this.getPeersPath());
 			
 			//CREATE FILE IF IT DOESNT EXIST
 			if(file.exists())
@@ -191,37 +206,50 @@ public class Settings {
 		}
 		catch(Exception e)
 		{
-			//STOP
-			System.out.println("ERROR reading peers.json.");
-			System.exit(0);
+			LOGGER.info("Error while reading peers.json " + file.getAbsolutePath() + " using default!");
+			LOGGER.error(e.getMessage(),e);
+			this.peersJSON = new JSONObject();
 		}
 	}
 	
 	public JSONObject Dump()
 	{
-		return settingsJSON;
+		return (JSONObject) settingsJSON.clone();
 	}
 	
-	public String getCurrentSettingsPath()
+	public void setDefaultPeers(String[] peers)
 	{
-		return currentSettingsPath;
+		this.defaultPeers = peers;
 	}
 	
-	public String getCurrentPeersPath()
+	public String getSettingsPath()
 	{
-		if(this.currentPeersPath == null) {
-			if(this.currentSettingsPath == "settings.json" || this.currentSettingsPath == "") {
-				this.currentPeersPath = "peers.json";
-			} else {
-				File file = new File(this.currentSettingsPath);
-			    if(file.exists()){
-			    	this.currentPeersPath = file.getAbsoluteFile().getParent() + "/peers.json";
-			    } else {
-			    	this.currentPeersPath = "peers.json";
-			    }
-			}
-		}
-		return this.currentPeersPath;
+		return this.userPath + "settings.json";
+	}
+	
+	public String getPeersPath()
+	{
+		return this.userPath + "peers.json";
+	}
+	
+	public String getWalletDir()
+	{
+		return this.getUserPath() + DEFAULT_WALLET_DIR;
+	}
+	
+	public String getDataDir()
+	{
+		return this.getUserPath() + DEFAULT_DATA_DIR;
+	}
+	
+	public String getLangDir()
+	{
+		return this.getUserPath() + "languages";
+	}
+	
+	public String getUserPath()
+	{
+		return this.userPath;
 	}
 	
 	public JSONArray getPeersJson()
@@ -244,7 +272,7 @@ public class Settings {
 				NTP.getTime() - Controller.getInstance().getToOfflineTime() > 5*60*1000
 				);
 			
-			List<Peer> knownPeers = new ArrayList<Peer>();
+			List<Peer> knownPeers = new ArrayList<>();
 			JSONArray peersArray = new JSONArray();
 	
 			try {
@@ -259,7 +287,8 @@ public class Settings {
 					}
 				}
 			} catch (Exception e) {
-				Logger.getGlobal().info("Error with loading knownpeers from settings.json.");
+				LOGGER.error(e.getMessage(),e);
+				LOGGER.info("Error with loading knownpeers from settings.json.");
 			}
 			
 			try {
@@ -275,20 +304,24 @@ public class Settings {
 				}
 				
 			} catch (Exception e) {
-				Logger.getGlobal().info("Error with loading knownpeers from peers.json.");
+				LOGGER.error(e.getMessage(),e);
+				LOGGER.info("Error with loading knownpeers from peers.json.");
 			}
 			
-			knownPeers = getKnownPeersFromJSONArray(peersArray);
+			knownPeers.addAll(this.getPeersFromDefault());
+			
+			knownPeers.addAll(getKnownPeersFromJSONArray(peersArray));
 			
 			if(knownPeers.size() == 0 || loadPeersFromInternet)
 			{
-				knownPeers = getKnownPeersFromInternet();
+				knownPeers.addAll(getKnownPeersFromInternet());
 			}
-				
+			
 			return knownPeers;
 		
 		} catch (Exception e) {
-			Logger.getGlobal().info("Error in getKnownPeers().");
+			LOGGER.error(e.getMessage(),e);
+			LOGGER.info("Error in getKnownPeers().");
 			return new ArrayList<Peer>();
 		}
 	}
@@ -314,32 +347,53 @@ public class Settings {
 					this.cacheInternetPeers = getKnownPeersFromJSONArray(peersArray);
 				}
 			}
-			
-			Logger.getGlobal().info("Peers loaded from Internet : " + this.cacheInternetPeers.size());
+		
+			LOGGER.info(Lang.getInstance().translate("Peers loaded from Internet : ") + this.cacheInternetPeers.size());
 
 			return this.cacheInternetPeers;
 			
 		} catch (Exception e) {
 			//RETURN EMPTY LIST
 
-			Logger.getGlobal().info("Peers loaded from Internet with errors : " + this.cacheInternetPeers.size());
+			LOGGER.debug(e.getMessage(),e);
+			LOGGER.info(Lang.getInstance().translate("Peers loaded from Internet with errors : ") + this.cacheInternetPeers.size());
 						
 			return this.cacheInternetPeers;
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
+	public List<Peer> getPeersFromDefault()
+	{
+		List<Peer> peers = new ArrayList<Peer>();
+		for(int i=0; i<this.defaultPeers.length; i++)
+		{
+			try
+			{
+				InetAddress address = InetAddress.getByName(this.defaultPeers[i]);
+				
+				if(!this.isLocalAddress(address))
+				{
+					//CREATE PEER
+					Peer peer = new Peer(address);
+								
+					//ADD TO LIST
+					peers.add(peer);
+				}
+			}catch(Exception e)
+			{
+				LOGGER.debug(e.getMessage(),e);
+				LOGGER.info(this.defaultPeers[i] + " - invalid peer address!");
+			}
+		}
+		return peers;
+	}
+	
 	public List<Peer> getKnownPeersFromJSONArray(JSONArray peersArray)
 	{
 		try
 		{
-			//GET PEERS FROM JSON
-			
-			if(peersArray.isEmpty())
-				peersArray.addAll(Arrays.asList(DEFAULT_PEERS));
-				
 			//CREATE LIST WITH PEERS
-			List<Peer> peers = new ArrayList<Peer>();
+			List<Peer> peers = new ArrayList<>();
 			
 			for(int i=0; i<peersArray.size(); i++)
 			{
@@ -357,7 +411,8 @@ public class Settings {
 					}
 				}catch(Exception e)
 				{
-					Logger.getGlobal().info((String) peersArray.get(i) + " - invalid peer address!");
+					LOGGER.debug(e.getMessage(),e);
+					LOGGER.info((String) peersArray.get(i) + " - invalid peer address!");
 				}
 			}
 			
@@ -577,34 +632,18 @@ public class Settings {
 		return DEFAULT_NS_UPDATE;
 	}
 	
-	public String getWalletDir()
+	public boolean isForgingEnabled() 
 	{
-		if(this.settingsJSON.containsKey("walletdir"))
-		{
-			return (String) this.settingsJSON.get("walletdir");
+		try {
+			if(this.settingsJSON.containsKey("forging"))
+			{
+				return ((Boolean) this.settingsJSON.get("forging")).booleanValue();
+			}
+		} catch (Exception e) {
+			LOGGER.error("Bad Settings.json content for parameter forging " + ExceptionUtils.getStackTrace(e));
 		}
 		
-		return DEFAULT_WALLET_DIR;
-	}
-	
-	public String getDataDir()
-	{
-		if(this.settingsJSON.containsKey("datadir"))
-		{
-			return (String) this.settingsJSON.get("datadir");
-		}
-		
-		return DEFAULT_DATA_DIR;
-	}
-	
-	public String getSettingsPath()
-	{
-		if(this.settingsJSON.containsKey("settingspath"))
-		{
-			return (String) this.settingsJSON.get("settingspath");
-		}
-		
-		return DEFAULT_SETTINGS_PATH;
+		return DEFAULT_FORGING_ENABLED;
 	}
 	
 	public int getPingInterval()
@@ -692,11 +731,6 @@ public class Settings {
 		return DEFAULT_BIG_FEE;
 	}
 	
-	public String getBigFeeMessage() 
-	{
-		return DEFAULT_BIG_FEE_MESSAGE;
-	}
-
 	public boolean isGuiEnabled() 
 	{
 		
@@ -778,4 +812,14 @@ public class Settings {
 		return null;
     }
 
+	public String getLang()
+	{
+		if(this.settingsJSON.containsKey("lang"))
+		{
+			return ((String) this.settingsJSON.get("lang").toString());
+		}
+		
+		return DEFAULT_LANGUAGE;
+	}
+	
 }

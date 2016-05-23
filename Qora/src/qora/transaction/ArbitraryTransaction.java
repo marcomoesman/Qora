@@ -3,9 +3,13 @@ package qora.transaction;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -17,7 +21,6 @@ import api.BlogPostResource;
 import database.BalanceMap;
 import database.DBSet;
 import qora.account.Account;
-import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
 import qora.naming.Name;
@@ -32,7 +35,9 @@ public abstract class ArbitraryTransaction extends Transaction {
 	protected PublicKeyAccount creator;
 	protected int service;
 	protected byte[] data;
-
+	
+	private static final Logger LOGGER = Logger
+			.getLogger(ArbitraryTransaction.class);
 	protected List<Payment> payments;
 	
 	public ArbitraryTransaction(BigDecimal fee, long timestamp, byte[] reference, byte[] signature) {
@@ -120,41 +125,26 @@ public abstract class ArbitraryTransaction extends Transaction {
 		}
 	}
 	
-	public static byte[] generateSignature(DBSet db, PrivateKeyAccount creator,
-			int service, byte[] arbitraryData, BigDecimal fee, long timestamp) {
-
-		if(timestamp < Transaction.getPOWFIX_RELEASE()) {
-			return ArbitraryTransactionV1.generateSignature(db, creator, service, 
-					arbitraryData, fee, timestamp);	
-		} else {
-			return ArbitraryTransactionV3.generateSignature(db, creator, null, service, 
-					arbitraryData, fee, timestamp);	
-		}
-	}
-	
-	public static byte[] generateSignature(DBSet db, PrivateKeyAccount creator, List<Payment> payments,
-			int service, byte[] arbitraryData, BigDecimal fee, long timestamp) {
-
-		if(timestamp < Transaction.getPOWFIX_RELEASE()) {
-			return ArbitraryTransactionV1.generateSignature(db, creator, service, 
-					arbitraryData, fee, timestamp);	
-		} else {
-			return ArbitraryTransactionV3.generateSignature(db, creator, payments, service, 
-					arbitraryData, fee, timestamp);	
-		}
-	}
-	
-	
 	@Override
 	public PublicKeyAccount getCreator() {
 		return this.creator;
 	}
 
 	@Override
-	public List<Account> getInvolvedAccounts() {
-		List<Account> accounts = new ArrayList<Account>();
-
+	public HashSet<Account> getInvolvedAccounts() {
+		HashSet<Account> accounts = new HashSet<>();
+		
 		accounts.add(this.creator);
+		accounts.addAll(this.getRecipientAccounts());
+		
+		return accounts;
+	}
+
+	
+	@Override
+	public HashSet<Account> getRecipientAccounts()
+	{
+		HashSet<Account> accounts = new HashSet<>();
 
 		for (Payment payment : this.payments) {
 			accounts.add(payment.getRecipient());
@@ -162,7 +152,7 @@ public abstract class ArbitraryTransaction extends Transaction {
 
 		return accounts;
 	}
-
+	
 	@Override
 	public boolean isInvolved(Account account) 
 	{
@@ -208,6 +198,22 @@ public abstract class ArbitraryTransaction extends Transaction {
 		return amount;
 	}
 	
+	@Override
+	public Map<String, Map<Long, BigDecimal>> getAssetAmount() 
+	{
+		Map<String, Map<Long, BigDecimal>> assetAmount = new LinkedHashMap<>();
+		
+		assetAmount = subAssetAmount(assetAmount, this.creator.getAddress(), BalanceMap.QORA_KEY, this.fee);
+		
+		for(Payment payment: this.payments)
+		{
+			assetAmount = subAssetAmount(assetAmount, this.creator.getAddress(), payment.getAsset(), payment.getAmount());
+			assetAmount = addAssetAmount(assetAmount, payment.getRecipient().getAddress(), payment.getAsset(), payment.getAmount());
+		}
+		
+		return assetAmount;
+	}
+	
 	// PROCESS/ORPHAN
 	@Override
 	public void process(DBSet db) {
@@ -227,7 +233,7 @@ public abstract class ArbitraryTransaction extends Transaction {
 				addToCommentMapOnDemand(db);
 			}
 		} catch (Throwable e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 		}
 
 		// UPDATE CREATOR

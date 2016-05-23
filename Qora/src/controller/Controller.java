@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.TrayIcon.MessageType;
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -26,7 +27,6 @@ import java.util.Observer;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.swing.JOptionPane;
@@ -34,6 +34,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import com.google.common.primitives.Longs;
@@ -45,6 +46,7 @@ import database.DBSet;
 import database.LocalDataMap;
 import database.SortableList;
 import gui.Gui;
+import lang.Lang;
 import network.Network;
 import network.Peer;
 import network.message.BlockMessage;
@@ -87,11 +89,15 @@ import webserver.WebService;
 
 public class Controller extends Observable {
 
-	private String version = "0.25.1";
-	private String buildTime = "2016-02-17 00:00:00 UTC";
+	
+	
+	
+	private static final Logger LOGGER = Logger.getLogger(Controller.class);
+	private String version = "0.26.0";
+	private String buildTime = "2016-05-24 00:00:00 UTC";
 	private long buildTimestamp;
 	
-	public static final String releaseVersion = "0.25.1";
+	public static final String releaseVersion = "0.26.0";
 
 //	TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -160,7 +166,7 @@ public class Controller extends Observable {
 		        	try {
 						date = (Date)formatter.parse(this.buildTime);
 					} catch (ParseException e) {
-						e.printStackTrace();
+						LOGGER.error(e.getMessage(),e);
 					}
 		        }
 		    }
@@ -184,12 +190,12 @@ public class Controller extends Observable {
 	
 	public void statusInfo()
 	{
-		Logger.getGlobal().info(
-			"STATUS OK\n" 
-			+ "| Last Block Signature: " + Base58.encode(this.blockChain.getLastBlock().getSignature()) + "\n"
-			+ "| Last Block Height: " + this.blockChain.getLastBlock().getHeight() + "\n"
-			+ "| Last Block Time: " + DateTimeFormat.timestamptoString(this.blockChain.getLastBlock().getTimestamp()) + "\n"
-			+ "| Last Block Found " + DateTimeFormat.timeAgo(this.blockChain.getLastBlock().getTimestamp()) + " ago."
+		LOGGER.info(
+			Lang.getInstance().translate("STATUS OK") + "\n" 
+			+ "| " + Lang.getInstance().translate("Last Block Signature") + ": " + Base58.encode(this.blockChain.getLastBlock().getSignature()) + "\n"
+			+ "| " + Lang.getInstance().translate("Last Block Height") + ": " + this.blockChain.getLastBlock().getHeight() + "\n"
+			+ "| " + Lang.getInstance().translate("Last Block Time") + ": " + DateTimeFormat.timestamptoString(this.blockChain.getLastBlock().getTimestamp()) + "\n"
+			+ "| " + Lang.getInstance().translate("Last Block Found %time% ago.").replace("%time%", DateTimeFormat.timeAgo(this.blockChain.getLastBlock().getTimestamp()))
 			);
 	}
 	
@@ -270,25 +276,23 @@ public class Controller extends Observable {
 		
 		// CHECK NETWORK PORT AVAILABLE
 		if (!Network.isPortAvailable(Controller.getInstance().getNetworkPort())) {
-			throw new Exception("Network port " + Controller.getInstance().getNetworkPort()
-					+ " already in use!");
+			throw new Exception(Lang.getInstance().translate("Network port %port% already in use!").
+					replace("%port%", String.valueOf(Controller.getInstance().getNetworkPort())));
 		}
 
 		// CHECK RPC PORT AVAILABLE
 		if (Settings.getInstance().isRpcEnabled()) {
 			if (!Network.isPortAvailable(Settings.getInstance().getRpcPort())) {
-				throw new Exception("Rpc port "
-						+ Settings.getInstance().getRpcPort()
-						+ " already in use!");
+				throw new Exception(Lang.getInstance().translate("Rpc port %port% already in use!").
+						replace("%port%", String.valueOf(Settings.getInstance().getRpcPort())));
 			}
 		}
 
 		// CHECK WEB PORT AVAILABLE
 		if (Settings.getInstance().isWebEnabled()) {
-			if (!Network.isPortAvailable(Settings.getInstance().getWebPort())) {
-				System.out.println("Web port "
-						+ Settings.getInstance().getWebPort()
-						+ " already in use!");
+			if (!Network.isPortAvailable(Settings.getInstance().getWebPort())) {	
+				LOGGER.error(Lang.getInstance().translate("Web port %port% already in use!").
+						replace("%port%", String.valueOf(Settings.getInstance().getWebPort())));
 			}
 		}
 
@@ -311,8 +315,8 @@ public class Controller extends Observable {
 		try {
 			DBSet.getInstance();
 		} catch (Throwable e) {
-			e.printStackTrace();
-			System.out.println("Error during startup detected trying to restore backup database...");
+			LOGGER.error(e.getMessage(),e);
+			LOGGER.info(Lang.getInstance().translate("Error during startup detected trying to restore backup database..."));
 			reCreateDB();
 		}
 
@@ -322,7 +326,7 @@ public class Controller extends Observable {
 			try {
 				DBSet.getInstance().close();
 			} catch (Throwable e) {
-				e.printStackTrace();
+				LOGGER.error(e.getMessage(),e);
 			}
 			reCreateDB();
 		}
@@ -339,11 +343,11 @@ public class Controller extends Observable {
 				DBSet.getInstance().getLocalDataMap().set("nsupdate", "1");
 			}
 			//CREATE TRANSACTIONS FINAL MAP
-			if (DBSet.getInstance().getLocalDataMap().get("txfinalmap") == null )
+			if (DBSet.getInstance().getLocalDataMap().get("txfinalmap") == null || !DBSet.getInstance().getLocalDataMap().get("txfinalmap").equals("2"))
 			{
 				//FIRST NAME STORAGE UPDATE
 				UpdateUtil.repopulateTransactionFinalMap(  );
-				DBSet.getInstance().getLocalDataMap().set("txfinalmap", "1");
+				DBSet.getInstance().getLocalDataMap().set("txfinalmap", "2");
 			}
 			
 			if (DBSet.getInstance().getLocalDataMap().get("blogpostmap") == null ||  !DBSet.getInstance().getLocalDataMap().get("blogpostmap").equals("2"))
@@ -354,7 +358,7 @@ public class Controller extends Observable {
 			}
 		} else {
 			DBSet.getInstance().getLocalDataMap().set("nsupdate", "1");
-			DBSet.getInstance().getLocalDataMap().set("txfinalmap", "1");
+			DBSet.getInstance().getLocalDataMap().set("txfinalmap", "2");
 			DBSet.getInstance().getLocalDataMap().set("blogpostmap", "2");
 		}
 		
@@ -445,7 +449,6 @@ public class Controller extends Observable {
 	
 	public void reCreateDB(boolean useDataBak) throws IOException, Exception {
 		
-
 		File dataDir = new File(Settings.getInstance().getDataDir());
 		if (dataDir.exists()) {
 			// delete data folder
@@ -455,8 +458,24 @@ public class Controller extends Observable {
 			if (useDataBak && dataBak.exists()
 					&& Settings.getInstance().isCheckpointingEnabled()) {
 				FileUtils.copyDirectory(dataBak, dataDir);
-				System.out.println("restoring backup database");
-				DBSet.reCreateDatabase();
+				LOGGER.info(Lang.getInstance().translate("restoring backup database"));
+				try {
+					DBSet.reCreateDatabase();
+				} catch (IOError e) {
+					LOGGER.error(e.getMessage(),e);
+					//backupdb is buggy too starting from scratch
+					if(dataDir.exists())
+					{
+						java.nio.file.Files.walkFileTree(dataDir.toPath(),
+								new SimpleFileVisitorForRecursiveFolderDeletion());
+					}
+					if(dataBak.exists())
+					{
+						java.nio.file.Files.walkFileTree(dataBak.toPath(),
+								new SimpleFileVisitorForRecursiveFolderDeletion());
+					} 
+					DBSet.reCreateDatabase();
+				}
 				
 			} else {
 				DBSet.reCreateDatabase();
@@ -466,9 +485,9 @@ public class Controller extends Observable {
 
 		if (DBSet.getInstance().getBlockMap().isProcessing()) {
 			throw new Exception(
-					"The application was not closed correctly! Delete the folder "
+					Lang.getInstance().translate("The application was not closed correctly! Delete the folder ")
 							+ dataDir.getAbsolutePath()
-							+ " and start the application again.");
+							+ Lang.getInstance().translate(" and start the application again."));
 		}
 	}
 
@@ -586,24 +605,24 @@ public class Controller extends Observable {
 			this.isStopping = true;
 
 			// STOP MESSAGE PROCESSOR
-			Logger.getGlobal().info("Stopping message processor");
+			LOGGER.info(Lang.getInstance().translate("Stopping message processor"));
 			this.network.stop();
 
 			// STOP BLOCK PROCESSOR
-			Logger.getGlobal().info("Stopping block processor");
+			LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
 			this.synchronizer.stop();
 
 			// CLOSE DATABABASE
-			Logger.getGlobal().info("Closing database");
+			LOGGER.info(Lang.getInstance().translate("Closing database"));
 			DBSet.getInstance().close();
 
 			// CLOSE WALLET
-			Logger.getGlobal().info("Closing wallet");
+			LOGGER.info(Lang.getInstance().translate("Closing wallet"));
 			this.wallet.close();
 
 			createDataCheckpoint();
 
-			Logger.getGlobal().info("Closed.");
+			LOGGER.info(Lang.getInstance().translate("Closed."));
 			// FORCE CLOSE
 			System.exit(0);
 		}
@@ -625,13 +644,13 @@ public class Controller extends Observable {
 								dataBak.toPath(),
 								new SimpleFileVisitorForRecursiveFolderDeletion());
 					} catch (IOException e) {
-						e.printStackTrace();
+						LOGGER.error(e.getMessage(),e);
 					}
 				}
 				try {
 					FileUtils.copyDirectory(dataDir, dataBak);
 				} catch (IOException e) {
-					e.printStackTrace();
+					LOGGER.error(e.getMessage(),e);
 				}
 
 			}
@@ -647,10 +666,16 @@ public class Controller extends Observable {
 		return this.network.getActiveConnections();
 	}
 
-	public void walletStatusUpdate(int height) {
+	public void walletSyncStatusUpdate(int height) {
 		this.setChanged();
 		this.notifyObservers(new ObserverMessage(
 				ObserverMessage.WALLET_SYNC_STATUS, height));
+	}
+	
+	public void blockchainSyncStatusUpdate(int height) {
+		this.setChanged();
+		this.notifyObservers(new ObserverMessage(
+				ObserverMessage.BLOCKCHAIN_SYNC_STATUS, height));
 	}
 		
 	public long getToOfflineTime() {
@@ -853,7 +878,7 @@ public class Controller extends Observable {
 				// CHECK IF VALID
 				if (isNewBlockValid
 						&& this.synchronizer.process(block)) {
-					Logger.getGlobal().info("received new valid block");
+					LOGGER.info(Lang.getInstance().translate("received new valid block"));
 
 					// PROCESS
 					// this.synchronizer.process(block);
@@ -884,7 +909,7 @@ public class Controller extends Observable {
 				if (!transaction.isSignatureValid()
 						|| transaction.getType() == Transaction.GENESIS_TRANSACTION) {
 					// DISHONEST PEER
-					this.network.onError(message.getSender(), "invalid transaction signature");
+					this.network.onError(message.getSender(), Lang.getInstance().translate("invalid transaction signature"));
 
 					return;
 				}
@@ -999,7 +1024,7 @@ public class Controller extends Observable {
 				this.synchronizer.synchronize(peer);
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 
 			if (peer != null) {
 				// DISHONEST PEER
@@ -1083,7 +1108,7 @@ public class Controller extends Observable {
 
 	public boolean doesWalletExists() {
 		// CHECK IF WALLET EXISTS
-		return this.wallet.exists();
+		return this.wallet != null && this.wallet.exists();
 	}
 
 	public boolean doesWalletDatabaseExists() {
@@ -1098,7 +1123,7 @@ public class Controller extends Observable {
 	public boolean recoverWallet(byte[] seed, String password, int amount) {
 		if(this.wallet.create(seed, password, amount, false))
 		{
-			Logger.getGlobal().info("Wallet needs to synchronize!");
+			LOGGER.info(Lang.getInstance().translate("Wallet needs to synchronize!"));
 			this.actionAfterConnect();
 			this.setNeedSync(true);
 
@@ -1188,12 +1213,12 @@ public class Controller extends Observable {
 
 		if (!GraphicsEnvironment.isHeadless() &&  (Settings.getInstance().isGuiEnabled() || Settings.getInstance().isSysTrayEnabled()) ) {
 			Gui gui = Gui.getInstance();
-			SysTray.getInstance().sendMessage("INCOMING API CALL",
-					"An API call needs authorization!", MessageType.WARNING);
-			Object[] options = { "Yes", "No" };
+			SysTray.getInstance().sendMessage(Lang.getInstance().translate("INCOMING API CALL"),
+					Lang.getInstance().translate("An API call needs authorization!"), MessageType.WARNING);
+			Object[] options = { Lang.getInstance().translate("Yes"), Lang.getInstance().translate("No") };
 
-			 StringBuilder sb = new StringBuilder("Permission Request: ");
-	            sb.append("Do you want to authorize the following API call?\n\n"
+			 StringBuilder sb = new StringBuilder(Lang.getInstance().translate("Permission Request: "));
+	            sb.append(Lang.getInstance().translate("Do you want to authorize the following API call?\n\n")
 						+ json);
 	            JTextArea jta = new JTextArea(sb.toString());
 	            jta.setLineWrap(true);
@@ -1214,7 +1239,7 @@ public class Controller extends Observable {
 			
 			result = JOptionPane
 					.showOptionDialog(gui,
-							jsp, "INCOMING API CALL",
+							jsp, Lang.getInstance().translate("INCOMING API CALL"),
 							JOptionPane.YES_NO_OPTION,
 							JOptionPane.QUESTION_MESSAGE, null, options,
 							options[1]);
@@ -1693,6 +1718,14 @@ public class Controller extends Observable {
 		}
 	}
 
+	public Pair<Transaction, Integer> createTransactionFromRaw(
+			byte[] rawData) {
+		
+		synchronized (this.transactionCreator) {
+			return this.transactionCreator.createTransactionFromRaw(rawData);
+		}
+	}
+	
 	public Pair<Transaction, Integer> issueAsset(PrivateKeyAccount creator,
 			String name, String description, long quantity, boolean divisible,
 			BigDecimal fee) {

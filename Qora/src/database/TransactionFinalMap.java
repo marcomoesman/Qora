@@ -1,7 +1,6 @@
 package database;
 
 import java.lang.reflect.Array;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -9,6 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.BTreeMap;
@@ -18,10 +19,16 @@ import org.mapdb.DBMaker;
 import org.mapdb.Fun;
 import org.mapdb.Fun.Tuple2;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+
+import database.serializer.TransactionSerializer;
 import qora.account.Account;
+import qora.transaction.ArbitraryTransaction;
 import qora.transaction.GenesisTransaction;
 import qora.transaction.Transaction;
-import database.serializer.TransactionSerializer;
+import utils.BlExpUnit;
 
 public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transaction>
 {
@@ -83,12 +90,8 @@ public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transac
 			@Override
 			public String[] run(Tuple2<Integer, Integer> key, Transaction val) {
 				List<String> recps = new ArrayList<String>();
-				for ( Account acc : val.getInvolvedAccounts())
+				for ( Account acc : val.getRecipientAccounts())
 				{
-					if ( val.getAmount(acc).compareTo( BigDecimal.ZERO) < 0 )
-					{
-						continue;
-					}
 					recps.add(acc.getAddress());
 				}
 				String[] ret = new String[ recps.size() ];
@@ -201,7 +204,6 @@ public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transac
 	{
 		Iterable keys = Fun.filter(this.recipientKey, address);
 		Iterator iter = keys.iterator();
-
 		List<Transaction> txs = new ArrayList<>();
 		int counter=0;
 		while ( iter.hasNext() && (limit ==0 || counter<limit) )
@@ -233,7 +235,7 @@ public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transac
 		
 		return txs;
 	}
-	
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public List<Transaction> getTransactionsByTypeAndAddress(String address, Integer type, int limit)
 	{
@@ -251,6 +253,65 @@ public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transac
 		return txs;
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public Set<BlExpUnit> getBlExpTransactionsByAddress(String address)
+	{
+		Iterable senderKeys = Fun.filter(this.senderKey, address);
+		Iterable recipientKeys = Fun.filter(this.recipientKey, address);
+
+		Set<Tuple2<Integer, Integer>> treeKeys = new TreeSet<>();
+		
+		treeKeys.addAll(Sets.newTreeSet(senderKeys));
+		treeKeys.addAll(Sets.newTreeSet(recipientKeys));
+
+		Iterator iter = treeKeys.iterator();
+
+		Set<BlExpUnit> txs = new TreeSet<>();
+		while ( iter.hasNext() )
+		{
+			Tuple2<Integer, Integer> request = (Tuple2<Integer, Integer>) iter.next();
+			txs.add(new BlExpUnit(request.a, request.b, this.map.get(request)));
+		}
+		
+		return txs;
+	}
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public List<Transaction> getTransactionsByAddress(String address)
+	{
+		Iterable senderKeys = Fun.filter(this.senderKey, address);
+		Iterable recipientKeys = Fun.filter(this.recipientKey, address);
+
+		Set<Tuple2<Integer, Integer>> treeKeys = new TreeSet<>();
+		
+		treeKeys.addAll(Sets.newTreeSet(senderKeys));
+		treeKeys.addAll(Sets.newTreeSet(recipientKeys));
+
+		Iterator iter = treeKeys.iterator();
+
+		List<Transaction> txs = new ArrayList<>();
+		while ( iter.hasNext() )
+		{
+			txs.add(this.map.get(iter.next()));
+		}
+		
+		return txs;
+	}
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public int getTransactionsByAddressCount(String address)
+	{
+		Iterable senderKeys = Fun.filter(this.senderKey, address);
+		Iterable recipientKeys = Fun.filter(this.recipientKey, address);
+
+		Set<Tuple2<Integer, Integer>> treeKeys = new TreeSet<>();
+		
+		treeKeys.addAll(Sets.newTreeSet(senderKeys));
+		treeKeys.addAll(Sets.newTreeSet(recipientKeys));
+		
+		return treeKeys.size(); 	
+	}	
+	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public Tuple2<Integer, Integer> getTransactionsAfterTimestamp(int startHeight, int numOfTx,
 			String address) {
@@ -273,11 +334,122 @@ public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transac
 		}
 		
 		return null;
-		
-		
 	}
 
 	public DBMap<Tuple2<Integer, Integer>, Transaction> getParent() {
 		return this.parent;
 	}
+	
+	
+	@SuppressWarnings("rawtypes")
+	public List<Transaction> findTransactions(String address, String sender, String recipient, 
+			final int minHeight, final int maxHeight,
+			int type, int service,
+			boolean desc, int offset, int limit)
+	{
+		Iterable keys = findTransactionsKeys(address, sender, recipient, minHeight, maxHeight, 
+				type, service, desc, offset, limit);
+		
+		Iterator iter = keys.iterator();
+
+		List<Transaction> txs = new ArrayList<>();
+		
+		while ( iter.hasNext() )
+		{
+			txs.add(this.map.get(iter.next()));
+		}
+		
+		return txs;
+	}
+	
+	@SuppressWarnings("rawtypes")
+	public int findTransactionsCount(String address, String sender, String recipient, 
+			final int minHeight, final int maxHeight,
+			int type, int service,
+			boolean desc, int offset, int limit)
+	{
+		Iterable keys = findTransactionsKeys(address, sender, recipient, minHeight, maxHeight, 
+				type, service, desc, offset, limit);
+		return Iterables.size(keys);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public Iterable findTransactionsKeys(String address, String sender, String recipient, 
+			final int minHeight, final int maxHeight,
+			int type, final int service,
+			boolean desc, int offset, int limit)
+	{
+		Iterable senderKeys = null;
+		Iterable recipientKeys = null;
+		Set<Tuple2<Integer, Integer>> treeKeys = new TreeSet<>();
+		
+		if (address != null) {
+			sender = address;
+			recipient = address;
+		}
+		
+		if (sender == null && recipient == null) {
+			return treeKeys;
+		}
+
+		if (sender != null)
+		{
+			if(type > 0) {
+				senderKeys = Fun.filter(this.typeKey, new Tuple2<String, Integer>(sender, type));
+			} else {
+				senderKeys = Fun.filter(this.senderKey, sender);
+			}
+		}
+		
+		if (recipient != null)
+		{
+			if(type > 0) {
+				recipientKeys = Fun.filter(this.typeKey, new Tuple2<String, Integer>(recipient, type));
+			} else {
+				recipientKeys = Fun.filter(this.recipientKey, recipient);
+			}
+		}
+		
+		if (address != null) {
+			treeKeys.addAll(Sets.newTreeSet(senderKeys));
+			treeKeys.addAll(Sets.newTreeSet(recipientKeys));
+		} else if (sender != null && recipient != null)	{
+			treeKeys.addAll(Sets.newTreeSet(senderKeys));
+			treeKeys.retainAll(Sets.newTreeSet(recipientKeys));
+		} else if (sender != null) {
+			treeKeys.addAll(Sets.newTreeSet(senderKeys));
+		} else if (recipient != null) {
+			treeKeys.addAll(Sets.newTreeSet(recipientKeys));
+		}
+		
+		if( minHeight != 0 || maxHeight != 0 )
+		{
+			treeKeys = Sets.filter(treeKeys, new Predicate<Tuple2<Integer, Integer>>() {
+		        @Override public boolean apply(Tuple2<Integer, Integer> key) {
+		            return (minHeight == 0 || key.a >= minHeight) && (maxHeight == 0 || key.a <= maxHeight);
+		        }               
+		    });
+		}
+		
+		if(type == Transaction.ARBITRARY_TRANSACTION && service > -1) {
+			treeKeys = Sets.filter(treeKeys, new Predicate<Tuple2<Integer, Integer>>() {
+		        @Override public boolean apply(Tuple2<Integer, Integer> key) {
+		        	ArbitraryTransaction tx = (ArbitraryTransaction) map.get(key);
+		        	return tx.getService() == service;
+		        }               
+		    });	
+		}
+		
+		Iterable keys;
+		if (desc) {
+			keys = ((TreeSet)treeKeys).descendingSet();
+		} else {
+			keys = treeKeys;
+		}
+		
+		limit = ( limit == 0 ) ? Iterables.size(keys) : limit;
+		
+		return Iterables.limit(Iterables.skip(keys, offset), limit);
+	}
+
 }

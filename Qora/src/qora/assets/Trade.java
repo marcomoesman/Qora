@@ -238,4 +238,16 @@ public class Trade {
 		db.getTradeMap().delete(this);
 	}
 	
+	@Override 
+	public boolean equals(Object object)
+	{
+		if(object instanceof Trade)
+		{
+			Trade trade = (Trade) object;
+			
+			return (trade.getInitiator().equals(this.getInitiator()) && trade.getTarget().equals(this.getTarget()));
+		}
+		
+		return false;
+	}
 }

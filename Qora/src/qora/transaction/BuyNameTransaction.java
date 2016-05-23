@@ -3,12 +3,19 @@ package qora.transaction;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.json.simple.JSONObject;
 
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
+
+import database.BalanceMap;
+import database.DBSet;
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
@@ -16,12 +23,6 @@ import qora.crypto.Base58;
 import qora.crypto.Crypto;
 import qora.naming.Name;
 import qora.naming.NameSale;
-
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
-import database.DBSet;
 
 public class BuyNameTransaction extends Transaction
 {
@@ -321,13 +322,21 @@ public class BuyNameTransaction extends Transaction
 	}
 
 	@Override
-	public List<Account> getInvolvedAccounts()
+	public HashSet<Account> getInvolvedAccounts()
 	{
-		List<Account> accounts = new ArrayList<Account>();
+		HashSet<Account> accounts = new HashSet<>();
 		
 		accounts.add(this.buyer);
-		accounts.add(this.getSeller());
+		accounts.addAll(this.getRecipientAccounts());
 		
+		return accounts;
+	}
+	
+	@Override
+	public HashSet<Account> getRecipientAccounts()
+	{
+		HashSet<Account> accounts = new HashSet<>();
+		accounts.add(this.getSeller());
 		return accounts;
 	}
 
@@ -365,6 +374,19 @@ public class BuyNameTransaction extends Transaction
 		}
 		
 		return BigDecimal.ZERO.setScale(8);
+	}
+	
+	@Override
+	public Map<String, Map<Long, BigDecimal>> getAssetAmount() 
+	{
+		Map<String, Map<Long, BigDecimal>> assetAmount = new LinkedHashMap<>();
+		
+		assetAmount = subAssetAmount(assetAmount, this.buyer.getAddress(), BalanceMap.QORA_KEY, this.fee);
+		assetAmount = subAssetAmount(assetAmount, this.buyer.getAddress(), BalanceMap.QORA_KEY, this.nameSale.getAmount());
+		
+		assetAmount = addAssetAmount(assetAmount, this.getSeller().getAddress(), BalanceMap.QORA_KEY, this.nameSale.getAmount());
+		
+		return assetAmount;
 	}
 	
 	public static byte[] generateSignature(DBSet db, PrivateKeyAccount buyer, NameSale nameSale, Account seller, BigDecimal fee, long timestamp) 

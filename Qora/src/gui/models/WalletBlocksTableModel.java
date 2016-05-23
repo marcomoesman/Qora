@@ -2,6 +2,7 @@ package gui.models;
 import java.util.Observable;
 import java.util.Observer;
 
+import org.apache.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import qora.block.Block;
@@ -10,6 +11,7 @@ import utils.ObserverMessage;
 import controller.Controller;
 import database.SortableList;
 import database.wallet.BlockMap;
+import lang.Lang;
 
 @SuppressWarnings("serial")
 public class WalletBlocksTableModel extends QoraTableModel<Tuple2<String, String>, Block> implements Observer{
@@ -21,9 +23,11 @@ public class WalletBlocksTableModel extends QoraTableModel<Tuple2<String, String
 	public static final int COLUMN_TRANSACTIONS = 4;
 	public static final int COLUMN_FEE = 5;
 	
+	private static final Logger LOGGER = Logger
+			.getLogger(WalletBlocksTableModel.class);
 	private SortableList<Tuple2<String, String>, Block> blocks;
 	
-	private String[] columnNames = {"Height", "Timestamp", "Generator", "Generating Balance", "Transactions", "Fee"};
+	private String[] columnNames = Lang.getInstance().translate(new String[]{"Height", "Timestamp", "Generator", "Generating Balance", "Transactions", "Fee"});
 	
 	public WalletBlocksTableModel()
 	{
@@ -98,7 +102,7 @@ public class WalletBlocksTableModel extends QoraTableModel<Tuple2<String, String
 				
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			LOGGER.error(e.getMessage(),e);
 		}
 		
 		return null;

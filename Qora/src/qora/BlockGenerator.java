@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
+import org.apache.log4j.Logger;
+
 import ntp.NTP;
 import qora.account.PrivateKeyAccount;
 import qora.block.Block;
@@ -30,6 +32,7 @@ import com.google.common.primitives.Longs;
 
 import controller.Controller;
 import database.DBSet;
+import lang.Lang;
 
 public class BlockGenerator extends Thread implements Observer
 {	
@@ -39,14 +42,15 @@ public class BlockGenerator extends Thread implements Observer
 	public static final int MIN_BLOCK_TIME = 1 * 60;
 	public static final int MAX_BLOCK_TIME = 5 * 60;
 	
+	private static final Logger LOGGER = Logger.getLogger(BlockGenerator.class);
 	
 	public enum ForgingStatus {
 	    
-		FORGING_DISABLED(0,"Forging disabled" ),
-		FORGING_ENABLED(1,"Forging enabled"),
-		FORGING(2,"Forging");
+		FORGING_DISABLED(0, Lang.getInstance().translate("Forging disabled") ),
+		FORGING_ENABLED(1, Lang.getInstance().translate("Forging enabled")),
+		FORGING(2, Lang.getInstance().translate("Forging"));
 		
-		 private final int statuscode;
+		private final int statuscode;
 		private String name;
 
 		 ForgingStatus(int status, String name) {
@@ -75,7 +79,7 @@ public class BlockGenerator extends Thread implements Observer
 	private List<PrivateKeyAccount> cachedAccounts;
 	
 	private ForgingStatus forgingStatus = ForgingStatus.FORGING_DISABLED;
-	private boolean walletOnceUnlocked = false;;
+	private boolean walletOnceUnlocked = false;
 	
 	
 	public BlockGenerator()
@@ -175,7 +179,7 @@ public class BlockGenerator extends Thread implements Observer
 			}
 			
 			//CHECK IF WE HAVE CONNECTIONS
-			if(Controller.getInstance().getStatus() == Controller.STATUS_OK)
+			if(forgingStatus == ForgingStatus.FORGING)
 			{
 				//GET LAST BLOCK
 				byte[] lastBlockSignature = DBSet.getInstance().getBlockMap().getLastBlockSignature();
@@ -191,7 +195,7 @@ public class BlockGenerator extends Thread implements Observer
 				}
 				
 				//GENERATE NEW BLOCKS
-				if(Controller.getInstance().doesWalletExists() /*&& Controller.getInstance().isWalletUnlocked()*/)
+				if(Controller.getInstance().doesWalletExists())
 				{
 					//PREVENT CONCURRENT MODIFY EXCEPTION
 					List<PrivateKeyAccount> knownAccounts = this.getKnownAccounts();
@@ -251,7 +255,7 @@ public class BlockGenerator extends Thread implements Observer
 					} 
 					catch (InterruptedException e) 
 					{
-						e.printStackTrace();
+						LOGGER.error(e.getMessage(),e);
 					}
 				}
 			}
@@ -264,7 +268,7 @@ public class BlockGenerator extends Thread implements Observer
 				} 
 				catch (InterruptedException e) 
 				{
-					e.printStackTrace();
+					LOGGER.error(e.getMessage(),e);
 				}
 			}
 		}
@@ -421,7 +425,7 @@ public class BlockGenerator extends Thread implements Observer
 							}
 						}
 					}catch(Exception e){
-                        e.printStackTrace();
+						LOGGER.error(e.getMessage(),e);
                         //REMOVE FROM LIST
                         orderedTransactions.remove(transaction);
                         transactionProcessed = true;
@@ -517,30 +521,31 @@ public class BlockGenerator extends Thread implements Observer
 				walletOnceUnlocked = true;
 			}
 			
-			
-				if(walletOnceUnlocked)
-				{
-					// WALLET UNLOCKED OR GENERATORCACHING TRUE
-					syncForgingStatus();
-				}
+			if(walletOnceUnlocked)
+			{
+				// WALLET UNLOCKED OR GENERATORCACHING TRUE
+				syncForgingStatus();
+			}
 		}
 		
 	}
 	
 	public void syncForgingStatus()
 	{
+		if(!Settings.getInstance().isForgingEnabled()) {
+			setForgingStatus(ForgingStatus.FORGING_DISABLED);
+			return;
+		}
+		
 		if(getKnownAccounts().size() > 0)
 		{
 			//CONNECTIONS OKE? -> FORGING
-			if(Controller.getInstance().getStatus() == Controller.STATUS_OK)
-			{
+			if(Controller.getInstance().getStatus() == Controller.STATUS_OK) {
 				setForgingStatus(ForgingStatus.FORGING);
-			}else
-			{
+			} else {
 				setForgingStatus(ForgingStatus.FORGING_ENABLED);
 			}
-		}else
-		{
+		} else {
 			setForgingStatus(ForgingStatus.FORGING_DISABLED);
 		}
 	}

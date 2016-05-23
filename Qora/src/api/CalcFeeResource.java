@@ -10,6 +10,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.log4j.Logger;
 import org.eclipse.jetty.util.StringUtil;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -25,6 +26,9 @@ import api.BlogPostResource;
 @Produces(MediaType.APPLICATION_JSON)
 public class CalcFeeResource {
 
+	
+	private static final Logger LOGGER = Logger
+			.getLogger(CalcFeeResource.class);
 	@SuppressWarnings("unchecked")
 	@POST
 	@Path("/arbitrarytransactions")
@@ -56,21 +60,14 @@ public class CalcFeeResource {
 			Pair<BigDecimal, Integer> result = Controller.getInstance().calcRecommendedFeeForArbitraryTransaction(dataBytes, payments);
 			
 			jsonObject.put("fee", result.getA().toPlainString());
-			jsonObject.put("feeRound", result.getA().setScale(0, BigDecimal.ROUND_CEILING).setScale(8).toPlainString());
 			jsonObject.put("length", result.getB());
 			return jsonObject.toJSONString();
 			
 		}
-		catch(NullPointerException e)
+		catch(ClassCastException | NullPointerException e)
 		{
 			//JSON EXCEPTION
-			//e.printStackTrace();
-			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
-		}
-		catch(ClassCastException e)
-		{
-			//JSON EXCEPTION
-			//e.printStackTrace();
+			LOGGER.info(e);
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 		}
 	}
@@ -89,7 +86,6 @@ public class CalcFeeResource {
 			jsonObject = new JSONObject();
 			Pair<BigDecimal, Integer> result = Controller.getInstance().calcRecommendedFeeForNameRegistration(name, value); 
 			jsonObject.put("fee", result.getA().toPlainString());
-			jsonObject.put("feeRound", result.getA().setScale(0, BigDecimal.ROUND_CEILING).setScale(8).toPlainString());
 			jsonObject.put("length", result.getB());
 			return jsonObject.toJSONString();
 			
@@ -118,7 +114,6 @@ public class CalcFeeResource {
 			jsonObject = new JSONObject();
 			Pair<BigDecimal, Integer> result = Controller.getInstance().calcRecommendedFeeForNameUpdate(name, value); 
 			jsonObject.put("fee", result.getA().toPlainString());
-			jsonObject.put("feeRound", result.getA().setScale(0, BigDecimal.ROUND_CEILING).setScale(8).toPlainString());
 			jsonObject.put("length", result.getB());
 			return jsonObject.toJSONString();
 			
@@ -175,7 +170,6 @@ public class CalcFeeResource {
 			Pair<BigDecimal, Integer> result = Controller.getInstance().calcRecommendedFeeForArbitraryTransaction(dataStructure.toJSONString().getBytes(StandardCharsets.UTF_8), null);
 			
 			jsonObject.put("fee", result.getA().toPlainString());
-			jsonObject.put("feeRound", result.getA().setScale(0, BigDecimal.ROUND_CEILING).setScale(8).toPlainString());
 			jsonObject.put("length", result.getB());
 			return jsonObject.toJSONString();
 

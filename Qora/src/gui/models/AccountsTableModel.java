@@ -12,6 +12,7 @@ import qora.assets.Asset;
 import utils.NumberAsString;
 import utils.ObserverMessage;
 import controller.Controller;
+import lang.Lang;
 
 @SuppressWarnings("serial")
 public class AccountsTableModel extends AbstractTableModel implements Observer
@@ -21,7 +22,7 @@ public class AccountsTableModel extends AbstractTableModel implements Observer
 	public static final int COLUMN_CONFIRMED_BALANCE = 2;
 	public static final int COLUMN_GENERATING_BALANCE = 3;
 	
-	private String[] columnNames = {"Address", "Balance", "Confirmed Balance", "Generating Balance"};
+	private String[] columnNames = Lang.getInstance().translate(new String[]{"Address", "Balance", "Confirmed Balance", "Generating Balance"});
 	private List<Account> accounts;
 	private Asset asset = null;
 	
@@ -132,16 +133,23 @@ public class AccountsTableModel extends AbstractTableModel implements Observer
 	{
 		ObserverMessage message = (ObserverMessage) arg;
 		
-		if(message.getType() == ObserverMessage.ADD_BLOCK_TYPE || message.getType() == ObserverMessage.REMOVE_BLOCK_TYPE || message.getType() == ObserverMessage.ADD_TRANSACTION_TYPE || message.getType() == ObserverMessage.REMOVE_TRANSACTION_TYPE)
-		{
-			this.accounts = Controller.getInstance().getAccounts();	
+		if( message.getType() == ObserverMessage.NETWORK_STATUS && (int) message.getValue() == Controller.STATUS_OK ) {
 			
-			this.fireTableRowsUpdated(0, this.getRowCount()-1);  // WHEN UPDATE DATA - SELECTION DOES NOT DISAPPEAR
-		}
-		
-		if(message.getType() == ObserverMessage.ADD_ACCOUNT_TYPE || message.getType() == ObserverMessage.REMOVE_ACCOUNT_TYPE)
-		{
-			this.fireTableDataChanged();
+			this.fireTableRowsUpdated(0, this.getRowCount()-1);
+			
+		} else if (Controller.getInstance().getStatus() == Controller.STATUS_OK) {
+			
+			if(message.getType() == ObserverMessage.ADD_BLOCK_TYPE || message.getType() == ObserverMessage.REMOVE_BLOCK_TYPE || message.getType() == ObserverMessage.ADD_TRANSACTION_TYPE || message.getType() == ObserverMessage.REMOVE_TRANSACTION_TYPE)
+			{
+				this.accounts = Controller.getInstance().getAccounts();	
+				
+				this.fireTableRowsUpdated(0, this.getRowCount()-1);  // WHEN UPDATE DATA - SELECTION DOES NOT DISAPPEAR
+			}
+			
+			if(message.getType() == ObserverMessage.ADD_ACCOUNT_TYPE || message.getType() == ObserverMessage.REMOVE_ACCOUNT_TYPE)
+			{
+				this.fireTableDataChanged();
+			}
 		}
 	}
 
