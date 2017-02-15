@@ -3,7 +3,7 @@ Public GIT for the Qora cryptocurrency project.
 
 * [Website](http://qora.org)
 * [API](http://api.qora.org)
-* [Block Explorer](http://qora.co.in:9090/index/blockexplorer.html)
+* [Block Explorer](http://node.qora.tech:9090/index/blockexplorer.html)
 * [Bitcointalk](https://bitcointalk.org/index.php?topic=1358722)
 * [Slack](http://slack.qora.co.in)
 
