@@ -20,6 +20,7 @@ import org.mapdb.Fun.Tuple2;
 import qora.account.Account;
 import qora.crypto.Base58;
 import qora.crypto.Crypto;
+import utils.Converter;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -426,7 +427,7 @@ public abstract class AT_Controller {
 				md5 = digest.digest( at.getBytes() );
 				if ( !Arrays.equals( md5 , ats.get( atIdBuffer ) ) )
 				{
-					throw new AT_Exception( "Calculated md5 and recieved md5 are not matching" );
+					throw new AT_Exception( "Calculated MD5 " + Converter.toHex(md5) + " and received MD5 " + Converter.toHex(ats.get(atIdBuffer)) + " do not match" );
 				}
 				tempAtStates.put( new String(at.getId() , "UTF-8") , state ); 
 			}

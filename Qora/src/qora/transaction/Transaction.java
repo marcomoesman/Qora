@@ -21,7 +21,7 @@ import settings.Settings;
 public abstract class Transaction {
 	
 	
-	private static final Logger LOGGER = Logger.getLogger(Transaction.class);
+	protected static final Logger LOGGER = Logger.getLogger(Transaction.class);
 	//VALIDATION CODE
 	public static final int VALIDATE_OK = 1;
 	public static final int INVALID_ADDRESS = 2;

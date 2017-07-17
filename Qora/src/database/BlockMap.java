@@ -46,10 +46,14 @@ public class BlockMap extends DBMap<byte[], Block>
 		this.observableData.put(DBMap.NOTIFY_LIST, ObserverMessage.LIST_BLOCK_TYPE);
 		
 		//LAST BLOCK
+		if ( !database.exists("lastBlock") )
+			database.createAtomicVar("lastBlock", new byte[0], null);
 		this.lastBlockVar = database.getAtomicVar("lastBlock");
 		this.lastBlockSignature = this.lastBlockVar.get();
 		
 		//PROCESSING
+		if ( !database.exists("processingBlock") )
+			database.createAtomicVar("processingBlock", false, null);
 		this.processingVar = database.getAtomicVar("processingBlock");
 		this.processing = this.processingVar.get();
 	}

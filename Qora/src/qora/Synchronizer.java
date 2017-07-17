@@ -191,6 +191,12 @@ public class Synchronizer
 				//GET BLOCK
 				Block block = blockBuffer.getBlock(signature);
 				
+				if (block == null)
+				{
+					LOGGER.info("Failed to receive block from peer");
+					break;
+				}
+				
 				//PROCESS BLOCK
 				if(!this.process(block))
 				{
