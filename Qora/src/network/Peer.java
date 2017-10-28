@@ -3,7 +3,9 @@ package network;
 import java.io.DataInputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,7 +25,7 @@ import settings.Settings;
 import controller.Controller;
 import database.DBSet;
 
-public class Peer extends Thread{
+public class Peer extends Thread {
 
 	private InetAddress address;
 	private ConnectionCallback callback;
@@ -33,20 +35,18 @@ public class Peer extends Thread{
 	private boolean white;
 	private long pingCounter;
 	private long connectionTime;
-	
+
+	private static final int INACTIVITY_TIMEOUT = 60 * 60 * 1000; // one hour
 	private static final Logger LOGGER = Logger.getLogger(Peer.class);
 	private Map<Integer, BlockingQueue<Message>> messages;
-	
-	public Peer(InetAddress address)
-	{
+
+	public Peer(InetAddress address) {
 		this.address = address;
 		this.messages = Collections.synchronizedMap(new HashMap<Integer, BlockingQueue<Message>>());
 	}
-	
-	public Peer(ConnectionCallback callback, Socket socket)
-	{
-		try
-		{	
+
+	public Peer(ConnectionCallback callback, Socket socket) {
+		try {
 			this.callback = callback;
 			this.socket = socket;
 			this.address = socket.getInetAddress();
@@ -54,266 +54,234 @@ public class Peer extends Thread{
 			this.white = false;
 			this.pingCounter = 0;
 			this.connectionTime = NTP.getTime();
-			
-			//ENABLE KEEPALIVE
-			//this.socket.setKeepAlive(true);
-			
-			//TIMEOUT
-			this.socket.setSoTimeout(1000*60*60);
-			
-			//CREATE STRINGWRITER
+
+			// ENABLE KEEPALIVE
+			// this.socket.setKeepAlive(true);
+
+			// Inactivity timeout - see run()
+			this.socket.setSoTimeout(INACTIVITY_TIMEOUT);
+
+			// CREATE STRINGWRITER
 			this.out = socket.getOutputStream();
-			
-			//START COMMUNICATON THREAD
+
+			// START COMMUNICATON THREAD
 			this.start();
-			
-			//START PINGER
+
+			// START PINGER
 			this.pinger = new Pinger(this);
-			
-			//ON SOCKET CONNECT
-			this.callback.onConnect(this);			
-		}
-		catch(Exception e)
-		{
-			LOGGER.debug(e.getMessage(),e);
-			//FAILED TO CONNECT NO NEED TO BLACKLIST
+
+			// ON SOCKET CONNECT
+			this.callback.onConnect(this);
+		} catch (Exception e) {
+			LOGGER.debug(e.getMessage(), e);
+			// FAILED TO CONNECT NO NEED TO BLACKLIST
 			LOGGER.info("Failed to connect to : " + address);
 		}
 	}
-	
-	public InetAddress getAddress()
-	{
+
+	public InetAddress getAddress() {
 		return address;
 	}
-	
-	public long getPingCounter()
-	{
+
+	public long getPingCounter() {
 		return this.pingCounter;
 	}
-	
-	public void addPingCounter()
-	{
-		this.pingCounter ++;
+
+	public void addPingCounter() {
+		this.pingCounter++;
 	}
-	
-	public long getPing()
-	{
+
+	public long getPing() {
 		return this.pinger.getPing();
 	}
-	
-	public boolean isPinger()
-	{
+
+	public boolean isPinger() {
 		return this.pinger != null;
 	}
-	
-	public void connect(ConnectionCallback callback)
-	{
-		if(DBSet.getInstance().isStoped()){
+
+	public void connect(ConnectionCallback callback) {
+		if (DBSet.getInstance().isStoped()) {
 			return;
 		}
-		
+
 		this.callback = callback;
 		this.white = true;
 		this.pingCounter = 0;
 		this.connectionTime = NTP.getTime();
-		
-		try
-		{
-			//OPEN SOCKET
-			this.socket = new Socket(address, Controller.getInstance().getNetworkPort());
-			
-			//ENABLE KEEPALIVE
-			//this.socket.setKeepAlive(true);
-			
-			//TIMEOUT
-			this.socket.setSoTimeout(1000*60*60);
-			
-			//CREATE STRINGWRITER
+
+		InetSocketAddress socketAddress = new InetSocketAddress(address, Controller.getInstance().getNetworkPort());
+
+		try {
+			// OPEN SOCKET
+			this.socket = new Socket();
+
+			// CONNECT WITH TIMEOUT
+			this.socket.connect(socketAddress, Settings.getInstance().getConnectionTimeout());
+
+			// ENABLE KEEPALIVE
+			// this.socket.setKeepAlive(true);
+
+			// Inactivity timeout - see run()
+			this.socket.setSoTimeout(INACTIVITY_TIMEOUT);
+
+			// CREATE STRINGWRITER
 			this.out = socket.getOutputStream();
-			
-			//START COMMUNICATON THREAD
+
+			// START COMMUNICATON THREAD
 			this.start();
-			
-			//START PINGER
+
+			// START PINGER
 			this.pinger = new Pinger(this);
-			
-			//ON SOCKET CONNECT
-			this.callback.onConnect(this);			
-		}
-		catch(Exception e)
-		{
-			LOGGER.debug(e.getMessage(),e);
+
+			// ON SOCKET CONNECT
+			this.callback.onConnect(this);
+		} catch (Exception e) {
+			LOGGER.debug(e.getMessage(), e);
 			LOGGER.info(Lang.getInstance().translate("Failed to connect to : ") + address);
 		}
 	}
-	
-	public void run()
-	{
-		try 
-		{
+
+	public void run() {
+		Thread.currentThread().setName("Peer " + this.address.toString());
+
+		try {
 			DataInputStream in = new DataInputStream(socket.getInputStream());
-			
-			while(true)
-			{
-				//READ FIRST 4 BYTES
+
+			while (true) {
+				// READ FIRST 4 BYTES
 				byte[] messageMagic = new byte[Message.MAGIC_LENGTH];
 				in.readFully(messageMagic);
-				
-				if(Arrays.equals(messageMagic, Controller.getInstance().getMessageMagic()))
-				{
-					//PROCESS NEW MESSAGE
+
+				if (Arrays.equals(messageMagic, Controller.getInstance().getMessageMagic())) {
+					// PROCESS NEW MESSAGE
 					Message message = MessageFactory.getInstance().parse(this, in);
-					
-					//Logger.getGlobal().info("received message " + message.getType() + " from " + this.address.toString());
-					
-					//CHECK IF WE ARE WAITING FOR A MESSAGE WITH THAT ID
-					if(message.hasId() && this.messages.containsKey(message.getId()))
-					{
-						//ADD TO OUR OWN LIST
+
+					// Logger.getGlobal().info("received message " +
+					// message.getType() + " from " + this.address.toString());
+
+					// CHECK IF WE ARE WAITING FOR A MESSAGE WITH THAT ID
+					if (message.hasId() && this.messages.containsKey(message.getId())) {
+						// ADD TO OUR OWN LIST
 						this.messages.get(message.getId()).add(message);
-					}
-					else
-					{
-						//CALLBACK
+					} else {
+						// CALLBACK
 						this.callback.onMessage(message);
 					}
-				}
-				else
-				{
-					//ERROR
+				} else {
+					// ERROR
 					callback.onError(this, Lang.getInstance().translate("received message with wrong magic"));
 					return;
 				}
 			}
-		} 
-		catch (Exception e) 
-		{
-			LOGGER.debug(e.getMessage(),e);
+		} catch (Exception e) {
+			LOGGER.debug(e.getMessage(), e);
 			
-			//DISCONNECT
+			if (e instanceof SocketTimeoutException)
+				LOGGER.info(Lang.getInstance().translate("Inactivity timeout with peer: ") + address);
+
+			// DISCONNECT
 			callback.onDisconnect(this);
 			return;
 		}
 	}
-	
-	public boolean sendMessage(Message message)
-	{
-		try 
-		{
-			//CHECK IF SOCKET IS STILL ALIVE
-			if(!this.socket.isConnected())
-			{
-				//ERROR
+
+	public boolean sendMessage(Message message) {
+		try {
+			// CHECK IF SOCKET IS STILL ALIVE
+			if (!this.socket.isConnected()) {
+				// ERROR
 				callback.onError(this, Lang.getInstance().translate("socket not still alive"));
-				
+
 				return false;
 			}
-			
-			//SEND MESSAGE
-			synchronized(this.out)
-			{
+
+			// SEND MESSAGE
+			synchronized (this.out) {
 				this.out.write(message.toBytes());
 				this.out.flush();
 			}
-			
-			//RETURN
+
+			// RETURN
 			return true;
-		}
-		catch (Exception e) 
-		{
-			LOGGER.debug(e.getMessage(),e);
-			//ERROR
+		} catch (Exception e) {
+			LOGGER.debug(e.getMessage(), e);
+			// ERROR
 			callback.onError(this, e.getMessage());
-			
-			//RETURN
+
+			// RETURN
 			return false;
 		}
 	}
-	
-	public Message getResponse(Message message)
-	{
-		//GENERATE ID
+
+	public Message getResponse(Message message) {
+		// GENERATE ID
 		int id = (int) ((Math.random() * 1000000) + 1);
-		
-		//SET ID
+
+		// SET ID
 		message.setId(id);
-		
-		//PUT QUEUE INTO MAP SO WE KNOW WE ARE WAITING FOR A RESPONSE
+
+		// PUT QUEUE INTO MAP SO WE KNOW WE ARE WAITING FOR A RESPONSE
 		BlockingQueue<Message> blockingQueue = new ArrayBlockingQueue<Message>(1);
 		this.messages.put(id, blockingQueue);
-		
+
 		// Try to send message
-		if (!this.sendMessage(message))
-		{
-            LOGGER.info("Failed to send message to peer " + address);
-            this.messages.remove(id);
+		if (!this.sendMessage(message)) {
+			LOGGER.info("Failed to send message to peer " + address);
+			this.messages.remove(id);
 			return null;
 		}
-		
-		try 
-		{
+
+		try {
 			Message response = blockingQueue.poll(Settings.getInstance().getConnectionTimeout(), TimeUnit.MILLISECONDS);
 			this.messages.remove(id);
-			
-			if (response == null)
-	            LOGGER.info("Timed out while waiting for response from peer " + address);
+
+			if (response == null && this.socket.isConnected())
+				LOGGER.info("Timed out while waiting for response from peer " + address);
 
 			return response;
-		} 
-		catch (InterruptedException e)
-		{
-			// Our thread was interrupted - caller can choose whether to retry or not
-		    LOGGER.info("Interrupted while waiting for response from peer " + address);
-		    this.messages.remove(id);
+		} catch (InterruptedException e) {
+			// Our thread was interrupted - caller can choose whether to retry
+			// or not
+			LOGGER.info("Interrupted while waiting for response from peer " + address);
+			this.messages.remove(id);
 			return null;
 		}
 	}
-	
-	public void onPingFail()
-	{
-		//DISCONNECTED
+
+	public void onPingFail() {
+		// DISCONNECTED
 		this.callback.onDisconnect(this);
 	}
 
-	public boolean isWhite()
-	{
-		return this.white; 
+	public boolean isWhite() {
+		return this.white;
 	}
-	
-	public long getConnectionTime()
-	{
-		return this.connectionTime; 
-	}	
-	
-	public boolean isBad()
-	{
-		return DBSet.getInstance().getPeerMap().isBad(this.getAddress()); 
+
+	public long getConnectionTime() {
+		return this.connectionTime;
 	}
-	
-	public void close() 
-	{
-		try
-		{
-			//STOP PINGER
-			if(this.pinger != null)
-			{
+
+	public boolean isBad() {
+		return DBSet.getInstance().getPeerMap().isBad(this.getAddress());
+	}
+
+	public void close() {
+		try {
+			// STOP PINGER
+			if (this.pinger != null) {
 				this.pinger.stopPing();
 			}
-			
-			//CHECK IS SOCKET EXISTS
-			if(socket != null)
-			{
-				//CHECK IF SOCKET IS CONNECTED
-				if(socket.isConnected())
-				{
-					//CLOSE SOCKET
+
+			// CHECK IS SOCKET EXISTS
+			if (socket != null) {
+				// CHECK IF SOCKET IS CONNECTED
+				if (socket.isConnected()) {
+					// CLOSE SOCKET
 					socket.close();
 				}
 			}
+		} catch (Exception e) {
+			LOGGER.debug(e.getMessage(), e);
 		}
-		catch(Exception e)
-		{
-			LOGGER.debug(e.getMessage(),e);
-		}		
 	}
 }

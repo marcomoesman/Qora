@@ -93,11 +93,11 @@ public class Controller extends Observable {
 	
 	
 	private static final Logger LOGGER = Logger.getLogger(Controller.class);
-	private String version = "0.26.0";
-	private String buildTime = "2016-05-24 00:00:00 UTC";
+	private String version = "0.26.2";
+	private String buildTime = "2017-10-27 00:00:00 UTC";
 	private long buildTimestamp;
 	
-	public static final String releaseVersion = "0.26.0";
+	public static final String releaseVersion = "0.26.2";
 
 //	TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -403,6 +403,10 @@ public class Controller extends Observable {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
+			    Thread.currentThread().setName("Controller Shutdown");
+
+			    LOGGER.info("Controller shutdown hook");
+
 				stopAll();
 			}
 		});
@@ -604,6 +608,9 @@ public class Controller extends Observable {
 		if (!this.isStopping) {
 			this.isStopping = true;
 
+			// STOP SENDING OUR HEIGHT TO PEERS
+			this.timerPeerHeightUpdate.cancel();
+
 			// STOP MESSAGE PROCESSOR
 			LOGGER.info(Lang.getInstance().translate("Stopping message processor"));
 			this.network.stop();
@@ -612,7 +619,11 @@ public class Controller extends Observable {
 			LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
 			this.synchronizer.stop();
 
-			// CLOSE DATABABASE
+			// STOP BLOCK GENERATOR
+            LOGGER.info(Lang.getInstance().translate("Stopping block generator"));
+            this.blockGenerator.shutdown();
+
+			// CLOSE DATABASE
 			LOGGER.info(Lang.getInstance().translate("Closing database"));
 			DBSet.getInstance().close();
 
@@ -1015,8 +1026,9 @@ public class Controller extends Observable {
 		
 		Peer peer = null;
 		try {
-			// WHILE NOT UPTODATE
-			while (!this.isUpToDate()) {
+			// Synchronize while we're not up-to-date
+		    // (but bail out if we're shutdown while updating blockchain)
+			while (!this.isStopping && !this.isUpToDate()) {
 				// START UPDATE FROM HIGHEST HEIGHT PEER
 				peer = this.getMaxHeightPeer();
 

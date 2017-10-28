@@ -197,6 +197,10 @@ public class Synchronizer
 					break;
 				}
 				
+				// We're shutting down - bail out
+				if (!this.run)
+				    break;
+
 				//PROCESS BLOCK
 				if(!this.process(block))
 				{
@@ -359,6 +363,7 @@ public class Synchronizer
 	public void stop() {
 		
 		this.run = false;
+		// XXX surely does nothing?
 		this.process(null);
 	}
 }

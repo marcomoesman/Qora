@@ -80,11 +80,14 @@ public class BlockGenerator extends Thread implements Observer
 	
 	private ForgingStatus forgingStatus = ForgingStatus.FORGING_DISABLED;
 	private boolean walletOnceUnlocked = false;
+    private boolean stopping = false;
 	
 	
 	public BlockGenerator()
 	{
-		if(Settings.getInstance().isGeneratorKeyCachingEnabled())
+	    this.stopping = false;
+
+	    if(Settings.getInstance().isGeneratorKeyCachingEnabled())
 		{
 			this.cachedAccounts = new ArrayList<PrivateKeyAccount>();
 		}
@@ -104,8 +107,12 @@ public class BlockGenerator extends Thread implements Observer
 					try {
 						Thread.sleep(250);
 					} catch (InterruptedException e) {
-//						does not matter
+				       // does not matter
 					}
+
+					// If we're shutting down - exit thread
+					if (DBSet.getInstance().isStoped())
+					    return;
 				}
 				
 				Controller.getInstance().addWalletListener(BlockGenerator.this);
@@ -167,17 +174,16 @@ public class BlockGenerator extends Thread implements Observer
 	
 	public void run()
 	{
-		while(true)
+	    Thread.currentThread().setName("BlockGenerator");
+
+		while(!this.stopping && !DBSet.getInstance().isStoped())
 		{
-			if(DBSet.getInstance().isStoped())
-				continue;
-			
 			//CHECK IF WE ARE UPTODATE
 			if(!Controller.getInstance().isUpToDate() && !Controller.getInstance().isProcessingWalletSynchronize())
 			{
 				Controller.getInstance().update();
 			}
-			
+
 			//CHECK IF WE HAVE CONNECTIONS
 			if(forgingStatus == ForgingStatus.FORGING)
 			{
@@ -274,6 +280,15 @@ public class BlockGenerator extends Thread implements Observer
 		}
 	}
 	
+	public void shutdown() {
+	    this.stopping = true;
+	    try {
+	        this.join();
+	    } catch (InterruptedException e) {
+	        // ...
+	    }
+	}
+
 	public Block generateNextBlock(DBSet db, PrivateKeyAccount account, Block block)
 	{
 		//CHECK IF ACCOUNT HAS BALANCE
@@ -419,8 +434,11 @@ public class BlockGenerator extends Thread implements Observer
 								//PROCESS IN NEWBLOCKDB
 								transaction.process(newBlockDb);
 											
-								//TRANSACTION PROCESSES
+								//TRANSACTION PROCESSED
 								transactionProcessed = true;
+
+								//INCREASE TRANSACTIONS SIZE TOTAL
+								totalBytes += transaction.getDataLength();
 								break;
 							}
 						}

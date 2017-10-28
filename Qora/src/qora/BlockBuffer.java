@@ -39,6 +39,8 @@ public class BlockBuffer extends Thread
 	
 	public void run() 
 	{
+	    Thread.currentThread().setName("BlockBuffer");
+
 		while(this.run)
 		{
 			for(int i=0; i<this.signatures.size() && i<this.counter + BUFFER_SIZE; i++)

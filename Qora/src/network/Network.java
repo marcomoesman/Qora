@@ -63,7 +63,7 @@ public class Network extends Observable implements ConnectionCallback {
 	@Override
 	public void onConnect(Peer peer) {
 		
-		LOGGER.info(Lang.getInstance().translate("Connection successfull : ") + peer.getAddress());
+		LOGGER.info(Lang.getInstance().translate("Connection successful : ") + peer.getAddress());
 		
 		//ADD TO CONNECTED PEERS
 		synchronized(this.connectedPeers)

@@ -3,6 +3,7 @@ package database.wallet;
 import java.io.File;
 
 import org.mapdb.Atomic.Var;
+import org.apache.log4j.Logger;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
@@ -12,6 +13,7 @@ import settings.Settings;
 
 public class WalletDatabase implements IDB
 {
+    private static final Logger LOGGER = Logger.getLogger(WalletDatabase.class);
 	private static final File WALLET_FILE = new File(Settings.getInstance().getWalletDir(), "wallet.dat");
 	
 	private static final String VERSION = "version";
@@ -43,7 +45,6 @@ public class WalletDatabase implements IDB
 		//transactionFile.delete();	
 		
 	    this.database = DBMaker.newFileDB(WALLET_FILE)
-	    		.closeOnJvmShutdown()
 	    		.cacheSize(2048)
 	    		.checksumEnable()
 	    		.mmapFileEnableIfSupported()
@@ -58,6 +59,18 @@ public class WalletDatabase implements IDB
 	    this.assetMap = new AssetMap(this, this.database);
 	    this.orderMap = new OrderMap(this, this.database);
 	    this.assetFavoritesSet = new AssetFavoritesSet(this, this.database);
+
+	    if ( !this.database.exists(LAST_BLOCK) )
+            this.database.createAtomicVar(LAST_BLOCK, new byte[0], null);
+
+	    // If LAST_BLOCK has previously been incorrectly initialized
+	    // then reset back to empty byte array
+	    try {
+	        getLastBlockSignature();
+	    } catch (ClassCastException e) {
+	        LOGGER.info("Resetting wallet's last block signature");
+            this.setLastBlockSignature(new byte[0]);
+	    }
 	}
 	
 	public void setVersion(int version)
@@ -78,7 +91,7 @@ public class WalletDatabase implements IDB
 	
 	public byte[] getLastBlockSignature()
 	{
-		Var<byte[]> atomic = this.database.getAtomicVar(LAST_BLOCK);
+        Var<byte[]> atomic = this.database.getAtomicVar(LAST_BLOCK);
 		return atomic.get();
 	}
 	

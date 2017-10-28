@@ -2,6 +2,7 @@ package network;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 
 import lang.Lang;
 import ntp.NTP;
@@ -87,6 +88,14 @@ public class ConnectionAcceptor extends Thread{
 					}
 				}
 			}
+			catch(SocketException e)
+			{
+			    if (this.isRun)
+			    {
+	                LOGGER.error(e.getMessage(),e);
+	                LOGGER.warn(Lang.getInstance().translate("Error accepting new connection"));
+			    }
+			}
 			catch(Exception e)
 			{
 				LOGGER.error(e.getMessage(),e);
@@ -98,5 +107,13 @@ public class ConnectionAcceptor extends Thread{
 	public void halt()
 	{
 		this.isRun = false;
+
+		if (socket != null && !socket.isClosed()) {
+		    try {
+		        socket.close();
+		    } catch (Exception e) {
+		        LOGGER.error(e.getMessage(), e);
+		    }
+		}
 	}
 }
