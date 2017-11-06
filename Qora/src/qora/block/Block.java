@@ -774,7 +774,7 @@ public class Block {
 		//UPDATE LAST BLOCK
 		db.getBlockMap().setLastBlock(this);
 		
-		System.out.println("Process Block " + height);
+		LOGGER.info("Processed block " + height);
 	}
 
 	public void orphan()

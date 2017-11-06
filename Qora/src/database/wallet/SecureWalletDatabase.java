@@ -36,7 +36,6 @@ public class SecureWalletDatabase
 		
 		this.database = DBMaker.newFileDB(SECURE_WALLET_FILE)
 						.encryptionEnable(password)
-			    		.closeOnJvmShutdown()
 			    		.cacheSize(2048)
 			    		.checksumEnable()
 			    		.mmapFileEnableIfSupported()

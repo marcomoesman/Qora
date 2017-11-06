@@ -191,6 +191,16 @@ public class Synchronizer
 				//GET BLOCK
 				Block block = blockBuffer.getBlock(signature);
 				
+				if (block == null)
+				{
+					LOGGER.info("Failed to receive block from peer");
+					break;
+				}
+				
+				// We're shutting down - bail out
+				if (!this.run)
+				    break;
+
 				//PROCESS BLOCK
 				if(!this.process(block))
 				{
@@ -353,6 +363,7 @@ public class Synchronizer
 	public void stop() {
 		
 		this.run = false;
+		// XXX surely does nothing?
 		this.process(null);
 	}
 }

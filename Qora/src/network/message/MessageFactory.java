@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
+import network.message.MessageException;
 import qora.block.Block;
 import qora.crypto.Crypto;
 import qora.transaction.Transaction;
@@ -147,7 +148,7 @@ public class MessageFactory {
 			//CHECK IF CHECKSUM MATCHES
 			if(!Arrays.equals(checksum, digest))
 			{
-				throw new Exception(Lang.getInstance().translate("Invalid data checksum length=")+length);
+				throw new MessageException(Lang.getInstance().translate("Invalid data checksum length=")+length);
 			}
 		}
 		

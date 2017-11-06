@@ -2,92 +2,110 @@ package network;
 
 import org.apache.log4j.Logger;
 
-import database.DBSet;
 import network.message.Message;
 import network.message.MessageFactory;
 import settings.Settings;
 
-public class Pinger extends Thread
-{
-	
+/**
+ * Pinger is a Thread that periodically pings a Peer to maintain/check
+ * connectivity.
+ */
+public class Pinger extends Thread {
+
 	private static final Logger LOGGER = Logger.getLogger(Pinger.class);
 	private Peer peer;
-	private boolean run;
+	/**
+	 * Most recent ping round-trip time in milliseconds, or Long.MAX_VALUE if no
+	 * ping yet.
+	 */
 	private long ping;
-	
-	public Pinger(Peer peer)
-	{
+
+	/**
+	 * Simple Pinger constructor
+	 * <p>
+	 * Will start Pinger thread.
+	 * @param peer
+	 * @see #run()
+	 */
+	public Pinger(Peer peer) {
 		this.peer = peer;
-		this.run = true;
 		this.ping = Long.MAX_VALUE;
-		
+
 		this.start();
 	}
-	
-	public long getPing()
-	{
+
+	/**
+	 * Get last ping's round-trip time.
+	 * 
+	 * @return ping's RTT in milliseconds or Long.MAX_VALUE if no ping yet.
+	 */
+	public long getPing() {
 		return this.ping;
 	}
-	
-	public void run()
-	{
-		while(this.run)
-		{
-			//CREATE PING
-			Message pingMessage = MessageFactory.getInstance().createPingMessage();
-			
-			if(!this.run)
-				break;
-			
-			//GET RESPONSE
+
+	/**
+	 * Repeatedly ping peer using interval from settings.
+	 * <p>
+	 * Will exit if interrupted, typically by <code>stopPing()</code>
+	 * 
+	 * @see #stopPing()
+	 * @see Peer#onPingSuccess()
+	 * @see Peer#onPingFailure()
+	 */
+	@Override
+	public void run() {
+		Thread.currentThread().setName("Pinger " + this.peer.getAddress());
+
+		while (true) {
+			// Send ping message to peer
 			long start = System.currentTimeMillis();
+			Message pingMessage = MessageFactory.getInstance().createPingMessage();
+			// NB: Peer.getResponse returns null if no response within timeout
+			// or interrupt occurs
 			Message response = this.peer.getResponse(pingMessage);
 
-			if(!this.run)
-				break;
-
-			//CHECK IF VALID PING
-			if(response == null || response.getType() != Message.PING_TYPE)
-			{
-				//PING FAILES
-				this.peer.onPingFail();
-				
-				//STOP PINGER
-				this.run = false;
+			// Check for valid ping response
+			if (response == null || response.getType() != Message.PING_TYPE) {
+				// Notify Peer that ping has failed.
+				// NB: currently Peer.onPingFailure() may call Pinger.stopPing()
+				// (see below)
+				LOGGER.debug("Ping failure with " + this.peer.getAddress());
+				this.peer.onPingFailure();
 				return;
 			}
-			
-			//UPDATE PING
+
+			// Calculate ping's round-trip time and notify peer
 			this.ping = System.currentTimeMillis() - start;
-			this.peer.addPingCounter(); 
-			
-			if(!DBSet.getInstance().isStoped()){
-				DBSet.getInstance().getPeerMap().addPeer(this.peer);
-			}
-			
-			//SLEEP
-			try 
-			{
+			this.peer.onPingSuccess();
+
+			// Sleep until we need to send next ping
+			try {
 				Thread.sleep(Settings.getInstance().getPingInterval());
-			} 
-			catch (InterruptedException e)
-			{
-				//FAILED TO SLEEP
+			} catch (InterruptedException e) {
+				// If interrupted, usually by stopPing(), we need to exit thread
+				return;
 			}
 		}
 	}
 
-	public void stopPing() 
-	{
-		try
-		{
-			this.run = false;
+	/**
+	 * Stop pinging peer.
+	 * <p>
+	 * Usually called by Peer.close()
+	 * 
+	 * @see Peer#close()
+	 */
+	public void stopPing() {
+		if (this.isAlive()) {
 			this.interrupt();
-			this.join();
-		}
-		catch(Exception e)
-		{
-			LOGGER.debug(e.getMessage(),e);
+
+			try {
+				this.join();
+			} catch (InterruptedException e) {
+				// We've probably reached here from run() above calling
+				// Peer.onPingFailure() so when we return run() above will
+				// terminate
+			}
 		}
 	}
 }

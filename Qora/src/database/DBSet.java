@@ -74,7 +74,6 @@ public class DBSet implements Observer, IDB {
 		
 		//CREATE DATABASE	
 		DB database = DBMaker.newFileDB(dbFile)
-				.closeOnJvmShutdown()
 				.cacheSize(2048)
 				.checksumEnable()
 				.mmapFileEnableIfSupported()
