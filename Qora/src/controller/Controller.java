@@ -634,8 +634,6 @@ public class Controller extends Observable {
 			createDataCheckpoint();
 
 			LOGGER.info(Lang.getInstance().translate("Closed."));
-			// FORCE CLOSE
-			System.exit(0);
 		}
 	}
 
