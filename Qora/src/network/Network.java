@@ -101,7 +101,7 @@ public class Network extends Observable implements ConnectionCallback {
 		
 		//CLOSE CONNECTION IF STILL ACTIVE
 		peer.close();
-		peer.interrupt();
+		peer.interrupt(); // might be handled inside peer.close()
 		
 		//NOTIFY OBSERVERS
 		this.setChanged();

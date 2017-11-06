@@ -71,7 +71,16 @@ public class PeersResource
 			throw ApiErrorFactory.getInstance().createError(
 					ApiErrorFactory.ERROR_INVALID_NETWORK_ADDRESS);
 		}
-		peer.addPingCounter();
+		/*
+		 *  XXX what is the purpose of this call?
+		 *  PeerMap.addPeer() tests for peer.pingCounter > 1 but after this call
+		 *  peer.pingCounter will only be 1 so there's no difference code-path-wise
+		 *  between pingCounter being 0 or 1.
+		 *  Also creating a new Peer starts a Pinger thread which will increment pingCounter
+		 *  and call PeerMap.addPeer()
+		 */
+		// was: peer.addPingCounter();
+		// now: peer.onPingSuccess(); which also performs next line:
 		DBSet.getInstance().getPeerMap().addPeer(peer);
 		
 		return "OK";
@@ -173,7 +182,7 @@ public class PeersResource
 			o.put("version", Controller.getInstance().getVersionOfPeer(peer).getA());
 			o.put("buildTime", DateTimeFormat.timestamptoString(Controller.getInstance().getVersionOfPeer(peer).getB(), "yyyy-MM-dd HH:mm:ss z", "UTC"));
 		}
-		if(peer.isPinger())	{
+		if(peer.hasPinger())	{
 			o.put("ping", peer.getPing());
 		}
 		if(peer.getConnectionTime()>0) {
