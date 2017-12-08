@@ -10,7 +10,8 @@ import java.util.Observer;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import com.google.common.primitives.Bytes;
@@ -50,7 +51,7 @@ import utils.Pair;
 public class Wallet extends Observable implements Observer
 {
 	
-	private static final Logger LOGGER = Logger.getLogger(Wallet.class);
+	private static final Logger LOGGER = LogManager.getLogger(Wallet.class);
 	public static final int STATUS_UNLOCKED = 1;
 	public static final int STATUS_LOCKED = 0;
 	

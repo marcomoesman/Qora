@@ -3,7 +3,8 @@ package database.wallet;
 import java.io.File;
 
 import org.mapdb.Atomic.Var;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
@@ -13,7 +14,7 @@ import settings.Settings;
 
 public class WalletDatabase implements IDB
 {
-    private static final Logger LOGGER = Logger.getLogger(WalletDatabase.class);
+    private static final Logger LOGGER = LogManager.getLogger(WalletDatabase.class);
 	private static final File WALLET_FILE = new File(Settings.getInstance().getWalletDir(), "wallet.dat");
 	
 	private static final String VERSION = "version";

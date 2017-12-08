@@ -12,7 +12,8 @@ import java.util.Observable;
 import java.util.Observer;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.BTreeMap;
 import org.mapdb.Bind;
 import org.mapdb.DB;
@@ -29,7 +30,7 @@ public abstract class DBMap<T, U> extends Observable {
 	protected static final int NOTIFY_REMOVE = 2;
 	protected static final int NOTIFY_LIST = 3;
 	
-	private static final Logger LOGGER = Logger.getLogger(DBMap.class);
+	private static final Logger LOGGER = LogManager.getLogger(DBMap.class);
 	public static final int DEFAULT_INDEX = 0;
 	
 	protected DBMap<T, U> parent;

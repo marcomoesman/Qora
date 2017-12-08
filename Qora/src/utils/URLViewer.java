@@ -5,11 +5,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class URLViewer  {
 	
-	private static final Logger LOGGER = Logger.getLogger(URLViewer.class);
+	private static final Logger LOGGER = LogManager.getLogger(URLViewer.class);
     public static void openWebpage(URI uri) {
         Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
         if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {

@@ -21,7 +21,8 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import qora.account.PrivateKeyAccount;
@@ -39,7 +40,7 @@ public class SellNameFrame extends JFrame
 	private JTextField txtFee;
 	private JButton sellButton;
 	
-	private static final Logger LOGGER = Logger.getLogger(SellNameFrame.class);
+	private static final Logger LOGGER = LogManager.getLogger(SellNameFrame.class);
 	public SellNameFrame(Name name)
 	{
 		super(Lang.getInstance().translate("Qora") + " - " + Lang.getInstance().translate("Sell Name"));

@@ -28,7 +28,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
@@ -57,7 +58,7 @@ public class ResponseAcctFrame extends JFrame {
 	private JTextField txtAmountOther;
 	private JTextField txtBurstAddress;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(ResponseAcctFrame.class);
 	private JButton deployButton;
 

@@ -9,7 +9,8 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import lang.Lang;
@@ -19,7 +20,7 @@ public class ClosingDialog extends JFrame{
 
 	private JDialog waitDialog;
 	
-	private static final Logger LOGGER = Logger.getLogger(ClosingDialog.class);
+	private static final Logger LOGGER = LogManager.getLogger(ClosingDialog.class);
 	public ClosingDialog()
 	{
 		try {

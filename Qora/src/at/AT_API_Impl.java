@@ -15,7 +15,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import at.RIPEMD160;
 
@@ -25,7 +26,7 @@ public class AT_API_Impl implements AT_API
 {
 	
 	
-	private static final Logger LOGGER = Logger.getLogger(AT_API_Impl.class);
+	private static final Logger LOGGER = LogManager.getLogger(AT_API_Impl.class);
 	
 	AT_API_Platform_Impl platform = AT_API_Platform_Impl.getInstance();
 	

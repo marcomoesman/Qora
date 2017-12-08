@@ -11,7 +11,8 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import settings.Settings;
 import utils.ObserverMessage;
@@ -23,7 +24,7 @@ import network.Peer;
 public class KnownPeersTableModel extends AbstractTableModel implements Observer{
 
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(KnownPeersTableModel.class);
 	private static final int COLUMN_ADDRESS = 0;
 	public static final int COLUMN_CONNECTED = 1;

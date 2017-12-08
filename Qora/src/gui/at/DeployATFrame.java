@@ -28,7 +28,8 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -59,7 +60,7 @@ public class DeployATFrame extends JFrame {
 	private JTextField txtUSPages;
 	private JTextField txtMinActivationAmount;
 	
-	private static final Logger LOGGER = Logger.getLogger(DeployATFrame.class);
+	private static final Logger LOGGER = LogManager.getLogger(DeployATFrame.class);
 	private JTextField txtQuantity;
 
 	private JButton deployButton;

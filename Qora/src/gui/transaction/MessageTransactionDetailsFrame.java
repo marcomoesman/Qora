@@ -23,7 +23,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 
 import qora.account.Account;
@@ -41,7 +42,7 @@ public class MessageTransactionDetailsFrame extends JFrame
 {
 	private JTextField messageText;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(MessageTransactionDetailsFrame.class);
 	public MessageTransactionDetailsFrame(final MessageTransaction messageTransaction)
 	{

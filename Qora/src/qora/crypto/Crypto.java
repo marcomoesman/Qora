@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.account.Account;
 import qora.account.PrivateKeyAccount;
@@ -19,7 +20,7 @@ public class Crypto {
 	public static final byte ADDRESS_VERSION = 58;
 	public static final byte AT_ADDRESS_VERSION = 23;
 	
-	private static final Logger LOGGER = Logger.getLogger(Crypto.class);
+	private static final Logger LOGGER = LogManager.getLogger(Crypto.class);
 	private static Crypto instance;
 	
 	public static Crypto getInstance()

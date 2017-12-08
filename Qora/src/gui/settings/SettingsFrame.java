@@ -18,7 +18,8 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -35,7 +36,7 @@ public class SettingsFrame extends JFrame{
 	public JSONObject settingsJSONbuf;
 	private SettingsTabPane settingsTabPane;
 	
-	private static final Logger LOGGER = Logger.getLogger(SettingsFrame.class);
+	private static final Logger LOGGER = LogManager.getLogger(SettingsFrame.class);
 	public SettingsFrame() 
 	{
 		

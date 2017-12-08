@@ -1,6 +1,7 @@
 package network;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import network.message.Message;
 import network.message.MessageFactory;
@@ -12,7 +13,7 @@ import settings.Settings;
  */
 public class Pinger extends Thread {
 
-	private static final Logger LOGGER = Logger.getLogger(Pinger.class);
+	private static final Logger LOGGER = LogManager.getLogger(Pinger.class);
 	private Peer peer;
 	/**
 	 * Most recent ping round-trip time in milliseconds, or Long.MAX_VALUE if no

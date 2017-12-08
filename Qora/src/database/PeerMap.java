@@ -13,7 +13,8 @@ import java.util.TreeMap;
 import network.Peer;
 import ntp.NTP;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 
@@ -33,7 +34,7 @@ public class PeerMap extends DBMap<byte[], byte[]>
 	private static final byte[] BYTE_BLACKLISTED = new byte[]{1, 1};
 	private static final byte[] BYTE_NOTFOUND = new byte[]{2, 2};
 	
-	private static final Logger LOGGER = Logger.getLogger(PeerMap.class);
+	private static final Logger LOGGER = LogManager.getLogger(PeerMap.class);
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 	
 	public PeerMap(DBSet databaseSet, DB database)

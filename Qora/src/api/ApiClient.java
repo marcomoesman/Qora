@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import settings.Settings;
 import utils.StrJSonFine;
@@ -26,7 +27,7 @@ public class ApiClient {
 	private static List<String> allowedcalls = new CopyOnWriteArrayList<>();
 	
 	
-	private static final Logger LOGGER = Logger.getLogger(ApiClient.class);
+	private static final Logger LOGGER = LogManager.getLogger(ApiClient.class);
 	
 	
 	String[] [] helpStrings =

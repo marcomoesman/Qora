@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.account.Account;
 import qora.assets.Asset;
@@ -21,7 +22,7 @@ public class BlockChain
 {
 	public static final int MAX_SIGNATURES = 500;
 	
-	private static final Logger LOGGER = Logger.getLogger(BlockChain.class);
+	private static final Logger LOGGER = LogManager.getLogger(BlockChain.class);
 	public BlockChain()
 	{	
 		//CREATE GENESIS BLOCK

@@ -10,7 +10,8 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import lang.Lang;
 import network.Peer;
@@ -20,7 +21,7 @@ public class AllowedTableModel extends AbstractTableModel implements Observer{
 
 	private List<Peer> peers;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(AllowedTableModel.class);
 	private String[] columnNames = {"IP"};
 	

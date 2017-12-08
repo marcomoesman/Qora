@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 import org.mapdb.Fun;
@@ -25,7 +26,7 @@ public class AssetMap extends DBMap<Tuple2<String, String>, Asset>
 	public static final int NAME_INDEX = 1;
 	public static final int CREATOR_INDEX = 2;
 	
-	private static final Logger LOGGER = Logger.getLogger(AssetMap.class);
+	private static final Logger LOGGER = LogManager.getLogger(AssetMap.class);
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 	
 	public AssetMap(WalletDatabase walletDatabase, DB database)

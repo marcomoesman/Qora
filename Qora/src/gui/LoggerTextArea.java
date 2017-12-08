@@ -57,7 +57,7 @@ public class LoggerTextArea extends JTextArea {
 class TextComponentHandler extends Handler 
 {
 	private final JTextArea text;
-	private static final org.apache.log4j.Logger LOGGER = org.apache.log4j.Logger.getLogger(LoggerTextArea.class);
+	private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(LoggerTextArea.class);
 	TextComponentHandler(JTextArea text)
 	{
 		this.text = text;

@@ -8,7 +8,8 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 import org.mapdb.Fun;
@@ -28,7 +29,7 @@ public class PollMap extends DBMap<Tuple2<String, String>, Poll>
 	public static final int NAME_INDEX = 1;
 	public static final int CREATOR_INDEX = 2;
 	
-	private static final Logger LOGGER = Logger.getLogger(PollMap.class);
+	private static final Logger LOGGER = LogManager.getLogger(PollMap.class);
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 	
 	public PollMap(WalletDatabase walletDatabase, DB database)

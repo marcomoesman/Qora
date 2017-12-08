@@ -7,7 +7,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.swing.JOptionPane;
 import javax.ws.rs.WebApplicationException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import api.ApiClient;
 import api.ApiErrorFactory;
@@ -24,7 +25,7 @@ import settings.Settings;
 public class APIUtils {
 
 	
-	private static final Logger LOGGER = Logger.getLogger(APIUtils.class);
+	private static final Logger LOGGER = LogManager.getLogger(APIUtils.class);
 	public static String processPayment(String assetKeyString, String amount, String fee,
 			String sender, String recipient, String x,
 			HttpServletRequest request) {

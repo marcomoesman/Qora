@@ -7,7 +7,8 @@ import java.net.SocketException;
 import lang.Lang;
 import ntp.NTP;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.transaction.Transaction;
 import settings.Settings;
@@ -17,7 +18,7 @@ public class ConnectionAcceptor extends Thread{
 
 	private ConnectionCallback callback;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(ConnectionAcceptor.class);
 	private ServerSocket socket;
 	

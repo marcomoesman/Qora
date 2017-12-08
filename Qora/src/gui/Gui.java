@@ -11,7 +11,8 @@ import javax.swing.UIManager;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import gui.create.NoWalletFrame;
@@ -22,7 +23,7 @@ import utils.SysTray;
 
 public class Gui extends JFrame{
 
-	static Logger LOGGER = Logger.getLogger(Gui.class.getName());
+	static Logger LOGGER = LogManager.getLogger(Gui.class.getName());
 
 	private static final long serialVersionUID = 1L;
 

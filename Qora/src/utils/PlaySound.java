@@ -11,13 +11,14 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PlaySound {
 	private static PlaySound instance;
 	private ArrayList<byte[]> transactionsAlreadyPlayed;
 	
-	private static final Logger LOGGER = Logger.getLogger(PlaySound.class);
+	private static final Logger LOGGER = LogManager.getLogger(PlaySound.class);
 	public static PlaySound getInstance()
 	{
 		if(instance == null)

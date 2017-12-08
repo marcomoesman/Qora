@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.util.StringUtil;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -34,7 +35,7 @@ import database.PostCommentMap;
 public class BlogUtils {
 
 	
-	private static final Logger LOGGER = Logger.getLogger(BlogUtils.class);
+	private static final Logger LOGGER = LogManager.getLogger(BlogUtils.class);
 	public static int COMMENT_SERVICE_ID = 778;
 
 	/**
