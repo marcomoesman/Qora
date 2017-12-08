@@ -691,7 +691,12 @@ public class Block {
 			}
 
 			//PROCESS TRANSACTION IN MEMORYDB TO MAKE SURE OTHER TRANSACTIONS VALIDATE PROPERLY
-			transaction.process(fork);		
+			try {
+				transaction.process(fork);
+			} catch (Exception e) {
+				LOGGER.error("Exception during transaction processing, tx " + Base58.encode(transaction.getSignature()), e);
+				return false;
+			}
 		}
 
 		//BLOCK IS VALID
