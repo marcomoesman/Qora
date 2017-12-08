@@ -120,9 +120,12 @@ public class NameStorageMap extends DBMap<String, Map<String, String>> {
 
 	public void remove(String name, String key) {
 		Map<String, String> keyValueMap = this.get(name);
-		if (keyValueMap != null) {
-			keyValueMap.remove(key);
-		}
+
+		if (keyValueMap == null)
+			return;
+
+		keyValueMap.remove(key);
+
 		this.set(name, keyValueMap);
 	}
 
