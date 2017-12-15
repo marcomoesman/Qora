@@ -47,6 +47,7 @@ import database.DBSet;
 import database.LocalDataMap;
 import database.SortableList;
 import gui.Gui;
+import gui.SplashFrame;
 import lang.Lang;
 import network.Network;
 import network.Peer;
@@ -312,30 +313,39 @@ public class Controller extends Observable {
 		this.status = STATUS_NO_CONNECTIONS;
 		this.transactionCreator = new TransactionCreator();
 
+		SplashFrame.getInstance().updateProgress("Opening databases");
+		
 		// OPENING DATABASES
 		try {
 			DBSet.getInstance();
 		} catch (Throwable e) {
 			LOGGER.error(e.getMessage(),e);
 			LOGGER.info(Lang.getInstance().translate("Error during startup detected trying to restore backup database..."));
+
+			SplashFrame.getInstance().updateProgress("Creating databases");
 			reCreateDB();
 		}
 
 //		startFromScratchOnDemand();
 
+		// If BlockMap database was closed while processing a block
+		// then assume all databases are corrupt and rebuild from scratch
 		if (DBSet.getInstance().getBlockMap().isProcessing()) {
 			try {
 				DBSet.getInstance().close();
 			} catch (Throwable e) {
 				LOGGER.error(e.getMessage(),e);
 			}
+
+			SplashFrame.getInstance().updateProgress("Recreating databases");
 			reCreateDB();
 		}
 		
 		//CHECK IF DB NEEDS UPDATE
-
 		if(DBSet.getInstance().getBlockMap().getLastBlockSignature() != null)
 		{
+			SplashFrame.getInstance().updateProgress("Updating databases");
+
 			//CHECK IF NAME STORAGE NEEDS UPDATE
 			if (DBSet.getInstance().getLocalDataMap().get("nsupdate") == null )
 			{
@@ -364,24 +374,29 @@ public class Controller extends Observable {
 		}
 		
 		// CREATE SYNCHRONIZOR
+		SplashFrame.getInstance().updateProgress("Starting synchronizer");
 		this.synchronizer = new Synchronizer();
 
 		// CREATE BLOCKCHAIN
+		SplashFrame.getInstance().updateProgress("Starting blockchain");
 		this.blockChain = new BlockChain();
 		
 		// START API SERVICE
 		if (Settings.getInstance().isRpcEnabled()) {
+			SplashFrame.getInstance().updateProgress("Starting RPC API");
 			this.rpcService = new ApiService();
 			this.rpcService.start();
 		}
 
 		// START WEB SERVICE
 		if (Settings.getInstance().isWebEnabled()) {
+			SplashFrame.getInstance().updateProgress("Starting web service");
 			this.webService = new WebService();
 			this.webService.start();
 		}
 
 		// CREATE WALLET
+		SplashFrame.getInstance().updateProgress("Starting wallet");
 		this.wallet = new Wallet();
 
 	    if(this.wallet.isWalletDatabaseExisting()){
@@ -393,11 +408,13 @@ public class Controller extends Observable {
 		}
 		
 		// CREATE BLOCKGENERATOR
+		SplashFrame.getInstance().updateProgress("Starting block generator");
 		this.blockGenerator = new BlockGenerator();
 		// START BLOCKGENERATOR
 		this.blockGenerator.start();
 
 		// CREATE NETWORK
+		SplashFrame.getInstance().updateProgress("Starting networking");
 		this.network = new Network();
 
 		// CLOSE ON UNEXPECTED SHUTDOWN
@@ -1222,7 +1239,7 @@ public class Controller extends Observable {
 			}
 		}
 
-		if (!GraphicsEnvironment.isHeadless() &&  (Settings.getInstance().isGuiEnabled() || Settings.getInstance().isSysTrayEnabled()) ) {
+		if (!GraphicsEnvironment.isHeadless() && Gui.isGuiStarted() ) {
 			Gui gui = Gui.getInstance();
 			SysTray.getInstance().sendMessage(Lang.getInstance().translate("INCOMING API CALL"),
 					Lang.getInstance().translate("An API call needs authorization!"), MessageType.WARNING);

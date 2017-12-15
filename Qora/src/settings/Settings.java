@@ -734,12 +734,6 @@ public class Settings {
 	
 	public boolean isGuiEnabled() 
 	{
-		
-		if(!Controller.getInstance().doesWalletDatabaseExists())
-		{
-			return true;
-		}
-		
 		if(System.getProperty("nogui") != null)
 		{
 			return false;
