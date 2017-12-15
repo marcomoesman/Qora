@@ -14,7 +14,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import qora.account.Account;
@@ -30,7 +31,7 @@ import database.DBSet;
 public abstract class AT_Controller {
 
 	
-	private static final Logger LOGGER = Logger.getLogger(AT_Controller.class);
+	private static final Logger LOGGER = LogManager.getLogger(AT_Controller.class);
 
 	public static int runSteps( AT_Machine_State state , int blockHeight )
 	{

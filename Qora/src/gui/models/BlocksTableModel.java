@@ -2,7 +2,8 @@ package gui.models;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.block.Block;
 import utils.DateTimeFormat;
@@ -17,7 +18,7 @@ import lang.Lang;
 public class BlocksTableModel extends QoraTableModel<byte[], Block> implements Observer{
 
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(BlocksTableModel.class);
 	public static final int COLUMN_HEIGHT = 0;
 	public static final int COLUMN_TIMESTAMP = 1;

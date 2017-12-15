@@ -28,7 +28,8 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import lang.Lang;
@@ -43,7 +44,7 @@ public class RecoverWalletFrame extends JFrame
 	private JTextField amountTxt;
 	private JTextField confirmPasswordTxt;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(RecoverWalletFrame.class);
 	public RecoverWalletFrame(NoWalletFrame parent)
 	{

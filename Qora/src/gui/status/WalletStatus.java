@@ -10,7 +10,8 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.wallet.Wallet;
 import utils.ObserverMessage;
@@ -21,7 +22,7 @@ import lang.Lang;
 public class WalletStatus extends JLabel implements Observer
 {
 	
-	private static final Logger LOGGER = Logger.getLogger(WalletStatus.class);
+	private static final Logger LOGGER = LogManager.getLogger(WalletStatus.class);
 	private ImageIcon unlockedIcon;
 	private ImageIcon lockedIcon;
 	

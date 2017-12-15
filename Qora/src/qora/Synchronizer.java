@@ -5,7 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import network.Peer;
 import network.message.BlockMessage;
@@ -27,7 +28,7 @@ import database.DBSet;
 public class Synchronizer
 {
 	
-	private static final Logger LOGGER = Logger.getLogger(Synchronizer.class);
+	private static final Logger LOGGER = LogManager.getLogger(Synchronizer.class);
 	private boolean run = true;
 	
 	public Synchronizer()

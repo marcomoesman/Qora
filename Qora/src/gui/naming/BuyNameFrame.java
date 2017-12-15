@@ -19,7 +19,8 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import qora.account.Account;
@@ -37,7 +38,7 @@ public class BuyNameFrame extends JFrame
 	private JTextField txtFee;
 	private JButton buyButton;
 	
-	private static final Logger LOGGER = Logger.getLogger(BuyNameFrame.class);
+	private static final Logger LOGGER = LogManager.getLogger(BuyNameFrame.class);
 	private NameSale nameSale;
 	
 	public BuyNameFrame(NameSale nameSale)

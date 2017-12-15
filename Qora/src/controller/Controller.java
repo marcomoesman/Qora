@@ -34,7 +34,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import com.google.common.primitives.Longs;
@@ -92,7 +93,7 @@ public class Controller extends Observable {
 	
 	
 	
-	private static final Logger LOGGER = Logger.getLogger(Controller.class);
+	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
 	private String version = "0.26.2.2";
 	private String buildTime = "2017-12-07 17:54:00 UTC";
 	private long buildTimestamp;

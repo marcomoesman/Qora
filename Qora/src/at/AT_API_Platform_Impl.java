@@ -6,7 +6,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import qora.account.Account;
@@ -28,7 +29,7 @@ import database.TransactionFinalMap;
 public class AT_API_Platform_Impl extends AT_API_Impl {
 
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(AT_API_Platform_Impl.class);
 	
 	private final static AT_API_Platform_Impl instance = new AT_API_Platform_Impl();

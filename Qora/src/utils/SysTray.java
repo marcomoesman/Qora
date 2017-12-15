@@ -26,7 +26,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import database.wallet.TransactionMap;
@@ -49,7 +50,7 @@ import settings.Settings;
 public class SysTray implements Observer{
 
 	
-	private static final Logger LOGGER = Logger.getLogger(SysTray.class);
+	private static final Logger LOGGER = LogManager.getLogger(SysTray.class);
 	private static SysTray systray = null;
 	private TrayIcon icon = null;
 	private PopupMenu createPopupMenu;

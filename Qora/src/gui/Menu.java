@@ -19,7 +19,8 @@ import javax.swing.KeyStroke;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import controller.Controller;
 import gui.settings.SettingsFrame;
@@ -36,7 +37,7 @@ public class Menu extends JMenuBar
 	private ImageIcon lockedIcon;
 	private ImageIcon unlockedIcon;
 	
-	private static final Logger LOGGER = Logger.getLogger(Menu.class);
+	private static final Logger LOGGER = LogManager.getLogger(Menu.class);
 	public Menu()
 	{
 		super();

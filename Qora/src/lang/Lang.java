@@ -7,7 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -20,7 +21,7 @@ public class Lang {
 												
 	public static final String translationsUrl = "https://raw.githubusercontent.com/Qoracoin/translations/master/";
 	
-	private static final Logger LOGGER = Logger.getLogger(Lang.class);
+	private static final Logger LOGGER = LogManager.getLogger(Lang.class);
 	private static Lang instance;
 	private Map<String, String> noTranslateMap;
 	

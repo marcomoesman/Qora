@@ -42,7 +42,8 @@ import javax.ws.rs.core.UriInfo;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.util.StringUtil;
 import org.glassfish.jersey.media.multipart.FormDataBodyPart;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -102,7 +103,7 @@ public class WebResource {
 	HttpServletRequest request;
 
 	
-	private static final Logger LOGGER = Logger.getLogger(WebResource.class);
+	private static final Logger LOGGER = LogManager.getLogger(WebResource.class);
 	@GET
 	public Response Default() {
 

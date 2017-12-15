@@ -5,7 +5,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Serializer;
 
 import qora.voting.Poll;
@@ -13,7 +14,7 @@ import qora.voting.Poll;
 public class PollSerializer implements Serializer<Poll>, Serializable
 {
 	
-	private static final Logger LOGGER = Logger.getLogger(PollSerializer.class);
+	private static final Logger LOGGER = LogManager.getLogger(PollSerializer.class);
 	private static final long serialVersionUID = -6538913048331349777L;
 
 	@Override

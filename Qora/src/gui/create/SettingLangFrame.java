@@ -28,7 +28,8 @@ import javax.swing.JScrollPane;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -44,7 +45,7 @@ import utils.SaveStrToFile;
 public class SettingLangFrame extends JDialog {
 	
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(SettingLangFrame.class);
 	private  JList<LangFile> listLang;
 	

@@ -10,14 +10,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import qora.crypto.Base64;
 
 
 public class GZIP {
 	
-	private static final Logger LOGGER = Logger.getLogger(GZIP.class);
+	private static final Logger LOGGER = LogManager.getLogger(GZIP.class);
 	private static byte[] GZIPcompress(String str) throws Exception {
 		try( ByteArrayOutputStream obj= new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(obj);)
 		{

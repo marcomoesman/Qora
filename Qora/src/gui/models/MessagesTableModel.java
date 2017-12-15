@@ -33,7 +33,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 
 import controller.Controller;
@@ -56,7 +57,7 @@ import utils.TableMenuPopupUtil;
 public class MessagesTableModel extends JTable implements Observer{
 	
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(MessagesTableModel.class);
 	private ArrayList<MessageBuf> messageBufs;
 	Comparator<MessageBuf> comparator = new Comparator<MessageBuf>() {

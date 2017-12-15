@@ -16,7 +16,8 @@ import network.message.FindMyselfMessage;
 import network.message.Message;
 import network.message.MessageFactory;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import utils.ObserverMessage;
 import controller.Controller;
@@ -24,7 +25,7 @@ import controller.Controller;
 public class Network extends Observable implements ConnectionCallback {
 
 	
-	private static final Logger LOGGER = Logger.getLogger(Network.class);
+	private static final Logger LOGGER = LogManager.getLogger(Network.class);
 	public static final int MAINNET_PORT = 9084;
 	public static final int TESTNET_PORT = 4809;
 	

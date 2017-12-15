@@ -11,7 +11,8 @@ import java.util.Observer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import utils.ObserverMessage;
 import utils.Pair;
@@ -29,7 +30,7 @@ public class SortableList<T, U> extends AbstractList<Pair<T, U>> implements Obse
 	private Collection<T> keys;
 	private List<String> additionalFilterFields;
 	
-	private static final Logger LOGGER = Logger.getLogger(SortableList.class);
+	private static final Logger LOGGER = LogManager.getLogger(SortableList.class);
 	public SortableList(DBMap<T, U> db)
 	{
 		this.db = db;

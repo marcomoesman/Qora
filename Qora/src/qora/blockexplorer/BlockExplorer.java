@@ -20,7 +20,8 @@ import java.util.TreeSet;
 
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Fun;
 import org.mapdb.Fun.Tuple2;
 import org.mapdb.Fun.Tuple6;
@@ -70,7 +71,7 @@ import utils.ReverseComparator;
 public class BlockExplorer
 {
 	
-	private static final Logger LOGGER = Logger.getLogger(BlockExplorer.class);
+	private static final Logger LOGGER = LogManager.getLogger(BlockExplorer.class);
 	private static BlockExplorer blockExplorer;
 
 	public static BlockExplorer getInstance()

@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import ntp.NTP;
 import qora.account.PrivateKeyAccount;
@@ -42,7 +43,7 @@ public class BlockGenerator extends Thread implements Observer
 	public static final int MIN_BLOCK_TIME = 1 * 60;
 	public static final int MAX_BLOCK_TIME = 5 * 60;
 	
-	private static final Logger LOGGER = Logger.getLogger(BlockGenerator.class);
+	private static final Logger LOGGER = LogManager.getLogger(BlockGenerator.class);
 	
 	public enum ForgingStatus {
 	    

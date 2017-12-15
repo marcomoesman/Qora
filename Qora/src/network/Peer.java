@@ -22,7 +22,8 @@ import network.message.MessageFactory;
 import network.message.MessageException;
 import ntp.NTP;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import settings.Settings;
 import controller.Controller;
@@ -40,7 +41,7 @@ public class Peer extends Thread {
 	private long connectionTime;
 
 	private static final int INACTIVITY_TIMEOUT = 60 * 60 * 1000; // one hour
-	private static final Logger LOGGER = Logger.getLogger(Peer.class);
+	private static final Logger LOGGER = LogManager.getLogger(Peer.class);
 	private Map<Integer, BlockingQueue<Message>> messages;
 
 	/**

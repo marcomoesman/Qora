@@ -11,7 +11,8 @@ import java.util.List;
 
 import ntp.NTP;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.mapdb.Fun.Tuple2;
@@ -43,7 +44,7 @@ import database.DBSet;
 
 public class Block {
 	
-	private static final Logger LOGGER = Logger.getLogger(Block.class);
+	private static final Logger LOGGER = LogManager.getLogger(Block.class);
 	public static final int MAX_BLOCK_BYTES = 1048576;
 	public static final int VERSION_LENGTH = 4;
 	public static final int REFERENCE_LENGTH = 128;

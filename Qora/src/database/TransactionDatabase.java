@@ -9,7 +9,8 @@ import java.util.TreeMap;
 
 import ntp.NTP;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 
@@ -26,7 +27,7 @@ public class TransactionDatabase extends Observable implements Observer {
 	private DBSet databaseSet;	
 	private Map<byte[], byte[]> transactionMap;	
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(TransactionDatabase.class);
 	
 	public TransactionDatabase(DBSet databaseSet, DB database)

@@ -9,7 +9,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -22,7 +23,7 @@ import controller.Controller;
 public class WalletResource {
 
 	
-	private static final Logger LOGGER = Logger.getLogger(WalletResource.class);
+	private static final Logger LOGGER = LogManager.getLogger(WalletResource.class);
 	
 	@Context
 	HttpServletRequest request;

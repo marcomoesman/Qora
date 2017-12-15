@@ -7,7 +7,8 @@ import network.message.Message;
 import network.message.MessageFactory;
 import network.message.PeersMessage;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import settings.Settings;
 
@@ -16,7 +17,7 @@ public class ConnectionCreator extends Thread {
 	private ConnectionCallback callback;
 	private boolean isRun;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(ConnectionCreator.class);
 	public ConnectionCreator(ConnectionCallback callback)
 	{

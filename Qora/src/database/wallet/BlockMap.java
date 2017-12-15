@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeMap;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.BTreeKeySerializer;
 import org.mapdb.DB;
 import org.mapdb.Fun;
@@ -35,7 +36,7 @@ public class BlockMap extends DBMap<Tuple2<String, String>, Block>
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 	
 	
-	private static final Logger LOGGER = Logger.getLogger(BlockMap.class);
+	private static final Logger LOGGER = LogManager.getLogger(BlockMap.class);
 	
 	public BlockMap(WalletDatabase walletDatabase, DB database)
 	{

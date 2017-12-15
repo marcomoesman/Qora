@@ -2,7 +2,8 @@ package gui.models;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.Fun.Tuple2;
 
 import qora.block.Block;
@@ -23,7 +24,7 @@ public class WalletBlocksTableModel extends QoraTableModel<Tuple2<String, String
 	public static final int COLUMN_TRANSACTIONS = 4;
 	public static final int COLUMN_FEE = 5;
 	
-	private static final Logger LOGGER = Logger
+	private static final Logger LOGGER = LogManager
 			.getLogger(WalletBlocksTableModel.class);
 	private SortableList<Tuple2<String, String>, Block> blocks;
 	
