@@ -11,3 +11,7 @@ Public GIT for the Qora cryptocurrency project.
 Run the program without any options to start the daemon.
 
 Run the program with the -cli option to access the daemon using the API.
+
+## Advanced Installer
+
+The Windows Installer is made with [Advanced Installer](http://advancedinstaller.com) on an open source license. Advanced Installer allowed us to create a feature complete installer in a user friendly environment with minimal effort.
