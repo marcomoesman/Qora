@@ -30,7 +30,6 @@ public class Gui extends JFrame {
 
 	private static Gui maingui;
 	private static MainFrame mainFrame;
-	private static SplashFrame splashFrame;
 
 	public static Gui getInstance() throws Exception {
 		if (maingui == null)
@@ -47,14 +46,11 @@ public class Gui extends JFrame {
 		UIManager.put("TabbedPane.focus", new Color(0, 0, 0, 0));
 		UIManager.put("ComboBox.focus", new Color(0, 0, 0, 0));
 		UIManager.put("TextArea.font", UIManager.get("TextField.font"));
-
-		// create splash
-		splashFrame = SplashFrame.getInstance();
 	}
 
 	public void startupCompleted() {
-		splashFrame.setVisible(false);
-		splashFrame.dispose();
+		SplashFrame.getInstance().setVisible(false);
+		SplashFrame.getInstance().dispose();
 		
 		if (Settings.getInstance().Dump().containsKey("lang")) {
 			if (!Settings.getInstance().getLang().equals(Settings.DEFAULT_LANGUAGE)) {

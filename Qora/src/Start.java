@@ -1,4 +1,5 @@
 import gui.Gui;
+import gui.SplashFrame;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -61,6 +62,8 @@ public class Start {
 			if (Settings.getInstance().isGuiEnabled()) {
 				try {
 					maingui = Gui.getInstance();
+					// Create splash screen
+					SplashFrame.getInstance();
 				} catch(Exception e) {
 					LOGGER.error(Lang.getInstance().translate("GUI ERROR"), e);
 					System.exit(0);
