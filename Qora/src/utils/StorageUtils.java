@@ -6,10 +6,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -26,6 +26,7 @@ import qora.web.OrphanNameStorageHelperMap;
 import qora.web.OrphanNameStorageMap;
 
 public class StorageUtils {
+	private static final Logger LOGGER = LogManager.getLogger(StorageUtils.class);
 
 	// REPLACES CURRENT VALUE
 	public static final String ADD_COMPLETE_KEY = "addcomplete";
@@ -40,6 +41,24 @@ public class StorageUtils {
 	// ADD PATCH TO CURRENT VALUE
 	public static final String PATCH_KEY = "patch";
 
+	private static JSONObject getDataByKey(JSONObject jsonObject, String mainKey) {
+		Object jsonData = jsonObject.get(mainKey);
+
+		if (jsonData == null)
+			return null;
+
+		// unencapsulate strings
+		if (jsonData instanceof String)
+			jsonData = JSONValue.parse((String) jsonData);  
+
+		// must be JSON object now
+		if (!(jsonData instanceof JSONObject)) {
+			LOGGER.warn("Expecting JSONObject while looking for \"" + mainKey + "\" data");
+			return null;
+		}
+
+		return (JSONObject) jsonData;
+	}
 
 	@SuppressWarnings("unchecked")
 	public static JSONObject getStorageJsonObject(
@@ -67,16 +86,14 @@ public class StorageUtils {
 		addListPairtoJson(removeListKeys, json, REMOVE_LIST_KEY);
 
 		addListPairtoJson(addWithoutSeperator, json, ADD_KEY);
-		
+
 		addListPairtoJson(addPatch, json, PATCH_KEY);
 
 		return json;
-
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void addListPairtoJson(
-			List<Pair<String, String>> addListKeys, JSONObject json, String key) {
+	public static void addListPairtoJson(List<Pair<String, String>> addListKeys, JSONObject json, String key) {
 		if (addListKeys != null && addListKeys.size() > 0) {
 			JSONObject innerJsonObject = new JSONObject();
 
@@ -89,185 +106,123 @@ public class StorageUtils {
 	}
 
 	public static void processUpdate(byte[] data, byte[] signature,
-			PublicKeyAccount creator, DBSet db) {
+		PublicKeyAccount creator, DBSet db) {
 
-			String string = new String(data, Charsets.UTF_8 );
-			
-			string = GZIP.webDecompress(string);
+		String string = new String(data, Charsets.UTF_8 );
+		
+		string = GZIP.webDecompress(string);
 
-			JSONObject jsonObject = (JSONObject) JSONValue.parse(string);
+		JSONObject jsonObject = (JSONObject) JSONValue.parse(string);
+		
+		if (jsonObject == null)
+			return;
 
-			if (jsonObject != null) {
-
-				String name = (String) jsonObject.get("name");
-
-				OrphanNameStorageHelperMap orphanNameStorageHelperMap = db.getOrphanNameStorageHelperMap();
-				List<byte[]> list = orphanNameStorageHelperMap.get(name);
-				if(list == null || !ByteArrayUtils.contains(list, signature))
-				{
-					if (name != null) {
-						
-						Name nameObj = db.getNameMap().get(name);
-						
-						if (nameObj == null) {
-							
-							//addressstorage?
-							if(!name.equals(creator.getAddress()))
-							{
-								//they don't match do nothing!
-								return;
-							}
-							
-						}else
-						{
-							
-							if (!nameObj.getOwner().getAddress()
-									.equals(creator.getAddress())) {
-								// creator is not the owner of the name
-								return;
-							}
-						}
-						
-						
-						NameStorageMap nameStorageMap = db
-								.getNameStorageMap();
-						OrphanNameStorageMap orphanNameStorageMap = db.getOrphanNameStorageMap();
-						
-						Set<String> allKeysForOrphanSaving = getAllKeysForOrphanSaving(jsonObject);
-						
-						// SAVE OLD VALUES FOR ORPHANING
-						for (String keyForOrphaning : allKeysForOrphanSaving) {
-							orphanNameStorageMap.add(signature, keyForOrphaning,
-									nameStorageMap.getOpt(name, keyForOrphaning));
-						}
-						
-						db.getOrphanNameStorageHelperMap()
-						.add(name, signature);
-						
-						addTxChangesToStorage(jsonObject, name, nameStorageMap,
-								null);
-						
-					}
-				}
+		String name = (String) jsonObject.get("name");
+		
+		if (name == null)
+			return;
 				
+		Name nameObj = db.getNameMap().get(name);
+		
+		// if name not registered, we are keying by address which must match 'creator' address
+		if (nameObj == null && !name.equals(creator.getAddress()))
+			return;
 
+		// if name registered, check owner is 'creator'
+		if (nameObj != null && !nameObj.getOwner().getAddress().equals(creator.getAddress()))
+			return;
+		
+		OrphanNameStorageHelperMap orphanNameStorageHelperMap = db.getOrphanNameStorageHelperMap();
+		List<byte[]> list = orphanNameStorageHelperMap.get(name);
+		if (list == null || !ByteArrayUtils.contains(list, signature)) {
+			NameStorageMap nameStorageMap = db.getNameStorageMap();
+			OrphanNameStorageMap orphanNameStorageMap = db.getOrphanNameStorageMap();
+
+			Set<String> allKeysForOrphanSaving = getAllKeysForOrphanSaving(jsonObject);
+
+			// SAVE OLD VALUES FOR ORPHANING
+			for (String keyForOrphaning : allKeysForOrphanSaving) {
+				orphanNameStorageMap.add(signature, keyForOrphaning, nameStorageMap.getOpt(name, keyForOrphaning));
 			}
 
+			db.getOrphanNameStorageHelperMap().add(name, signature);
 
+			addTxChangesToStorage(jsonObject, name, nameStorageMap, null);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public static void addTxChangesToStorage(JSONObject jsonObject,
 			String name, NameStorageMap nameStorageMap,
 			Set<String> onlyTheseKeysOpt) {
-		String addCompleteJson = (String) jsonObject.get(ADD_COMPLETE_KEY);
-		if (addCompleteJson != null) {
-			JSONObject addCompleteResults = (JSONObject) JSONValue
-					.parse(addCompleteJson);
-
+		
+		JSONObject addCompleteResults = getDataByKey(jsonObject, ADD_COMPLETE_KEY);
+		if (addCompleteResults != null) {
 			Set<String> keys = addCompleteResults.keySet();
 
-			for (String key : keys) {
-
-				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key)) {
-					nameStorageMap.add(name, key,
-							"" + addCompleteResults.get(key));
-				}
-			}
-
+			for (String key : keys)
+				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key))
+					nameStorageMap.add(name, key, "" + addCompleteResults.get(key));
 		}
 
-		String removeJson = (String) jsonObject.get(REMOVE_COMPLETE_KEY);
-		if (removeJson != null) {
-
-			JSONObject removeCompleteResults = (JSONObject) JSONValue
-					.parse(removeJson);
-
+		JSONObject removeCompleteResults = getDataByKey(jsonObject, REMOVE_COMPLETE_KEY);
+		if (removeCompleteResults != null) {
 			Set<String> keys = removeCompleteResults.keySet();
 
-			for (String key : keys) {
-
-				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key)) {
+			for (String key : keys)
+				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key))
 					nameStorageMap.remove(name, key);
-				}
-			}
 		}
 
-		String addJsonList = (String) jsonObject.get(ADD_LIST_KEY);
-		if (addJsonList != null) {
+		JSONObject addListResults = getDataByKey(jsonObject, ADD_LIST_KEY);
+		if (addListResults != null) {
+			Set<String> keys = addListResults.keySet();
 
-			JSONObject addListKey = (JSONObject) JSONValue.parse(addJsonList);
-
-			Set<String> keys = addListKey.keySet();
-
-			for (String key : keys) {
+			for (String key : keys)
 				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key)) {
-					List<String> entriesToAdd = new ArrayList<>(
-							Arrays.asList(StringUtils.split(
-									"" + addListKey.get(key), ";")));
+					List<String> entriesToAdd = new ArrayList<>( Arrays.asList(StringUtils.split("" + addListResults.get(key), ";")) );
 					nameStorageMap.addListEntries(name, key, entriesToAdd);
 				}
-			}
 		}
 
-		String removeJsonList = (String) jsonObject.get(REMOVE_LIST_KEY);
-		if (removeJsonList != null) {
+		JSONObject removeListResults = getDataByKey(jsonObject, REMOVE_LIST_KEY);
+		if (removeListResults != null) {
+			Set<String> keys = removeListResults.keySet();
 
-			JSONObject removeListKey = (JSONObject) JSONValue
-					.parse(removeJsonList);
-
-			Set<String> keys = removeListKey.keySet();
-
-			for (String key : keys) {
+			for (String key : keys)
 				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key)) {
-					List<String> entriesToAdd = new ArrayList<>(
-							Arrays.asList(StringUtils.split(
-									"" + removeListKey.get(key), ";")));
+					List<String> entriesToAdd = new ArrayList<>( Arrays.asList(StringUtils.split("" + removeListResults.get(key), ";")) );
 					nameStorageMap.removeListEntries(name, key, entriesToAdd);
 				}
-			}
 		}
 
-		String addJson = (String) jsonObject.get(ADD_KEY);
-		if (addJson != null) {
+		JSONObject addResults = getDataByKey(jsonObject, ADD_KEY);
+		if (addResults != null) {
+			Set<String> keys = addResults.keySet();
 
-			JSONObject addJsonKey = (JSONObject) JSONValue.parse(addJson);
-
-			Set<String> keys = addJsonKey.keySet();
-
-			for (String key : keys) {
-
+			for (String key : keys)
 				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key)) {
 					String oldValueOpt = nameStorageMap.getOpt(name, key);
 					oldValueOpt = oldValueOpt == null ? "" : oldValueOpt;
-					nameStorageMap.add(name, key,
-							oldValueOpt + "" + addJsonKey.get(key));
+					nameStorageMap.add(name, key, oldValueOpt + "" + addResults.get(key));
 				}
-			}
 		}
 		
-		String patchJson = (String) jsonObject.get(PATCH_KEY);
-		if (patchJson != null) {
-			
-			JSONObject patchJsonKey = (JSONObject) JSONValue.parse(patchJson);
-			
-			Set<String> keys = patchJsonKey.keySet();
-			
-			for (String key : keys) {
-				
+		JSONObject patchResults = getDataByKey(jsonObject, PATCH_KEY);
+		if (patchResults != null) {
+			Set<String> keys = patchResults.keySet();
+
+			for (String key : keys)
 				if (onlyTheseKeysOpt == null || onlyTheseKeysOpt.contains(key)) {
 					String oldValueOpt = nameStorageMap.getOpt(name, key);
-					
+
 					oldValueOpt = oldValueOpt == null ? "" : oldValueOpt;
 					try {
-						nameStorageMap.add(name, key,
-								DiffHelper.patch(oldValueOpt, (String) patchJsonKey.get(key)));
+						nameStorageMap.add(name, key, DiffHelper.patch(oldValueOpt, (String) patchResults.get(key)));
 					} catch (Throwable e) {
-						Logger.getGlobal().info("Invalid patch!");
-						Logger.getGlobal().log(Level.FINE, "Invalid patch!", e);
+						LOGGER.warn("Invalid name storage patch for name \"" + name + "\"", e);
 					}
 				}
-			}
 		}
 	}
 
@@ -283,19 +238,15 @@ public class StorageUtils {
 		return results;
 	}
 
-	private static void getKeys(JSONObject jsonObject, Set<String> results,
-			String mainKey) {
-		String addJson = (String) jsonObject.get(mainKey);
-		if (addJson != null) {
-			JSONObject addCompleteResults = (JSONObject) JSONValue
-					.parse(addJson);
+	private static void getKeys(JSONObject jsonObject, Set<String> results, String mainKey) {
+		JSONObject storageData = getDataByKey(jsonObject, mainKey);
+		if (storageData == null)
+			return;
+		
+		@SuppressWarnings("unchecked")
+		Set<String> keys = storageData.keySet();
 
-			@SuppressWarnings("unchecked")
-			Set<String> keys = addCompleteResults.keySet();
-
-			results.addAll(keys);
-
-		}
+		results.addAll(keys);
 	}
 
 	public static void processOrphan(byte[] data, byte[] signature, DBSet db) {
@@ -375,19 +326,14 @@ public class StorageUtils {
 						addTxChangesToStorage(jsonObjectOfFollowingTx, name, nameStorageMap, keySet);
 					}
 
-					db.getOrphanNameStorageMap()
-							.delete(signature);
+					db.getOrphanNameStorageMap().delete(signature);
 					
-					db
-					.getOrphanNameStorageHelperMap().remove(name, signature);
+					db.getOrphanNameStorageHelperMap().remove(name, signature);
 
 				}
 
 			}
 		}
 	}
-
-
-	
 
 }
