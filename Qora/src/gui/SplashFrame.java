@@ -49,7 +49,7 @@ public class SplashFrame extends JFrame {
 			this.splashDialog.setModal(false);
 			this.splashDialog.pack();
 			this.splashDialog.setLocationRelativeTo(null);
-			this.splashDialog.setAlwaysOnTop(true);
+			this.splashDialog.toFront();
 			this.splashDialog.setVisible(true);
 			this.splashDialog.repaint();
 	

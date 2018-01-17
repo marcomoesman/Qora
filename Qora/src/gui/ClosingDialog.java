@@ -44,7 +44,7 @@ public class ClosingDialog extends JFrame{
 		this.waitDialog.setModal(false);
 		this.waitDialog.pack();
 		this.waitDialog.setLocationRelativeTo(null);
-		this.waitDialog.setAlwaysOnTop(true);
+		this.waitDialog.toFront();
 		this.waitDialog.setVisible(true);
 		this.waitDialog.repaint();
 		
