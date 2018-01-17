@@ -166,21 +166,21 @@
               <div class="col-lg-10">
                 <select class="form-control" id="select-name">
                   {% for name in names %}
-					<option value={{name.name}}>
-						{{name.NameBalanceString}}</option>
+					<option value="{{name.name|escape(strategy="html_attr")}}">
+						{{name.NameBalanceString|escape(strategy="html")}}</option>
 					{% endfor %}
                 </select>
               </div>
             <label for="title" class="col-lg-2 control-label translate">Key</label>
             <div class="col-lg-10">
-              <input id="key" type="text" placeholder="Key (use key website or leave it blank to create a website)" class="form-control translate">
+              <input id="key" type="text" placeholder="Key (use the key &quot;website&quot; or leave it blank to create a website)" class="form-control translate">
             </div>
           </div>
             <div class="form-group">
             <label for="website" class="col-lg-2 control-label"><br><span class='translate'>Data</span></label>
 			<div class="col-lg-10">
 			  <div style="text-align: right;"><input name="WYSIWYG" id="WYSIWYG" type="checkbox"><label for="WYSIWYG" class='translate'>Visual editor</label></div>
-              <pre><textarea id="website" rows="10" class="form-control">{{website}}</textarea></pre>
+              <pre><textarea id="website" rows="10" class="form-control">{{website|escape(strategy="html")}}</textarea></pre>
             </div>
           </div>
 
@@ -369,11 +369,11 @@
       });
     });
 
+ 	{% autoescape "js" %}
     $(document).ready(function() {
         var searchval;
 		$("#select-name").val('{{name}}');
 		$("#key").val('{{key}}');
- 	{% autoescape true %}
  	 $('#form').ajaxForm(
     {
        beforeSubmit: function() {

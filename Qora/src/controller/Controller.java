@@ -95,11 +95,11 @@ public class Controller extends Observable {
 	
 	
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.4";
-	private String buildTime = "2017-12-17 17:06:00 UTC";
+	private String version = "0.26.5";
+	private String buildTime = "2018-01-17 16:46:00 UTC";
 	private long buildTimestamp;
 	
-	public static final String releaseVersion = "0.26.4";
+	public static final String releaseVersion = "0.26.5";
 
 //	TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;

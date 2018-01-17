@@ -180,19 +180,19 @@ public class NameUtils {
 
 		
 		NameStorageMap nameStorageMap = DBSet.getInstance().getNameStorageMap();
-		Set<String> keys = nameStorageMap.getKeys();
+		Set<String> names = nameStorageMap.getKeys();
 
-		for (String key : keys) {
-			String value = nameStorageMap.getOpt(key, Qorakeys.WEBSITE.getKeyname());
-					if (value != null) {
+		for (String name : names) {
+			String data = nameStorageMap.getOpt(name, Qorakeys.WEBSITE.getKeyname());
+					if (data != null) {
 						if (searchValueOpt == null) {
-							results.add(new Pair<String, String>(key,
-									value));
+							results.add(new Pair<String, String>(name,
+									data));
 						} else {
-							if (value.toLowerCase().contains(
+							if (data.toLowerCase().contains(
 									searchValueOpt.toLowerCase())) {
-								results.add(new Pair<String, String>(key,
-										value));
+								results.add(new Pair<String, String>(name,
+										data));
 							}
 
 						}

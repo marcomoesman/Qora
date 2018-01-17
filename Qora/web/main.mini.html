@@ -200,7 +200,7 @@
     $(document).ready(function() {
         var searchval;
         $('ul.nav-tabs > li').removeClass('active');
-        if (window.location.pathname === '/index/blogsearch.html') {
+        if (window.location.pathname === '/index/blogsearch.html' || window.location.pathname === '/index/blogdirectory.html') {
             $('ul.nav-tabs > li:nth-child(2)').addClass('active');
         } else {
             $('ul.nav-tabs > li:nth-child(1)').addClass('active');

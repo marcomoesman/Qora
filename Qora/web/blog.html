@@ -242,7 +242,7 @@
     <div id="PostModal" class="modal fade">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
-          <iframe width="100%" height="100%" frameborder="0" src="{{postblogurl}}"></iframe>
+          <iframe width="100%" height="100%" frameborder="0" src="postblog.html?blogname={{blogname|escape(strategy="url_param")}}"></iframe>
         </div>
       </div>
     </div>
@@ -270,7 +270,7 @@
             <img align="left" src="{{blogprofile.getAvatarOpt()}}" alt="" class="tl-image-profile thumbnail">
             {%endif%}
             <div class="tl-profile-text">
-              <h1>{{blogprofile.getName().getName()}}</h1>
+              <h1>{{blogname}}</h1>
               <ul class="profile-options list-inline">&nbsp;&nbsp;
                 <li class="co-tabs pull-left"><ul class="co-lists list-unstyled"><li class="co-top translate">Followers</li><li class="co-bottom">{{ follower.size() }}</li></ul></li>
                 <li class="co-tabs pull-left"><ul class="co-lists list-unstyled"><li class="co-top translate">Following</li><li class="co-bottom">{{ blogprofile.getFollowedBlogs().size() }}</li></ul></li>
@@ -291,19 +291,19 @@
                   <div class="media">
                   	{% if blogpost.shareAuthorOpt() is not null %}
                   	{% if blogpost.getNameOpt() is not null %}
-                  	<h6><span class="glyphicon glyphicon-retweet"></span>  <b><a href="/index/blog.html?blogname={{blogpost.shareAuthorOpt()}}">{{blogpost.shareAuthorOpt()}}</a></b> shared <b><a href="/index/blog.html?blogname={{blogpost.nameOrCreator}}">{{blogpost.nameOrCreator}}</a></b> post</h6>
+                  	<h6><span class="glyphicon glyphicon-retweet"></span>  <b><a href="/index/blog.html?blogname={{blogpost.shareAuthorOpt()|escape(strategy="url_param")}}">{{blogpost.shareAuthorOpt()}}</a></b> shared <b><a href="/index/blog.html?blogname={{blogpost.nameOrCreator|escape(strategy="url_param")}}">{{blogpost.nameOrCreator}}</a></b> post</h6>
                   	{%else%}
-                  	<h6><span class="glyphicon glyphicon-retweet"></span>  <b><a href="/index/blog.html?blogname={{blogpost.shareAuthorOpt()}}">{{blogpost.shareAuthorOpt()}}</a></b> shared <b>{{blogpost.nameOrCreator}}</b> post</h6>
+                  	<h6><span class="glyphicon glyphicon-retweet"></span>  <b><a href="/index/blog.html?blogname={{blogpost.shareAuthorOpt()|escape(strategy="url_param")}}">{{blogpost.shareAuthorOpt()}}</a></b> shared <b>{{blogpost.nameOrCreator}}</b> post</h6>
                   	{%endif%}
                   	{%endif%}
                     {% if blogpost.getProfileOpt() is not null and blogpost.getProfileOpt().isProfileEnabled() %}
-                    <div class="media-left media-middle"><a href="/index/blog.html?blogname={{blogpost.nameOrCreator}}"><img src="{{blogpost.getAvatar()}}" alt="" class="media-object"></a></div>
+                    <div class="media-left media-middle"><a href="/index/blog.html?blogname={{blogpost.nameOrCreator|escape(strategy="url_param")}}"><img src="{{blogpost.getAvatar()}}" alt="" class="media-object"></a></div>
                     {%else%}
                     <div class="media-left media-middle"><img src="{{blogpost.getAvatar()}}" alt="" class="media-object"></div>
                     {%endif%}
                     <div class="media-body">
                     	{% if blogpost.getProfileOpt() is not null and blogpost.getProfileOpt().isProfileEnabled() %}
-                      <h6 class="media-heading"><b><a href="/index/blog.html?blogname={{blogpost.getProfileOpt().getName().getName()}}">{{blogpost.nameOrCreator}}</a></b></h6>{{blogpost.creationTime}}
+                      <h6 class="media-heading"><b><a href="/index/blog.html?blogname={{blogpost.getProfileOpt().getName().getName()|escape(strategy="url_param")}}">{{blogpost.nameOrCreator}}</a></b></h6>{{blogpost.creationTime}}
                     	{%else%}
                       <h6 class="media-heading"><b>{{blogpost.nameOrCreator}}</b></h6>{{blogpost.creationTime}}
                     	{%endif%}
@@ -336,7 +336,7 @@
                 </div>
                 <div class="timeline-footer">
                   <a><span onclick="javascript:processLike('{{blogpost.getSignature()}}', {{blogpost.isLiking()}})" ><i class="glyphicon glyphicon-heart" style=""><font color=white>.</font>{{blogpost.getLikes()}}</i></a>
-                  <a class="pull-right"><span onclick="javascript:processShare('{{blogpost.getSignature()}}' , '{{blogpost.getBlognameOpt()}}')" ><i class="glyphicon glyphicon-share"><font color=white>.</font>{{blogpost.getShares()}}</i></a>
+                  <a class="pull-right"><span onclick="javascript:processShare('{{blogpost.getSignature()}}' , '{{blogpost.getBlognameOpt()|escape(strategy="js")}}')" ><i class="glyphicon glyphicon-share"><font color=white>.</font>{{blogpost.getShares()}}</i></a>
                    
 				   <div class="commentList">
                    {% for comment in blogpost.getComments() %}
@@ -344,7 +344,7 @@
                     
 					<div class="media-left">
 					{% if comment.getNameOpt() is not null %}
-                      <a href="/index/blog.html?blogname={{comment.nameOrCreator}}">
+                      <a href="/index/blog.html?blogname={{comment.nameOrCreator|escape(strategy="url_param")}}">
                       {%else%}
                       <a href="#">
                   	{%endif%}
@@ -359,7 +359,7 @@
 					  
 					<div class="media-body">
                       {% if comment.getNameOpt() is not null %}
-						<h4 class="media-heading Commenter"><a href="/index/blog.html?blogname={{comment.nameOrCreator}}">{{comment.nameOrCreator}}</a></h4>
+						<h4 class="media-heading Commenter"><a href="/index/blog.html?blogname={{comment.nameOrCreator|escape(strategy="url_param")}}">{{comment.nameOrCreator}}</a></h4>
           			{%else%}
 						<h4 class="media-heading Commenter">{{comment.nameOrCreator}}</h4>
           			{%endif%}
@@ -392,7 +392,7 @@
             {%else%}
              <h1 style="font-family: Verdana;"><span class="translate">This blog is currently disabled.</span><br>
              {% if ownProfileName is not null %}
-        	<span class="translate">You can enable the blog <a href='/index/settings.html?profilename={{ownProfileName}}'>here</a></span>
+        	<span class="translate">You can enable the blog <a href='/index/settings.html?profilename={{ownProfileName|escape(strategy="url_param")}}'>here</a></span>
         	{%endif%}
       		</h1><br>
             {% endif %}
@@ -875,7 +875,7 @@
       $('#{{blogpost.getSignature()}} > .timeline-panel').toggleClass("highlighted");
       $('#{{blogpost.getSignature()}} > .timeline-badge').toggleClass("highlighted");
     };
-    if (window.location.search === '?blogname={{blogpost.nameOrCreator}}&msg={{blogpost.getSignature()}}') {
+    if (window.location.search === '?blogname={{blogpost.nameOrCreator|escape(strategy="url_param")}}&msg={{blogpost.getSignature()}}') {
       $('#{{blogpost.getSignature()}} > .timeline-panel').toggleClass("highlighted");
       $('#{{blogpost.getSignature()}} > .timeline-badge').toggleClass("highlighted");
    };
