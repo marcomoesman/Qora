@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -128,16 +129,17 @@ public class WebResource {
 						.build();
 			}
 
-			if (StringUtils.isBlank(searchValue)) {
-				return Response.ok(
-
-				pebbleHelper.evaluate(), "text/html; charset=utf-8").build();
+			if (StringUtil.isBlank(searchValue)) {
+				// effectively display web directory
+				searchValue = null;
 			}
 
-			List<Pair<String, String>> searchResults;
-			searchResults = NameUtils.getWebsitesByValue(searchValue);
+			List<Pair<String, String>> websitesByValue = NameUtils.getWebsitesByValue(searchValue);
 
-			List<HTMLSearchResult> results = generateHTMLSearchresults(searchResults);
+			// For now, default sort is descending alpha "name" (first entry in list pair)
+			websitesByValue.sort(Comparator.comparing(Pair::getA));
+
+			List<HTMLSearchResult> results = generateHTMLSearchresults(websitesByValue);
 
 			pebbleHelper.getContextMap().put("searchresults", results);
 
@@ -209,10 +211,10 @@ public class WebResource {
 		try {
 			PebbleHelper pebbleHelper = PebbleHelper.getPebbleHelper(
 					"web/main.mini.html", request);
-			if (StringUtil.isBlank(searchValue)) {
 
-				return Response.ok(pebbleHelper.evaluate(),
-						"text/html; charset=utf-8").build();
+			if (StringUtil.isBlank(searchValue)) {
+				// effectively display blog directory
+				searchValue = null;
 			}
 
 			List<HTMLSearchResult> results = handleBlogSearch(searchValue);
@@ -860,8 +862,11 @@ public class WebResource {
 			PebbleHelper pebbleHelper = PebbleHelper.getPebbleHelper(
 					"web/main.mini.html", request);
 
-			List<Pair<String, String>> websitesByValue = NameUtils
-					.getWebsitesByValue(null);
+			List<Pair<String, String>> websitesByValue = NameUtils.getWebsitesByValue(null);
+
+			// For now, default sort is descending alpha "name" (first entry in list pair)
+			websitesByValue.sort(Comparator.comparing(Pair::getA));
+
 			List<HTMLSearchResult> results = generateHTMLSearchresults(websitesByValue);
 
 			pebbleHelper.getContextMap().put("searchresults", results);
@@ -927,9 +932,14 @@ public class WebResource {
 	}
 
 	private List<HTMLSearchResult> handleBlogSearch(String blogSearchOpt) {
+		List<BlogProfile> allEnabledBlogs = BlogUtils.getEnabledBlogs(blogSearchOpt);
+
+		// For now, default sort is descending alpha blog-name
+		// (using lambda because there's no direct method for Comparator)
+		Collections.sort(allEnabledBlogs, (a, b) -> a.getProfile().getName().getName().compareTo(b.getProfile().getName().getName()));
+
 		List<HTMLSearchResult> results = new ArrayList<>();
-		List<BlogProfile> allEnabledBlogs = BlogUtils
-				.getEnabledBlogs(blogSearchOpt);
+
 		for (BlogProfile blogProfile : allEnabledBlogs) {
 			String name = blogProfile.getProfile().getName().getName();
 			String title = blogProfile.getProfile().getBlogTitleOpt();
@@ -2227,8 +2237,9 @@ public class WebResource {
 						"text/html; charset=utf-8").build();
 			}
 
-			pebbleHelper.getContextMap().put("postblogurl",
-					"postblog.html?blogname=" + blogname);
+			// update blogname in case it was null before
+			blogname = profile.getName().getName();
+			pebbleHelper.getContextMap().put("blogname", blogname);
 
 			pebbleHelper.getContextMap().put("blogprofile", profile);
 			pebbleHelper.getContextMap().put("blogenabled", true);
@@ -2236,7 +2247,7 @@ public class WebResource {
 
 			List<String> followedBlogs = new ArrayList<String>(
 					profile.getFollowedBlogs());
-			followedBlogs.add(profile.getName().getName());
+			followedBlogs.add(blogname);
 
 			List<BlogEntry> blogPosts = BlogUtils.getBlogPosts(followedBlogs);
 
@@ -2391,8 +2402,9 @@ public class WebResource {
 							"text/html; charset=utf-8").build();
 				}
 
-				pebbleHelper.getContextMap().put("postblogurl",
-						"postblog.html?blogname=" + blogname);
+				// update blogname in case it was null before
+				blogname = profile.getName().getName();
+				pebbleHelper.getContextMap().put("blogname", blogname);
 
 				pebbleHelper.getContextMap().put("blogprofile", profile);
 				pebbleHelper.getContextMap().put("blogenabled",
