@@ -90,7 +90,9 @@ public class DBSet implements Observer, IDB {
 		DB database = DBMaker.newMemoryDB()
 				.make();
 		
-		return new DBSet(database);
+		instance = new DBSet(database);
+
+		return instance;
 	}
 	
 	public DBSet(DB database)

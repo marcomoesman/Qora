@@ -8,49 +8,69 @@ import org.junit.Test;
 
 import database.DBSet;
 
-
 public class DatabaseTests {
 
 	@Test
-	public void databaseFork() 
-	{
-		//CREATE DATABASE
+	public void databaseFork() {
+		// Create in-memory DB
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-		
-		//CREATE FORK
+
+		// Create fork
 		DBSet fork = databaseSet.fork();
+
+		// TEST CHANGE TO MAIN DB INHERITED BY FORK (when no forked value exists)
 		
-		//SET BALANCE
+		// Set balance in main DB
 		databaseSet.getBalanceMap().set("test", BigDecimal.ONE);
-		
-		//CHECK VALUE IN DB
+
+		// Check balance in main DB
 		assertEquals(BigDecimal.ONE, databaseSet.getBalanceMap().get("test"));
-		
-		//CHECK VALUE IN FORK
+
+		// Check balance in fork
 		assertEquals(BigDecimal.ONE, fork.getBalanceMap().get("test"));
+
+		// TEST CHANGE IN FORK DOESN'T BACK-PROPAGATE TO MAIN DB
 		
-		//SET BALANCE IN FORK
+		// Set balance in fork
 		fork.getBalanceMap().set("test", BigDecimal.TEN);
-		
-		//CHECK VALUE IN DB
+
+		// Check balance in main DB
 		assertEquals(BigDecimal.ONE, databaseSet.getBalanceMap().get("test"));
-				
-		//CHECK VALUE IN FORK
+
+		// Check balance in fork
 		assertEquals(BigDecimal.TEN, fork.getBalanceMap().get("test"));
+
+		// TEST NESTED FORKS
 		
-		//CREATE SECOND FORK
+		// Create 2nd fork of 1st fork
 		DBSet fork2 = fork.fork();
-		
-		//SET BALANCE IN FORK2
+
+		// Set balance in 2nd fork
 		fork2.getBalanceMap().set("test", BigDecimal.ZERO);
-		
-		//CHECK VALUE IN DB
+
+		// Check balance in main DB
 		assertEquals(BigDecimal.ONE, databaseSet.getBalanceMap().get("test"));
-						
-		//CHECK VALUE IN FORK
+
+		// Check balance in 1st fork
 		assertEquals(BigDecimal.TEN, fork.getBalanceMap().get("test"));
-		
-		//CHECK VALUE IN FORK
+
+		// Check balance in 2nd fork
 		assertEquals(BigDecimal.ZERO, fork2.getBalanceMap().get("test"));
-	}	
+		
+		// TEST CHANGE TO MAIN DB DOESN'T PROPAGATES TO ALL FORKS
+		
+		final BigDecimal someValue = BigDecimal.valueOf(2L);
+		
+		// Set balance in main DB
+		databaseSet.getBalanceMap().set("test", someValue);
+
+		// Check balance in main DB
+		assertEquals(someValue, databaseSet.getBalanceMap().get("test"));
+
+		// Check balance in 1st fork
+		assertEquals(BigDecimal.TEN, fork.getBalanceMap().get("test"));
+
+		// Check balance in 2nd fork
+		assertEquals(BigDecimal.ZERO, fork2.getBalanceMap().get("test"));
+	}
 }
