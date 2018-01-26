@@ -57,7 +57,7 @@ public class DatabaseTests {
 		// Check balance in 2nd fork
 		assertEquals(BigDecimal.ZERO, fork2.getBalanceMap().get("test"));
 		
-		// TEST CHANGE TO MAIN DB DOESN'T PROPAGATES TO ALL FORKS
+		// TEST CHANGE TO MAIN DB DOESN'T PROPAGATE TO ALL FORKS
 		
 		final BigDecimal someValue = BigDecimal.valueOf(2L);
 		
