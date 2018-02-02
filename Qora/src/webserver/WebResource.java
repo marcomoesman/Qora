@@ -232,11 +232,16 @@ public class WebResource {
 	@Path("index/nsrepopulate.html")
 	@GET
 	public Response doNsRepopulate() {
-		
+		try {
 			UpdateUtil.repopulateNameStorage(70000);
-			return error404(request, "Namestorage repopulated!");
-		
+		} catch (Throwable e) {
+			LOGGER.error(e.getMessage(),e);
+			return error404(request, null);
+		}
+
+		return error404(request, "Namestorage repopulated!");
 	}
+
 	@Path("index/deleteunconfirmed.html")
 	@GET
 	public Response doDeleteUnconfirmedTxs() {

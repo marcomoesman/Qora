@@ -6,39 +6,25 @@ import java.math.BigDecimal;
 
 import ntp.NTP;
 
+import org.junit.Before;
 import org.junit.Test;
 
-import qora.BlockGenerator;
-import qora.account.Account;
-import qora.account.PrivateKeyAccount;
 import qora.block.Block;
-import qora.block.GenesisBlock;
 import qora.crypto.Crypto;
-import qora.transaction.GenesisTransaction;
 import qora.transaction.PaymentTransaction;
 import qora.transaction.Transaction;
 import database.DBSet;
 
-public class GeneratorTests {
+public class GeneratorTests extends TestUtils {
+	@Before
+	public void setup() {
+		super.setup();
+		transaction.process(databaseSet);
+	}
 
 	@Test
 	public void generateNewBlock() {
-		// Create empty in-memory database
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// CREATE KNOWN ACCOUNT
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
-
 		// Generate 2,000 blocks!
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block lastBlock = genesisBlock;
 		for (int i = 0; i < 2000; ++i) {
 			// Generate next block
@@ -64,30 +50,13 @@ public class GeneratorTests {
 
 	@Test
 	public void addTransactions() {
-		// Create empty in-memory database
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create test account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
-
 		// Generate new block (timestamp will be far in past, nearer genesis timestamp)
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		assertTrue("a valid block timestamp should be in the past", newBlock.getTimestamp() <= NTP.getTime());
 
 		// Add 10 unconfirmed, valid transactions
-		Account recipient = TestUtils.createTestAccount();
 		DBSet fork = databaseSet.fork();
-
 		for (int i = 0; i < 10; ++i) {
 			// Transaction timestamp needs to be before block timestamp
 			long timestamp = newBlock.getTimestamp() - 10 + i;
@@ -122,28 +91,11 @@ public class GeneratorTests {
 
 	@Test
 	public void addManyTransactions() {
-		// Create empty in-memory database
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create test account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(100000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
-
 		// Generate new block (timestamp will be far in past, nearer genesis timestamp)
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Add 10,000 unconfirmed, valid transactions (too many to fit into one block)
-		Account recipient = TestUtils.createTestAccount();
 		DBSet fork = databaseSet.fork();
-
 		for (int i = 0; i < 10000; ++i) {
 			// Transaction timestamp needs to be before block timestamp
 			long timestamp = newBlock.getTimestamp() - 10000 + i;
@@ -181,28 +133,11 @@ public class GeneratorTests {
 
 	@Test
 	public void addManyTransactionsWithDifferentFees() {
-		// Create empty in-memory database
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create test account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds (1000 transactions of up to 1 amount + 1..100 fee)
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1_000_000L).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
-
 		// Generate new block (timestamp will be far in past, nearer genesis timestamp)
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Add 1,000 unconfirmed, valid transactions with random fees
-		Account recipient = TestUtils.createTestAccount();
 		DBSet fork = databaseSet.fork();
-
 		for (int i = 0; i < 1000; ++i) {
 			// Transaction timestamp needs to be before block timestamp
 			long timestamp = newBlock.getTimestamp() - 1000 + i;

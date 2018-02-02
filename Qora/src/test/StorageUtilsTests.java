@@ -23,6 +23,8 @@ public class StorageUtilsTests {
 		// Base58: 25tJtm3KBamRSHX4NU81QWHwdp9BuwSCZv69E23xc77FuQisLREcSB8u56HutQLWGEf6TcqT7HKLpR5QapP1jHKkjujHMiXvXmqMNvQZEud3XAGF1Rkj3B7W3Y47WAxEHbAe6z6Y
 		// Payload: {"addcomplete":{"test.txt":"this is a test text file"},"name":"QMcfbBpyGsMdXpkkMLhKv79yyF9DNeN1u7"}
 
+		// NB: the JSON value for "addcomplete" is itself a JSON object and not a string (which is typical) - see issue #57
+
 		byte[] data = Base58.decode(
 				"25tJtm3KBamRSHX4NU81QWHwdp9BuwSCZv69E23xc77FuQisLREcSB8u56HutQLWGEf6TcqT7HKLpR5QapP1jHKkjujHMiXvXmqMNvQZEud3XAGF1Rkj3B7W3Y47WAxEHbAe6z6Y");
 

@@ -11,9 +11,7 @@ import ntp.NTP;
 import com.google.common.primitives.Bytes;
 
 import database.DBSet;
-import qora.BlockGenerator;
 import qora.account.Account;
-import qora.account.PrivateKeyAccount;
 import qora.block.Block;
 import qora.block.BlockFactory;
 import qora.block.GenesisBlock;
@@ -22,7 +20,7 @@ import qora.transaction.GenesisTransaction;
 import qora.transaction.PaymentTransaction;
 import qora.transaction.Transaction;
 
-public class BlockTests {
+public class BlockTests extends TestUtils {
 	@Test
 	public void validateSignatureGenesisBlock() {
 		Block genesisBlock = new GenesisBlock();
@@ -37,11 +35,11 @@ public class BlockTests {
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
 
 		// INVALID GENESIS TRANSACTION TEST
-		
+
 		// Create genesis block
 		Block genesisBlock = new GenesisBlock();
 
-		// Check brand new genesis block is valid 
+		// Check brand new genesis block is valid
 		assertTrue("genesis block should be valid", genesisBlock.isValid(databaseSet));
 
 		// Add invalid genesis transaction: amount is negative
@@ -52,7 +50,7 @@ public class BlockTests {
 		assertFalse("genesis block with invalid transaction should be invalid", genesisBlock.isValid(databaseSet));
 
 		// INVALID DUPLICATE GENESIS BLOCK TEST
-		
+
 		// Create new genesis block
 		genesisBlock = new GenesisBlock();
 
@@ -113,7 +111,7 @@ public class BlockTests {
 		}
 
 		// PARSE FAILURE TEST
-		
+
 		// Generate some bytes for parsing
 		rawBlock = new byte[50];
 
@@ -130,22 +128,9 @@ public class BlockTests {
 
 	@Test
 	public void validateSignatureBlock() {
-		// Create empty memory-based DB
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Process genesis block
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create generator account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
+		// Use inherited TestUtils.setup()
 
 		// Generate next block
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Add transactions signature
@@ -156,7 +141,7 @@ public class BlockTests {
 		assertTrue("block with valid signature should be valid", newBlock.isSignatureValid());
 
 		// INVALID TRANSACTIONS SIGNATURE TEST
-		
+
 		// Create invalid transactions signature
 		transactionsSignature = new byte[64];
 		newBlock.setTransactionsSignature(transactionsSignature);
@@ -165,7 +150,7 @@ public class BlockTests {
 		assertFalse("block with invalid transaction signature should be invalid", newBlock.isSignatureValid());
 
 		// INVALID BLOCK SIGNATURE TEST
-		
+
 		// Create invalid block due to invalid block signature ("new byte[32]" arg)
 		newBlock = BlockFactory.getInstance().create(newBlock.getVersion(), newBlock.getReference(), newBlock.getTimestamp(), newBlock.getGeneratingBalance(),
 				generator, new byte[32]);
@@ -177,7 +162,7 @@ public class BlockTests {
 		assertFalse("block with invalid generator signature should be invalid", newBlock.isSignatureValid());
 
 		// VALID TRANSACTION TEST
-		
+
 		// Generate valid next block
 		newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
@@ -199,7 +184,7 @@ public class BlockTests {
 		assertTrue("block with valid transaction should be valid", newBlock.isSignatureValid());
 
 		// INVALID TRANSACTION TEST
-		
+
 		// Generate valid block
 		newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
@@ -218,22 +203,9 @@ public class BlockTests {
 
 	@Test
 	public void validateBlock() {
-		// Create empty in-memory DB
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Add genesis block to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create generator account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
+		// Use inherited TestUtils.setup()
 
 		// Generate next block
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block newBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Add transactions signature
@@ -244,7 +216,7 @@ public class BlockTests {
 		assertTrue("block with valid signature should be valid", newBlock.isValid(databaseSet));
 
 		// INVALID REFERENCE TEST
-		
+
 		// Create block with invalid reference ("new byte[128]" arg)
 		Block invalidBlock = BlockFactory.getInstance().create(newBlock.getVersion(), new byte[128], newBlock.getTimestamp(), newBlock.getGeneratingBalance(),
 				newBlock.getGenerator(), newBlock.getGeneratorSignature());
@@ -253,7 +225,7 @@ public class BlockTests {
 		assertFalse("block with invalid reference should be invalid", invalidBlock.isValid(databaseSet));
 
 		// INVALID TIMESTAMP TEST
-		
+
 		// Create block with invalid timestamp ("1L" arg)
 		invalidBlock = BlockFactory.getInstance().create(newBlock.getVersion(), newBlock.getReference(), 1L, newBlock.getGeneratingBalance(),
 				newBlock.getGenerator(), newBlock.getGeneratorSignature());
@@ -262,7 +234,7 @@ public class BlockTests {
 		assertFalse("block with invalid timestamp should be invalid", invalidBlock.isValid(databaseSet));
 
 		// INVALID BASE TARGET TEST
-		
+
 		// Create block with invalid base target ("1L" arg)
 		invalidBlock = BlockFactory.getInstance().create(newBlock.getVersion(), newBlock.getReference(), newBlock.getTimestamp(), 1L, newBlock.getGenerator(),
 				newBlock.getGeneratorSignature());
@@ -271,8 +243,8 @@ public class BlockTests {
 		assertFalse("block with invalid base target should be invalid", invalidBlock.isValid(databaseSet));
 
 		// INVALID TRANSACTION TEST
-		
-		// Create fresh, valid next block 
+
+		// Create fresh, valid next block
 		invalidBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Add invalid transaction: negative payment amount
@@ -288,10 +260,10 @@ public class BlockTests {
 		assertFalse("block with invalid transaction should be invalid", invalidBlock.isValid(databaseSet));
 
 		// INVALID GENESIS TRANSACTION ON NON-GENESIS BLOCK TEST
-		
+
 		// Create fresh, valid next block
 		invalidBlock = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
-		
+
 		// Add invalid genesis transaction (genesis transactions only allowed in genesis block)
 		transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), newBlock.getTimestamp());
 		invalidBlock.addTransaction(transaction);
@@ -302,22 +274,9 @@ public class BlockTests {
 
 	@Test
 	public void parseBlock() {
-		// Create empty in-memory DB
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create generator account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
+		// Use inherited TestUtils.setup()
 
 		// Generate next block
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block block = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Create a fork so we can create a 2nd transaction based on the 1st without having to process block
@@ -330,7 +289,7 @@ public class BlockTests {
 				BigDecimal.valueOf(1).setScale(8), timestamp);
 		Transaction payment1 = new PaymentTransaction(generator, recipientA, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp,
 				generator.getLastReference(databaseSet), signature);
-		// Process on fork so we can refer to it when generating 2nd transaction 
+		// Process on fork so we can refer to it when generating 2nd transaction
 		payment1.process(fork);
 		// Add 1st transaction to test block
 		block.addTransaction(payment1);
@@ -345,13 +304,14 @@ public class BlockTests {
 		block.addTransaction(payment2);
 
 		// Set block's transactions signature
-		byte[] transactionsSignature = Crypto.getInstance().sign(generator, Bytes.concat(block.getGeneratorSignature(), payment1.getSignature(), payment2.getSignature()));
+		byte[] transactionsSignature = Crypto.getInstance().sign(generator,
+				Bytes.concat(block.getGeneratorSignature(), payment1.getSignature(), payment2.getSignature()));
 		block.setTransactionsSignature(transactionsSignature);
 
 		// Check block is still valid
 		assertTrue("block with two valid transactions should have valid signatures", block.isSignatureValid());
 		assertTrue("block with two valid transactions should be valid", block.isValid(databaseSet));
-		
+
 		// Serialize
 		byte[] rawBlock = block.toBytes();
 
@@ -388,7 +348,7 @@ public class BlockTests {
 		}
 
 		// PARSE FAILURE TEST
-		
+
 		// Create invalid serialized block
 		rawBlock = new byte[50];
 
@@ -405,22 +365,9 @@ public class BlockTests {
 
 	@Test
 	public void processBlock() {
-		// Create empty in-memory DB
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create generator account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
+		// Use inherited TestUtils.setup()
 
 		// Generate next block
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block block = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Create a fork so we can create a 2nd transaction based on the 1st without having to process block
@@ -433,7 +380,7 @@ public class BlockTests {
 				BigDecimal.valueOf(1).setScale(8), timestamp);
 		Transaction payment1 = new PaymentTransaction(generator, recipientA, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp,
 				generator.getLastReference(databaseSet), signature);
-		// Process on fork so we can refer to it when generating 2nd transaction 
+		// Process on fork so we can refer to it when generating 2nd transaction
 		payment1.process(fork);
 		// Add 1st transaction to test block
 		block.addTransaction(payment1);
@@ -448,7 +395,8 @@ public class BlockTests {
 		block.addTransaction(payment2);
 
 		// Set block's transactions signature
-		byte[] transactionsSignature = Crypto.getInstance().sign(generator, Bytes.concat(block.getGeneratorSignature(), payment1.getSignature(), payment2.getSignature()));
+		byte[] transactionsSignature = Crypto.getInstance().sign(generator,
+				Bytes.concat(block.getGeneratorSignature(), payment1.getSignature(), payment2.getSignature()));
 		block.setTransactionsSignature(transactionsSignature);
 
 		// Check block is still valid
@@ -459,22 +407,25 @@ public class BlockTests {
 		block.process(databaseSet);
 
 		// Check generator's new balance
-		assertEquals("generator's balance incorrect", 800, generator.getConfirmedBalance(databaseSet).intValueExact());
+		assertEquals("generator's balance incorrect", 999_800, generator.getConfirmedBalance(databaseSet).intValueExact());
 
 		// Check generator's last reference
-		assertTrue("generator's last reference should be 2nd payment's signature", Arrays.equals(generator.getLastReference(databaseSet), payment2.getSignature()));
+		assertTrue("generator's last reference should be 2nd payment's signature",
+				Arrays.equals(generator.getLastReference(databaseSet), payment2.getSignature()));
 
 		// Check recipientA's new balance
 		assertEquals("recipientA's balance incorrect", 100, recipientA.getConfirmedBalance(databaseSet).intValueExact());
 
 		// Check recipientA's last reference
-		assertTrue("recipientA's last reference should be 1st payment's signature", Arrays.equals(recipientA.getLastReference(databaseSet), payment1.getSignature()));
+		assertTrue("recipientA's last reference should be 1st payment's signature",
+				Arrays.equals(recipientA.getLastReference(databaseSet), payment1.getSignature()));
 
 		// Check recipientB's new balance
 		assertEquals("recipientB's balance incorrect", 100, recipientB.getConfirmedBalance(databaseSet).intValueExact());
 
 		// Check recipientB's last reference
-		assertTrue("recipientB's last reference should be 2nd payment's signature", Arrays.equals(recipientB.getLastReference(databaseSet), payment2.getSignature()));
+		assertTrue("recipientB's last reference should be 2nd payment's signature",
+				Arrays.equals(recipientB.getLastReference(databaseSet), payment2.getSignature()));
 
 		// Check total fees
 		assertEquals("Total fees incorrect", 2, block.getTotalFee().intValueExact());
@@ -488,22 +439,9 @@ public class BlockTests {
 
 	@Test
 	public void orphanBlock() {
-		// Create empty in-memory DB
-		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
-
-		// Create genesis block and add to blockchain
-		GenesisBlock genesisBlock = new GenesisBlock();
-		genesisBlock.process(databaseSet);
-
-		// Create generator account
-		PrivateKeyAccount generator = TestUtils.createTestAccount();
-
-		// Process genesis transaction to make sure generator has funds
-		Transaction transaction = new GenesisTransaction(generator, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
-		transaction.process(databaseSet);
+		// Use inherited TestUtils.setup()
 
 		// Generate next block
-		BlockGenerator blockGenerator = new BlockGenerator();
 		Block block = blockGenerator.generateNextBlock(databaseSet, generator, genesisBlock);
 
 		// Create a fork so we can create a 2nd transaction based on the 1st without having to process block
@@ -516,7 +454,7 @@ public class BlockTests {
 				BigDecimal.valueOf(1).setScale(8), timestamp);
 		Transaction payment1 = new PaymentTransaction(generator, recipientA, BigDecimal.valueOf(100).setScale(8), BigDecimal.valueOf(1).setScale(8), timestamp,
 				generator.getLastReference(databaseSet), signature);
-		// Process on fork so we can refer to it when generating 2nd transaction 
+		// Process on fork so we can refer to it when generating 2nd transaction
 		payment1.process(fork);
 		// Add 1st transaction to test block
 		block.addTransaction(payment1);
@@ -531,7 +469,8 @@ public class BlockTests {
 		block.addTransaction(payment2);
 
 		// Set block's transactions signature
-		byte[] transactionsSignature = Crypto.getInstance().sign(generator, Bytes.concat(block.getGeneratorSignature(), payment1.getSignature(), payment2.getSignature()));
+		byte[] transactionsSignature = Crypto.getInstance().sign(generator,
+				Bytes.concat(block.getGeneratorSignature(), payment1.getSignature(), payment2.getSignature()));
 		block.setTransactionsSignature(transactionsSignature);
 
 		// Check block is still valid
@@ -545,16 +484,18 @@ public class BlockTests {
 		block.orphan(databaseSet);
 
 		// Check generator's balance is back to initial value
-		assertEquals("generator's balance incorrect", 1000, generator.getConfirmedBalance(databaseSet).intValueExact());
+		assertEquals("generator's balance incorrect", 1_000_000, generator.getConfirmedBalance(databaseSet).intValueExact());
 
 		// Check generator's last reference is back to initial genesis transaction
-		assertTrue("generator's last reference should be genesis transaction signature", Arrays.equals(generator.getLastReference(databaseSet), transaction.getSignature()));
+		assertTrue("generator's last reference should be genesis transaction signature",
+				Arrays.equals(generator.getLastReference(databaseSet), transaction.getSignature()));
 
 		// Check recipientA's balance
 		assertEquals("recipientA's balance should be zero", 0, recipientA.getConfirmedBalance(databaseSet).intValueExact());
 
 		// Check recipientA's last reference
-		assertFalse("recipientA's last reference should not be 1st payment's signature", Arrays.equals(recipientA.getLastReference(databaseSet), payment1.getSignature()));
+		assertFalse("recipientA's last reference should not be 1st payment's signature",
+				Arrays.equals(recipientA.getLastReference(databaseSet), payment1.getSignature()));
 
 		// Check recipientB's balance
 		assertEquals("recipientB's balance should be zero", 0, recipientB.getConfirmedBalance(databaseSet).intValueExact());
@@ -563,6 +504,7 @@ public class BlockTests {
 		assertTrue("recipientB's last reference should be empty", Arrays.equals(recipientB.getLastReference(databaseSet), new byte[0]));
 
 		// Check last block is back to genesis block
-		assertTrue("last block on blockchain should be back to genesis block", Arrays.equals(genesisBlock.getSignature(), databaseSet.getBlockMap().getLastBlock().getSignature()));
+		assertTrue("last block on blockchain should be back to genesis block",
+				Arrays.equals(genesisBlock.getSignature(), databaseSet.getBlockMap().getLastBlock().getSignature()));
 	}
 }

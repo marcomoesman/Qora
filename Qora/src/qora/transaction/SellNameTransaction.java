@@ -19,6 +19,7 @@ import qora.account.Account;
 import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Crypto;
+import qora.naming.Name;
 import qora.naming.NameSale;
 
 public class SellNameTransaction extends Transaction 
@@ -196,19 +197,20 @@ public class SellNameTransaction extends Transaction
 		}
 		
 		//CHECK IF NAME EXISTS
-		if(!db.getNameMap().contains(this.nameSale.getName(db)))
+		Name name = this.nameSale.getName(db);
+		if(name == null)
 		{
 			return NAME_DOES_NOT_EXIST;
 		}
 				
 		//CHECK OWNER
-		if(!Crypto.getInstance().isValidAddress(this.nameSale.getName(db).getOwner().getAddress()))
+		if(!Crypto.getInstance().isValidAddress(name.getOwner().getAddress()))
 		{
 			return INVALID_ADDRESS;
 		}
 		
 		//CHECK IF OWNER IS OWNER
-		if(!db.getNameMap().get(this.nameSale.getKey()).getOwner().getAddress().equals(this.owner.getAddress()))
+		if(!name.getOwner().getAddress().equals(this.owner.getAddress()))
 		{
 			return INVALID_NAME_OWNER;
 		}
