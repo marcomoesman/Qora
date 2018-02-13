@@ -629,6 +629,10 @@ public class Controller extends Observable {
 			// STOP SENDING OUR HEIGHT TO PEERS
 			this.timerPeerHeightUpdate.cancel();
 
+			// STOP BLOCK GENERATOR
+			LOGGER.info(Lang.getInstance().translate("Stopping block generator"));
+			this.blockGenerator.shutdown();
+
 			// STOP MESSAGE PROCESSOR
 			LOGGER.info(Lang.getInstance().translate("Stopping message processor"));
 			this.network.stop();
@@ -636,10 +640,6 @@ public class Controller extends Observable {
 			// STOP BLOCK PROCESSOR
 			LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
 			this.synchronizer.stop();
-
-			// STOP BLOCK GENERATOR
-            LOGGER.info(Lang.getInstance().translate("Stopping block generator"));
-            this.blockGenerator.shutdown();
 
 			// CLOSE DATABASE
 			LOGGER.info(Lang.getInstance().translate("Closing database"));
@@ -800,6 +800,10 @@ public class Controller extends Observable {
 				// UPDATE STATUS
 				this.status = STATUS_NO_CONNECTIONS;
 
+				// If we're shutting down then don't notify observers
+				// in case they attempt to access DB
+				if (this.isStopping)
+					return;
 				
 				// NOTIFY
 				this.setChanged();

@@ -95,7 +95,7 @@ public class ATTransactionsPanel extends JPanel
 				row = atsTable.convertRowIndexToModel(row);
 
 				Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-				StringSelection value = new StringSelection(atTxsTableModel.getAmount(row).toString());
+				StringSelection value = new StringSelection(atTxsTableModel.getAmount(row));
 				clipboard.setContents(value, null);
 			}
 		});

@@ -54,6 +54,10 @@ public class Synchronizer {
 		// Request a chunk of headers
 		List<byte[]> headers = this.getBlockSignatures(block.getSignature(), peer);
 
+		// We didn't even manage to get any response from peer!
+		if (headers == null)
+			return null;
+
 		// NB: empty headers means peer is unaware of the block signature we sent
 		while (headers.size() == 0 && block.getHeight() > 1) {
 			// Go back a chunk of blocks, or until we hit genesis block
@@ -159,6 +163,10 @@ public class Synchronizer {
 		// Request chunk of next block signatures after "start" block from peer
 		List<byte[]> headers = this.getBlockSignatures(start.getSignature(), peer);
 
+		// We didn't even manage to get any response from peer!
+		if (headers == null)
+			return null;
+
 		// No new block signatures? Give up now
 		if (headers.size() == 0)
 			return headers;
@@ -201,8 +209,10 @@ public class Synchronizer {
 		// Send message to peer and await response
 		SignaturesMessage response = (SignaturesMessage) peer.getResponse(message);
 
-		if (response == null)
-			throw new Exception("Peer didn't respond with block signatures");
+		if (response == null) {
+			LOGGER.info("Peer didn't respond with block signatures");
+			return null;
+		}
 
 		return response.getSignatures();
 	}
@@ -399,6 +409,10 @@ public class Synchronizer {
 		// Find last common block with peer
 		Block lastCommonBlock = this.findLastCommonBlock(peer);
 
+		// Didn't get any response from peer
+		if (lastCommonBlock == null)
+			return;
+
 		Block lastBlock = DBSet.getInstance().getBlockMap().getLastBlock();
 
 		// If last common block is our blockchain tip then we can forego any orphaning and simply process new blocks
@@ -406,16 +420,28 @@ public class Synchronizer {
 			// Request next chunk of block signatures from peer
 			List<byte[]> signatures = this.getBlockSignatures(lastCommonBlock, BlockChain.MAX_SIGNATURES, peer);
 
+			// We didn't get any response for signatures since lastCommonBlock
+			if (signatures == null)
+				return;
+
 			// Create block buffer to request blocks from peer
 			BlockBuffer blockBuffer = new BlockBuffer(signatures, peer);
 
 			// Process block-by-block as they arrive into block buffer
 			for (byte[] signature : signatures) {
 				// Wait for block to arrive from peer into block buffer
-				Block block = blockBuffer.getBlock(signature);
+				Block block;
+
+				try {
+					block = blockBuffer.getBlock(signature);
+				} catch (Exception e) {
+					// We failed to receive a block or a received block had an invalid signature
+					LOGGER.info("Peer didn't send block or sent a block with invalid signature");
+					break;
+				}
 
 				if (block == null) {
-					LOGGER.info("Failed to receive block from peer");
+					LOGGER.info("Timed out receiving block from peer");
 					break;
 				}
 

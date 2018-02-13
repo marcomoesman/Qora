@@ -5,21 +5,17 @@ import qora.crypto.Crypto;
 public class PublicKeyAccount extends Account {
 
 	protected byte[] publicKey;
-	
-	public PublicKeyAccount(byte[] publicKey)
-	{
+
+	public PublicKeyAccount(byte[] publicKey) {
 		this.publicKey = publicKey;
 		this.address = Crypto.getInstance().getAddress(this.publicKey);
 	}
-	
-	protected PublicKeyAccount()
-	{
 
+	protected PublicKeyAccount() {
 	}
-	
-	public byte[] getPublicKey() 
-	{
+
+	public byte[] getPublicKey() {
 		return publicKey;
 	}
-	
+
 }
