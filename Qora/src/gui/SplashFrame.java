@@ -8,13 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import lang.Lang;
 
-@SuppressWarnings("serial")
-public class SplashFrame extends JFrame {
+public class SplashFrame {
 	private static SplashFrame instance;
 	private JDialog splashDialog;
 	private JLabel splashProgressLabel;
@@ -61,18 +59,17 @@ public class SplashFrame extends JFrame {
 		if (Gui.isGuiStarted()) {
 			this.splashProgressLabel.setText(Lang.getInstance().translate(s) + "...");
 			this.splashDialog.pack();
+			this.splashDialog.repaint();
 		}
 	}
 
-	@Override
 	public void setVisible(boolean b) {
 		if (Gui.isGuiStarted())
 			this.splashDialog.setVisible(b);
 	}
 	
-	@Override
 	public void dispose() {
 		if (Gui.isGuiStarted())
-			super.dispose();
+			this.splashDialog.dispose();
 	}
 }
