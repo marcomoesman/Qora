@@ -19,6 +19,7 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
@@ -46,12 +47,17 @@ import qora.transaction.Transaction;
 
 public class AgransTests {
 
+	@BeforeClass
+	public static void useRealDB() {
+		DBSet.reCreateDatabase();
+	}
 	
 	@Test
-	public void commpress() throws Exception 
+	public void compress() throws Exception 
 	{
 		DBSet.getInstance();
 		
+		// Requires synchronized blockchain up to at least block 175775!!
 		ArbitraryTransaction tx = (ArbitraryTransaction) Controller.getInstance().getTransaction(Base58.decode("3ijkofxsRQMy5BbeJ7pLKQUGpAA4BKH65YpnJf7xLddTtCaQiR8XSgUo6L53d19QAi4ApqDcgKrcAYU19CaDfX4N"));
 		
 		String string = new String(tx.getData(), Charsets.UTF_8);
@@ -155,13 +161,16 @@ public class AgransTests {
 	@Test
 	public void getRecipient()
 	{
+		// We need access to real DB
+		DBSet.reCreateDatabase();
+
 		//Block block = DBSet.getInstance().getBlockMap().get(Base58.decode("Fae4sXUUHP1BTvucgU6VWejvyMgSXSZLeT1SYnVY3UNgd6Qao5mQvCd6bFUQTmEas449s8RHk9KdcEp26Yxj1JqE1j1k11PbSWDBjefAsUitprh3Tqk3uCaRYRvW4rxfoevcQknzSmiu9GvHkeu7UttMokT5Mf5R29cBsHK3Pk688QH"));
 		
 		//Block block = DBSet.getInstance().getBlockMap().get(Base58.decode("BwR3MRV4H4bkE2i5pNGzoUwUeipWvezTByrnwKvbRKwDHDhG7XYT3XWPy1WtA7mUJ2YbDpZ3kcTjiiYtTu6iGUmYzMZQVWDgyVn38Dqv1hmKsGXxCAwTEtQnEXT2mY45gyy3tmra7xa6dfv8PSVRe3Z3s4TbGwA2SBvxgtiDBD8f796"));
 
+		// Block 70000 in the main blockchain
 		Block block = DBSet.getInstance().getBlockMap().get(Base58.decode("HD5rjfvFrBzpGz2ZuXs9wwX8EnmxnM4yPc5sbW1fpKogYPx9tDXVFos3Bc3FABQgZ9P9MYBRDarcWi4NZkhpnGevSptrNEAE5vaLDmM7XzZpB81sJjo4FwWscPpdpU2TL6ofydXrQqpntKUbzmKiaaPLS7Exq1Y3Uk1Fj59q3RM69BZ"));
 		
-		//
 		do {
 			System.out.println("block: " + block.getHeight());
 
@@ -275,6 +284,12 @@ public class AgransTests {
 		//Transaction transaction = new GenesisTransaction(sender, BigDecimal.valueOf(1000).setScale(8), NTP.getTime());
 		//transaction.process(databaseSet);
 
+		// This TX is in main blockchain height 97594
+		// Sender: QXbn5VKQLUCbpHbmaQKRRpouTGXLtyWTut
+		// Recipient: QfaucettiqGtTe1yXVHgZETfrFJ4bBmSoX
+		// Timestamp: 1431438754071
+		// Amount: 188,230
+		// Fee: 1
 		databaseSet.getReferenceMap().set(creator, Base58.decode("YWv9Gyi2xxEyEe6ztrGGuAPhmUD86s7h8CANQAcmsxdeS3pU5BvQKnbeyXjnXXd8HgLaDvYBBz6im3dDYTR817F"));
 		
 		//CREATE SIGNATURE
@@ -283,7 +298,7 @@ public class AgransTests {
 		long timestamp = 1455849866776L;
 		//long timestamp = NTP.getTime();
 		
-		byte[] arbitraryData = "{'postaфыва':'test'}".getBytes(StandardCharsets.UTF_8);
+		byte[] arbitraryData = "{'postaпїЅпїЅпїЅпїЅ':'test'}".getBytes(StandardCharsets.UTF_8);
 
 		BigDecimal fee = BigDecimal.valueOf(1).setScale(8);
 		
@@ -291,8 +306,7 @@ public class AgransTests {
 		
 		byte[] signature = ArbitraryTransactionV3.generateSignature(databaseSet, creator, null, service, arbitraryData, fee, timestamp);
 		
-		
-		 
+		// This signature is for block 178324 on main blockchain
 		System.out.println("signaturebl: " + Base58.decode("3YrKpErpfZhr5MPeEoHEEFJJXHdf9nqFUMPn3acgssufkGvgwejTsVecxw7FTKYfatjBYqxJ6xY3SsHN3xsAew5mR1X68ryeJE9dRxvUtLkMt9XpFUUgRD76N5KhbQknxy2PL755hsF71Dsw36rRxWzXiSnBF4SqjCA3A2bHLvLRKMn").length);
 		System.out.println("signaturetx: " + signature.length);
 		System.out.println("signature: " + Base58.encode(signature));
@@ -313,7 +327,7 @@ public class AgransTests {
 		// Reference   YWv9Gyi2xxEyEe6ztrGGuAPhmUD86s7h8CANQAcmsxdeS3pU5BvQKnbeyXjnXXd8HgLaDvYBBz6im3dDYTR817F
 		// timestamp   1455849866776
 		// fee         1.00000000 
-		// Name(new Account("QTz6fSV2VNc2wjwwsw57kwQzgQhmGw5idQ"), "проверкаимени", "Проверка значения")
+		// Name(new Account("QTz6fSV2VNc2wjwwsw57kwQzgQhmGw5idQ"), "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ")
 		 
 		//CREATE EMPTY MEMORY DATABASE
 		DBSet databaseSet = DBSet.createEmptyDatabaseSet();
@@ -334,7 +348,7 @@ public class AgransTests {
 		long timestamp = 1455849866776L;
 		//long timestamp = NTP.getTime();
 		
-		Name name = new Name(new Account(creator.getAddress()), "проверкаимени", "Проверка значения");  
+		Name name = new Name(new Account(creator.getAddress()), "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ");  
 		
 		BigDecimal fee = BigDecimal.valueOf(1).setScale(8);
 		
@@ -357,7 +371,7 @@ public class AgransTests {
 		System.out.println( Base58.clean("QSBhY5GnYnVFzRqEYLhPGKQ9JnngZVmLxJ0"));
 		System.out.println( Base58.isExtraSymbols("QSBhY5GnYnVFzRqEYLhPGKQ9JnngZVmLxJ0"));
 		System.out.println( Base58.isExtraSymbols("QSBhY5GnYnVFzRqEYLhPGKQ9JnngZVmLxJ"));
-		System.out.println( Base58.clean("QSBhY5GnYnVFzRqEYsdgfывапLhPGKQ9JnngZVmLxJ0"));
+		System.out.println( Base58.clean("QSBhY5GnYnVFzRqEYsdgfпїЅпїЅпїЅпїЅLhPGKQ9JnngZVmLxJ0"));
 
 		System.out.println("C:\\Users\\baby\\AppData\\Roaming\\Qora\\settings.json".replace("\\", "/"));
 	}
@@ -465,7 +479,7 @@ public class AgransTests {
 		//wallet seed: AsF8sY23poJZro7to4ifXQyMzJQsVGFdDgkQd1uihnrg
 		//address seed: ETWEM8bdV2DQxjaS8p9qn9Q5556htaLXoZPc6Hz4Qo3j
 		
-		String text = "Test message. Rus:Тестовое сообщение.";
+		String text = "Test message. Rus:пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.";
 		
 		String signerSeed = "ETWEM8bdV2DQxjaS8p9qn9Q5556htaLXoZPc6Hz4Qo3j";
 		byte[] signerSeedByte = Base58.decode(signerSeed);
@@ -532,7 +546,7 @@ public class AgransTests {
 		
 		assertEquals(Crypto.getInstance().getAddress(recipientPublicKey), "QQQdEJ9xYHkBru1tCg2V7m2jPiHHcrJT4r");
 		
-		String StartMessage = "Test message. Rus:Тестовое сообщение.";
+		String StartMessage = "Test message. Rus:пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ.";
 		
 		byte[] messageBytes;
 		

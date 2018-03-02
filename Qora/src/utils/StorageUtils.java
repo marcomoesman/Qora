@@ -272,7 +272,7 @@ public class StorageUtils {
 					try {
 						nameStorageMap.add(name, key, DiffHelper.patch(oldValueOpt, (String) patchResults.get(key)));
 					} catch (Throwable e) {
-						LOGGER.warn("Invalid name storage patch for name \"" + name + "\"", e);
+						LOGGER.warn("Invalid name storage patch for name \"" + name + "\" and key \"" + key + "\": " + e.getMessage());
 					}
 				}
 		}

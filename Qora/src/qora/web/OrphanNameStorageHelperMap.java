@@ -8,10 +8,11 @@ import java.util.Map;
 import org.mapdb.DB;
 
 import utils.ByteArrayUtils;
+import database.DBListValueMap;
 import database.DBMap;
 import database.DBSet;
 
-public class OrphanNameStorageHelperMap extends DBMap<String, List<byte[]>> {
+public class OrphanNameStorageHelperMap extends DBListValueMap<String, byte[], List<byte[]>> {
 
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 
@@ -23,14 +24,9 @@ public class OrphanNameStorageHelperMap extends DBMap<String, List<byte[]>> {
 		super(parent);
 	}
 
-
 	@Override
 	protected Map<String, List<byte[]>> getMap(DB database) {
-		
-		
-		return   database.createTreeMap("OrphanNameStorageHelperMap")
-		            .makeOrGet();
-		
+		return database.createTreeMap("OrphanNameStorageHelperMap").makeOrGet();
 	}
 
 	@Override
@@ -44,47 +40,7 @@ public class OrphanNameStorageHelperMap extends DBMap<String, List<byte[]>> {
 	}
 
 	@Override
-	protected void createIndexes(DB database) {}
-	
-	
-	public void add(String name, byte[] signatureOfTx)
-	{
-		List<byte[]> list = this.get(name);
-		if(list == null)
-		{
-			list = new ArrayList<>();
-		}
-		
-		if(!ByteArrayUtils.contains(list, signatureOfTx))
-		{
-			list.add(signatureOfTx);
-		}
-		
-		
-		set(name, list);
-		
-		
-	}
-	
-	public void remove(String name, byte[] signatureOfTx)
-	{
-		List<byte[]> list = this.get(name);
-		if(list == null)
-		{
-			return;
-		}
-		
-		ByteArrayUtils.remove(list, signatureOfTx);
-		
-		set(name, list);
-		
-	}
-	
-	
-	
-	public void remove(byte[] txAndName)
-	{
-		this.remove(txAndName);
+	protected void createIndexes(DB database) {
 	}
 
 	@Override
@@ -92,4 +48,18 @@ public class OrphanNameStorageHelperMap extends DBMap<String, List<byte[]>> {
 		return null;
 	}
 
+	@Override
+	protected List<byte[]> newListValue() {
+		return new ArrayList<byte[]>();
+	}
+
+	public void add(String name, byte[] signatureOfTx) {
+		// Add signature to list if list doesn't already contain it
+		this.listAdd(name, signatureOfTx, (list, sig) -> !ByteArrayUtils.contains(list, sig), (list, sig) -> list.add(sig));
+	}
+
+	public void remove(String name, byte[] signatureOfTx) {
+		// Always remove signature from list
+		this.listRemove(name, signatureOfTx, (list, sig) -> true, (list, sig) -> ByteArrayUtils.remove(list, sig));
+	}
 }

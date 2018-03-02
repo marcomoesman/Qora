@@ -358,6 +358,10 @@ public class Synchronizer {
 
 		// Validate new blocks
 		for (Block block : newBlocks) {
+			// Early bail-out if shutting down
+			if (!this.run)
+				return orphanedTransactions;
+
 			// Check block is valid
 			if (!block.isValid(fork)) {
 				// Switch AT platform back to main DB
@@ -380,8 +384,13 @@ public class Synchronizer {
 		this.orphanBackToCommonBlock(db, lastCommonBlock, null, orphanedTransactions);
 
 		// Apply new blocks
-		for (Block block : newBlocks)
+		for (Block block : newBlocks) {
+			// Early bail-out if shutting down
+			if (!this.run)
+				return orphanedTransactions;
+
 			this.process(block); // Synchronized
+		}
 
 		// Some of these transactions might have been reapplied above.
 		return orphanedTransactions;

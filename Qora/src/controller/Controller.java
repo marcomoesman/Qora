@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
-import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -46,6 +45,7 @@ import at.AT;
 import database.DBSet;
 import database.LocalDataMap;
 import database.SortableList;
+import gui.ClosingDialog;
 import gui.Gui;
 import gui.SplashFrame;
 import lang.Lang;
@@ -84,7 +84,6 @@ import settings.Settings;
 import utils.DateTimeFormat;
 import utils.ObserverMessage;
 import utils.Pair;
-import utils.SimpleFileVisitorForRecursiveFolderDeletion;
 import utils.SysTray;
 import utils.UpdateUtil;
 import webserver.WebService;
@@ -341,36 +340,38 @@ public class Controller extends Observable {
 			reCreateDB();
 		}
 		
-		//CHECK IF DB NEEDS UPDATE
-		if(DBSet.getInstance().getBlockMap().getLastBlockSignature() != null)
-		{
-			SplashFrame.getInstance().updateProgress("Updating databases");
+		// Check whether DB needs updates
+		if (DBSet.getInstance().getBlockMap().getLastBlockSignature() != null) {
+			LocalDataMap localDataMap = DBSet.getInstance().getLocalDataMap();
 
-			//CHECK IF NAME STORAGE NEEDS UPDATE
-			if (DBSet.getInstance().getLocalDataMap().get("nsupdate") == null )
-			{
-				//FIRST NAME STORAGE UPDATE
-				UpdateUtil.repopulateNameStorage( 70000 );
-				DBSet.getInstance().getLocalDataMap().set("nsupdate", "1");
+			// Check whether name storage needs rebuilding
+			if (localDataMap.get("nsupdate") == null || !localDataMap.get("nsupdate").equals("2")) {
+				SplashFrame.getInstance().updateProgress("Rebuilding name storage");
+
+				// Rebuild name storage
+				UpdateUtil.repopulateNameStorage( 70000 ); // Don't bother scanning blocks below height 70,000
+				localDataMap.set("nsupdate", "2");
 			}
-			//CREATE TRANSACTIONS FINAL MAP
-			if (DBSet.getInstance().getLocalDataMap().get("txfinalmap") == null || !DBSet.getInstance().getLocalDataMap().get("txfinalmap").equals("2"))
-			{
-				//FIRST NAME STORAGE UPDATE
-				UpdateUtil.repopulateTransactionFinalMap(  );
-				DBSet.getInstance().getLocalDataMap().set("txfinalmap", "2");
+			// Check whether final transaction map needs rebuilding
+			if (localDataMap.get("txfinalmap") == null || !localDataMap.get("txfinalmap").equals("2")) {
+				SplashFrame.getInstance().updateProgress("Rebuilding transaction-block mapping");
+
+				// Rebuild final transaction map
+				UpdateUtil.repopulateTransactionFinalMap();
+				localDataMap.set("txfinalmap", "2");
 			}
 			
-			if (DBSet.getInstance().getLocalDataMap().get("blogpostmap") == null ||  !DBSet.getInstance().getLocalDataMap().get("blogpostmap").equals("2"))
-			{
-				//recreate comment postmap
+			if (localDataMap.get("blogpostmap") == null || !localDataMap.get("blogpostmap").equals("3")) {
+				SplashFrame.getInstance().updateProgress("Rebuilding blog comments");
+
+				// Recreate comment postmap
 				UpdateUtil.repopulateCommentPostMap();
-				DBSet.getInstance().getLocalDataMap().set("blogpostmap", "2");
+				localDataMap.set("blogpostmap", "3");
 			}
 		} else {
-			DBSet.getInstance().getLocalDataMap().set("nsupdate", "1");
+			DBSet.getInstance().getLocalDataMap().set("nsupdate", "2");
 			DBSet.getInstance().getLocalDataMap().set("txfinalmap", "2");
-			DBSet.getInstance().getLocalDataMap().set("blogpostmap", "2");
+			DBSet.getInstance().getLocalDataMap().set("blogpostmap", "3");
 		}
 		
 		// CREATE SYNCHRONIZOR
@@ -470,39 +471,39 @@ public class Controller extends Observable {
 	}
 	
 	public void reCreateDB(boolean useDataBak) throws IOException, Exception {
-		
 		File dataDir = new File(Settings.getInstance().getDataDir());
+
 		if (dataDir.exists()) {
-			// delete data folder
-			java.nio.file.Files.walkFileTree(dataDir.toPath(),
-					new SimpleFileVisitorForRecursiveFolderDeletion());
+			// Delete data folder (if any)
+			DBSet.deleteDataDir();
+
+			// Try to use backup?
 			File dataBak = getDataBakDir(dataDir);
-			if (useDataBak && dataBak.exists()
-					&& Settings.getInstance().isCheckpointingEnabled()) {
-				FileUtils.copyDirectory(dataBak, dataDir);
+			if (useDataBak && dataBak.exists() && Settings.getInstance().isCheckpointingEnabled()) {
+				FileUtils.copyDirectory(dataBak, dataDir); // Assumes dataDir exists
+
 				LOGGER.info(Lang.getInstance().translate("restoring backup database"));
+
 				try {
 					DBSet.reCreateDatabase();
 				} catch (IOError e) {
 					LOGGER.error(e.getMessage(),e);
-					//backupdb is buggy too starting from scratch
-					if(dataDir.exists())
-					{
-						java.nio.file.Files.walkFileTree(dataDir.toPath(),
-								new SimpleFileVisitorForRecursiveFolderDeletion());
-					}
-					if(dataBak.exists())
-					{
-						java.nio.file.Files.walkFileTree(dataBak.toPath(),
-								new SimpleFileVisitorForRecursiveFolderDeletion());
-					} 
+
+					// backup DB is buggy too - start from scratch
+
+					// delete data folder
+					DBSet.deleteDataDir();
+
+					// delete backup data folder
+					DBSet.deleteDataBackup();
+
 					DBSet.reCreateDatabase();
 				}
-				
 			} else {
 				DBSet.reCreateDatabase();
 			}
-
+		} else {
+			DBSet.reCreateDatabase();
 		}
 
 		if (DBSet.getInstance().getBlockMap().isProcessing()) {
@@ -518,22 +519,14 @@ public class Controller extends Observable {
 				.get(LocalDataMap.LOCAL_DATA_VERSION_KEY);
 
 		if (dataVersion == null || !dataVersion.equals(releaseVersion)) {
-			File dataDir = new File(Settings.getInstance().getDataDir());
-			File dataBak = getDataBakDir(dataDir);
 			DBSet.getInstance().close();
 
-			if (dataDir.exists()) {
-				// delete data folder
-				java.nio.file.Files.walkFileTree(dataDir.toPath(),
-						new SimpleFileVisitorForRecursiveFolderDeletion());
+			// delete data folder
+			DBSet.deleteDataDir();
 
-			}
+			// delete backup data folder
+			DBSet.deleteDataBackup();
 
-			if (dataBak.exists()) {
-				// delete data folder
-				java.nio.file.Files.walkFileTree(dataBak.toPath(),
-						new SimpleFileVisitorForRecursiveFolderDeletion());
-			}
 			DBSet.reCreateDatabase();
 
 			DBSet.getInstance()
@@ -629,26 +622,32 @@ public class Controller extends Observable {
 			// STOP SENDING OUR HEIGHT TO PEERS
 			this.timerPeerHeightUpdate.cancel();
 
+			// STOP BLOCK PROCESSOR
+			LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
+			ClosingDialog.getInstance().updateProgress("Stopping block processor");
+			this.synchronizer.stop();
+
 			// STOP BLOCK GENERATOR
 			LOGGER.info(Lang.getInstance().translate("Stopping block generator"));
+			ClosingDialog.getInstance().updateProgress("Stopping block generator");
 			this.blockGenerator.shutdown();
 
 			// STOP MESSAGE PROCESSOR
 			LOGGER.info(Lang.getInstance().translate("Stopping message processor"));
+			ClosingDialog.getInstance().updateProgress("Stopping message processor");
 			this.network.stop();
-
-			// STOP BLOCK PROCESSOR
-			LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
-			this.synchronizer.stop();
 
 			// CLOSE DATABASE
 			LOGGER.info(Lang.getInstance().translate("Closing database"));
+			ClosingDialog.getInstance().updateProgress("Closing database");
 			DBSet.getInstance().close();
 
 			// CLOSE WALLET
 			LOGGER.info(Lang.getInstance().translate("Closing wallet"));
+			ClosingDialog.getInstance().updateProgress("Closing wallet");
 			this.wallet.close();
 
+			ClosingDialog.getInstance().updateProgress("Creating database backup");
 			createDataCheckpoint();
 
 			LOGGER.info(Lang.getInstance().translate("Closed."));
@@ -664,24 +663,15 @@ public class Controller extends Observable {
 
 			File dataBak = getDataBakDir(dataDir);
 
-			if (dataDir.exists()) {
-				if (dataBak.exists()) {
-					try {
-						Files.walkFileTree(
-								dataBak.toPath(),
-								new SimpleFileVisitorForRecursiveFolderDeletion());
-					} catch (IOException e) {
-						LOGGER.error(e.getMessage(),e);
-					}
-				}
-				try {
-					FileUtils.copyDirectory(dataDir, dataBak);
-				} catch (IOException e) {
-					LOGGER.error(e.getMessage(),e);
-				}
+			// delete old backup (if any)
+			DBSet.deleteDataBackup();
 
+			// copy existing DB as backup
+			try {
+				FileUtils.copyDirectory(dataDir, dataBak);
+			} catch (IOException e) {
+				LOGGER.error(e.getMessage(),e);
 			}
-
 		}
 
 	}

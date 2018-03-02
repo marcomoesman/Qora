@@ -10,8 +10,7 @@ import org.mapdb.DB.BTreeMapMaker;
 
 import utils.ByteArrayUtils;
 
-public class BlogPostMap extends DBMap<String, List<byte[]>> {
-
+public class BlogPostMap extends DBListValueMap<String, byte[], List<byte[]>> {
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 
 	public final static String MAINBLOG = "QORA";
@@ -26,7 +25,7 @@ public class BlogPostMap extends DBMap<String, List<byte[]>> {
 
 	@Override
 	protected Map<String, List<byte[]>> getMap(DB database) {
-		// / OPEN MAP
+		// Open map
 		BTreeMapMaker createTreeMap = database.createTreeMap("BlogPostMap");
 		return createTreeMap.makeOrGet();
 	}
@@ -50,38 +49,24 @@ public class BlogPostMap extends DBMap<String, List<byte[]>> {
 		return null;
 	}
 
+	@Override
+	protected List<byte[]> newListValue() {
+		return new ArrayList<byte[]>();
+	}
+
 	public void add(String blogname, byte[] signature) {
-		List<byte[]> list;
-		if (blogname == null) {
+		if (blogname == null)
 			blogname = MAINBLOG;
-		}
-		list = get(blogname);
 
-		if (list == null) {
-			list = new ArrayList<>();
-		}
-
-		if (!ByteArrayUtils.contains(list, signature)) {
-			list.add(signature);
-		}
-
-		set(blogname, list);
-
+		// Add signature to list if list doesn't already contain it
+		this.listAdd(blogname, signature, (list, sig) -> !ByteArrayUtils.contains(list, sig), (list, sig) -> list.add(sig));
 	}
 
 	public void remove(String blogname, byte[] signature) {
-		if (blogname == null) {
+		if (blogname == null)
 			blogname = MAINBLOG;
-		}
 
-		if (contains(blogname)) {
-			List<byte[]> list = get(blogname);
-			ByteArrayUtils.remove(list, signature);
-			set(blogname, list);
-		}
-
+		// Always remove signature from list
+		this.listRemove(blogname, signature, (list, sig) -> true, (list, sig) -> ByteArrayUtils.remove(list, sig));
 	}
-	
-	
-
 }

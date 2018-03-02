@@ -220,7 +220,7 @@ public abstract class ArbitraryTransaction extends Transaction {
 		} catch (Throwable e) {
 			// failed to process
 			LOGGER.error(e.getMessage(), e);
-			return;
+			// fall-through - transaction fees still apply!
 		}
 
 		// UPDATE CREATOR
@@ -255,7 +255,7 @@ public abstract class ArbitraryTransaction extends Transaction {
 		} catch (Throwable e) {
 			// failed to process
 			LOGGER.error(e.getMessage(), e);
-			return;
+			// fall-through - transaction fees still apply!
 		}
 
 		// UPDATE CREATOR

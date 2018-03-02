@@ -10,9 +10,7 @@ import org.mapdb.DB.BTreeMapMaker;
 
 import utils.ByteArrayUtils;
 
-public class HashtagPostMap extends DBMap<String, List<byte[]>> {
-
-	
+public class HashtagPostMap extends DBListValueMap<String, byte[], List<byte[]>> {
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 	
 	public HashtagPostMap(DBSet databaseSet, DB database) {
@@ -23,10 +21,9 @@ public class HashtagPostMap extends DBMap<String, List<byte[]>> {
 		super(parent);
 	}
 
-
 	@Override
 	protected Map<String, List<byte[]>> getMap(DB database) {
-		// / OPEN MAP
+		// Open map
 		BTreeMapMaker createTreeMap = database.createTreeMap("HashtagPostMap");
 		return createTreeMap.makeOrGet();
 	}
@@ -49,37 +46,25 @@ public class HashtagPostMap extends DBMap<String, List<byte[]>> {
 	@Override
 	protected void createIndexes(DB database) {
 	}
-	
+
+	@Override
+	protected List<byte[]> newListValue() {
+		return new ArrayList<byte[]>();
+	}
 
 	public void add(String hashtag, byte[] signature) {
-		//no difference between lower and uppercase here
+		// No difference between lower and uppercase here
 		hashtag = hashtag.toLowerCase();
-		
-		List<byte[]> list;
-		list = get(hashtag);
 
-		if (list == null) {
-			list = new ArrayList<>();
-		}
-
-		if (!ByteArrayUtils.contains(list, signature)) {
-			list.add(signature);
-		}
-
-		set(hashtag, list);
-
+		// Add signature to list if list doesn't already contain it
+		this.listAdd(hashtag, signature, (list, sig) -> !ByteArrayUtils.contains(list, sig), (list, sig) -> list.add(sig));
 	}
 
 	public void remove(String hashtag, byte[] signature) {
-		//no difference between lower and uppercase here
+		// No difference between lower and uppercase here
 		hashtag = hashtag.toLowerCase();
-		
-		if (contains(hashtag)) {
-			List<byte[]> list = get(hashtag);
-			ByteArrayUtils.remove(list, signature);
-			set(hashtag, list);
-		}
 
+		// Always remove signature from list
+		this.listRemove(hashtag, signature, (list, sig) -> true, (list, sig) -> ByteArrayUtils.remove(list, sig));
 	}
-
 }

@@ -100,7 +100,6 @@
 	<classpathentry exported="true" kind="lib" path="libs/jetty/jetty-util-9.3.7.v20160115.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/jetty/jetty-webapp-9.3.7.v20160115.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/jetty/jetty-xml-9.3.7.v20160115.jar"/>
-	<classpathentry exported="true" kind="lib" path="libs/mapdb-1.0.9.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/json-io-4.8.0.jar" sourcepath="libs/sourceandjavadoc/json-io-4.8.0-sources.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/Qora/libs/sourceandjavadoc/json-io-4.8.0-javadoc.jar!/"/>
@@ -113,9 +112,14 @@
 	</classpathentry>
 	<classpathentry exported="true" kind="lib" path="libs/log4j-core-2.10.0.jar">
 		<attributes>
-			<attribute name="javadoc_location" value="jar:file:/usr/home/dom/dev/Qora/Qora/libs/sourceandjavadoc/log4j-core-2.10.0-javadoc.jar!/"/>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Qora/libs/sourceandjavadoc/log4j-core-2.10.0-javadoc.jar!/"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="libs/jersey/ext/javax.servlet-api-3.1.0.jar"/>
+	<classpathentry kind="lib" path="libs/mapdb-1.0-catbref.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/Qora/libs/sourceandjavadoc/mapdb-1.0-catbref-javadoc.jar!/doc"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

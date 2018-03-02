@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.junit.BeforeClass;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Fun.Tuple2;
@@ -30,6 +31,11 @@ import settings.Settings;
 
 
 public class BlockExplorerTest {
+
+	@BeforeClass
+	public static void useRealDB() {
+		DBSet.reCreateDatabase();
+	}
 
 	public void maxBalance() 
 	{

@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import qora.account.PrivateKeyAccount;
+import qora.crypto.Base58;
 import qora.naming.Name;
 import qora.transaction.ArbitraryTransaction;
 import qora.transaction.ArbitraryTransactionV1;
@@ -547,4 +548,70 @@ public class NameStorageTests {
 		assertNull(databaseSet.getNameStorageMap().getOpt("drizzt", "asdf"));
 	}
 
+	@Test
+	public void testPatch() throws Exception {
+		// Use sender to register the name "2ndtest"
+		long timestamp = NTP.getTime();
+		Name name = new Name(sender, "2ndtest", "{\"defaultKey\":\"\"}");
+
+		// Generate signature for transaction
+		byte[] signature = RegisterNameTransaction.generateSignature(databaseSet, sender, name, BigDecimal.valueOf(1).setScale(8), timestamp);
+
+		// Create name registration transaction
+		Transaction nameRegistration = new RegisterNameTransaction(sender, name, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet),
+				signature);
+
+		// Check name registation transaction is valid
+		assertEquals("name registration transaction should be valid", Transaction.VALIDATE_OK, nameRegistration.isValid(databaseSet));
+
+		// Process transaction
+		nameRegistration.process(databaseSet);
+
+
+		// Create AT with initial data
+
+		final String initialData = "?gz!H4sIAAAAAAAAAKtWSkxJSc7PLchJLUlVslKqjlEqSS0uiVGyilF6tXLr6827ni5perR7RmJxSlpMTB66EBFKqKZrAISUapV0lPISc0EhY5SXAgoZpVoAgS1blzMBAAA=";
+
+		// Encapsulate payload in AT
+		byte[] initialSignature = ArbitraryTransactionV1.generateSignature(databaseSet, sender, 10, initialData.getBytes(), BigDecimal.valueOf(1).setScale(8), timestamp);
+		ArbitraryTransaction initialAT = new ArbitraryTransactionV1(sender, 10, initialData.getBytes(), BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), initialSignature);
+
+		initialAT.process(databaseSet);
+		databaseSet.getTransactionMap().add(initialAT);
+
+
+		// Create AT with patch
+
+		final String patch58 = "3JnyJhPwbTsHrh7zMXxhc6S7kAE2c8HZE9CtwE5yFxPdUHHy2vnKGwcRkqJ7Cppas9B8q6" +
+				"VDcV5TwY4j21QVukUdEf8ynsFS6gCNDZoFHGm6t7C8WWB7HiuYetTRoTHoa62QQQQDfiLt" +
+				"5X7HGjKmrU7wmQXrieAZpz6Dd2ZgFUTLoAbXXkwmRWC1h3WaDBPX36nRmhhE";
+		// Data: {"patch":"{\"test\":\"--- source\\n+++ dest\\n@@ -5,0 +5,1 @@\\n+ꩵ볺夂⻘asdf300\\n@@ -12,1 +13,0 @@\\n-ꩵ볺夂⻘asdf\"}","name":"2ndtest"}
+
+		final byte[] patchData = Base58.decode(patch58);
+
+		byte[] patchSignature = ArbitraryTransactionV1.generateSignature(databaseSet, sender, 10, patchData, BigDecimal.valueOf(1).setScale(8), timestamp);
+		ArbitraryTransaction patchAT = new ArbitraryTransactionV1(sender, 10, patchData, BigDecimal.ONE.setScale(8), timestamp, sender.getLastReference(databaseSet), patchSignature);
+
+		patchAT.process(databaseSet);
+		databaseSet.getTransactionMap().add(patchAT);
+
+
+		// Double check patch was applied successfully
+
+		final String expectedPostPatch = "ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdfꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdfꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf300\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf\n" +
+				"ꩵ볺夂⻘asdf";
+		final String actualPostPatch = databaseSet.getNameStorageMap().getOpt("2ndtest", "test");
+
+		assertEquals("Patch wasn't applied/stored correctly", expectedPostPatch, actualPostPatch);
+	}
 }

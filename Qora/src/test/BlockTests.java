@@ -151,9 +151,9 @@ public class BlockTests extends TestUtils {
 
 		// INVALID BLOCK SIGNATURE TEST
 
-		// Create invalid block due to invalid block signature ("new byte[32]" arg)
+		// Create invalid block due to invalid block signature ("new byte[64]" arg)
 		newBlock = BlockFactory.getInstance().create(newBlock.getVersion(), newBlock.getReference(), newBlock.getTimestamp(), newBlock.getGeneratingBalance(),
-				generator, new byte[32]);
+				generator, new byte[64]);
 		// Set valid transactions signature to avoid failure testing transactions signature
 		transactionsSignature = Crypto.getInstance().sign(generator, newBlock.getGeneratorSignature());
 		newBlock.setTransactionsSignature(transactionsSignature);

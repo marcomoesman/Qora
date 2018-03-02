@@ -4,9 +4,11 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import controller.Controller;
+import database.DBSet;
 import gui.transaction.ArbitraryTransactionDetailsFrame;
 import gui.transaction.MessageTransactionDetailsFrame;
 import qora.account.Account;
@@ -19,6 +21,11 @@ import qora.transaction.MessageTransaction;
 import qora.transaction.Transaction;
 
 public class txWindowTest {
+
+	@BeforeClass
+	public static void useRealDB() {
+		DBSet.reCreateDatabase();
+	}
 
 	@Test
 	public void windowTest() {

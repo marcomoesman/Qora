@@ -1,14 +1,16 @@
 package utils;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import qora.block.Block;
 import qora.block.GenesisBlock;
+import qora.crypto.Base58;
 import qora.transaction.ArbitraryTransaction;
 import qora.transaction.Transaction;
 import api.BlogPostResource;
@@ -17,6 +19,7 @@ import database.DBSet;
 import database.SortableList;
 
 public class UpdateUtil {
+	private static final Logger LOGGER = LogManager.getLogger(UpdateUtil.class);
 
 	public static void repopulateNameStorage(int height) throws Exception {
 		DBSet.getInstance().getNameStorageMap().reset();
@@ -40,6 +43,7 @@ public class UpdateUtil {
 					int service = arbTx.getService();
 
 					if (service == ArbitraryTransaction.SERVICE_NAME_STORAGE) {
+						LOGGER.info("name storage tx " + Base58.encode(arbTx.getSignature()));
 						StorageUtils.processUpdate(arbTx.getData(), arbTx.getSignature(), arbTx.getCreator(), DBSet.getInstance());
 					} else if (service == ArbitraryTransaction.SERVICE_BLOG_POST) {
 						byte[] data = arbTx.getData();
@@ -93,7 +97,7 @@ public class UpdateUtil {
 			}
 
 			if (block.getHeight() % 2000 == 0) {
-				Logger.getGlobal().info("UpdateUtil - Repopulating TransactionMap : " + block.getHeight());
+				LOGGER.info("UpdateUtil - Repopulating TransactionMap : " + block.getHeight());
 				DBSet.getInstance().commit();
 			}
 
@@ -119,7 +123,7 @@ public class UpdateUtil {
 			}
 
 			if (block.getHeight() % 2000 == 0) {
-				Logger.getGlobal().info("UpdateUtil - Repopulating CommentPostMap : " + block.getHeight());
+				LOGGER.info("UpdateUtil - Repopulating CommentPostMap : " + block.getHeight());
 				DBSet.getInstance().commit();
 			}
 

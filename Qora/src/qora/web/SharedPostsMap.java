@@ -9,10 +9,11 @@ import org.mapdb.DB;
 
 import com.google.common.primitives.SignedBytes;
 
+import database.DBListValueMap;
 import database.DBMap;
 import database.DBSet;
 
-public class SharedPostsMap extends DBMap<byte[], List<String>> {
+public class SharedPostsMap extends DBListValueMap<byte[], String, List<String>> {
 
 	private Map<Integer, Integer> observableData = new HashMap<Integer, Integer>();
 
@@ -27,45 +28,13 @@ public class SharedPostsMap extends DBMap<byte[], List<String>> {
 	@Override
 	protected Map<byte[], List<String>> getMap(DB database) {
 
-		return database.createTreeMap("SharedPostsMap")
-				.comparator(SignedBytes.lexicographicalComparator())
-				.makeOrGet();
+		return database.createTreeMap("SharedPostsMap").comparator(SignedBytes.lexicographicalComparator()).makeOrGet();
 
 	}
 
 	@Override
 	protected Map<byte[], List<String>> getMemoryMap() {
 		return new HashMap<>();
-	}
-
-	public void add(byte[] postSignature, String name) {
-		List<String> list = get(postSignature);
-		if (list == null) {
-			list = new ArrayList<String>();
-		}
-
-		if (!list.contains(name)) {
-			list.add(name);
-		}
-
-		set(postSignature, list);
-	}
-
-	public void remove(byte[] postSignature, String name) {
-		List<String> list = get(postSignature);
-		if (list == null) {
-			return;
-		}
-
-		list.remove(name);
-		
-		if(list.isEmpty())
-		{
-			delete(postSignature);
-			return;
-		}
-
-		set(postSignature, list);
 	}
 
 	@Override
@@ -80,5 +49,20 @@ public class SharedPostsMap extends DBMap<byte[], List<String>> {
 	@Override
 	protected List<String> getDefaultValue() {
 		return null;
+	}
+
+	@Override
+	protected List<String> newListValue() {
+		return new ArrayList<String>();
+	}
+
+	public void add(byte[] postSignature, String name) {
+		// Add name to list if list doesn't already contain it
+		this.listAdd(postSignature, name, (list, entry) -> !list.contains(entry), (list, entry) -> list.add(entry));
+	}
+
+	public void remove(byte[] postSignature, String name) {
+		// Always remove name from list
+		this.listRemove(postSignature, name, (list, entry) -> true, (list, entry) -> list.remove(entry));
 	}
 }
