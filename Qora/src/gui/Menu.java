@@ -163,10 +163,10 @@ public class Menu extends JMenuBar
         quitItem.getAccessibleContext().setAccessibleDescription(Lang.getInstance().translate("Quit the application"));
         quitItem.addActionListener(new ActionListener()
         {
-        	public void actionPerformed(ActionEvent e)
-        	{
-        		new ClosingDialog();
-        	}
+            public void actionPerformed(ActionEvent e)
+            {
+                ClosingDialog.getInstance();
+            }
         });
        
         fileMenu.add(quitItem);    

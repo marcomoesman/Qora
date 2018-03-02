@@ -622,7 +622,7 @@ public class BlockExplorer
 					}
 
 					if(transaction.getType() == Transaction.ARBITRARY_TRANSACTION
-							&& ((ArbitraryTransaction)transaction).getService() == 777
+							&& ((ArbitraryTransaction)transaction).getService() == ArbitraryTransaction.SERVICE_BLOG_POST
 							)
 					{
 						transactions.add(transaction);

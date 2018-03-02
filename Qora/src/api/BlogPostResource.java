@@ -22,6 +22,7 @@ import database.DBSet;
 import qora.account.PrivateKeyAccount;
 import qora.crypto.Crypto;
 import qora.naming.Name;
+import qora.transaction.ArbitraryTransaction;
 import qora.transaction.Transaction;
 import qora.web.Profile;
 import qora.web.blog.BlogEntry;
@@ -122,7 +123,7 @@ public class BlogPostResource {
 					.createArbitraryTransaction(
 							account,
 							null,
-							BlogUtils.COMMENT_SERVICE_ID,
+							ArbitraryTransaction.SERVICE_BLOG_COMMENT,
 							dataStructure.toJSONString().getBytes(
 									StandardCharsets.UTF_8), bdFee);
 
@@ -254,7 +255,7 @@ public class BlogPostResource {
 					.createArbitraryTransaction(
 							account,
 							null,
-							BlogUtils.COMMENT_SERVICE_ID,
+							ArbitraryTransaction.SERVICE_BLOG_COMMENT,
 							dataStructure.toJSONString().getBytes(
 									StandardCharsets.UTF_8), bdFee);
 
@@ -376,7 +377,7 @@ public class BlogPostResource {
 					.createArbitraryTransaction(
 							account,
 							null,
-							777,
+							ArbitraryTransaction.SERVICE_BLOG_POST,
 							dataStructure.toJSONString().getBytes(
 									StandardCharsets.UTF_8), bdFee);
 

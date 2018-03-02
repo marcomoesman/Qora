@@ -320,7 +320,7 @@ public class SysTray implements Observer{
 		MenuItem exit = new MenuItem("Exit");
 		exit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				new ClosingDialog();
+				ClosingDialog.getInstance();
 			}
 		});
 		menu.add(exit);

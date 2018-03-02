@@ -15,53 +15,50 @@ import lang.Lang;
 import settings.Settings;
 
 @SuppressWarnings("serial")
-public class MainFrame extends JFrame{
+public class MainFrame extends JFrame {
 
-	public MainFrame()
-	{
-		//CREATE FRAME
+	public MainFrame() {
+		// CREATE FRAME
 		super(Lang.getInstance().translate("Qora"));
-		
-		if(Settings.getInstance().isTestnet()) {
+
+		if (Settings.getInstance().isTestnet()) {
 			setTitle(Lang.getInstance().translate("Qora TestNet ") + Settings.getInstance().getGenesisStamp());
 		}
-		
-		//ICON
+
+		// ICON
 		List<Image> icons = new ArrayList<Image>();
 		icons.add(Toolkit.getDefaultToolkit().getImage("images/icons/icon16.png"));
 		icons.add(Toolkit.getDefaultToolkit().getImage("images/icons/icon32.png"));
 		icons.add(Toolkit.getDefaultToolkit().getImage("images/icons/icon64.png"));
 		icons.add(Toolkit.getDefaultToolkit().getImage("images/icons/icon128.png"));
 		this.setIconImages(icons);
-		
-        //MENU
-        Menu menu = new Menu();
 
-        //ADD MENU TO FRAME
-        this.setJMenuBar(menu);
-        
-        //GENERAL TABPANE
-        GeneralTabPane generalTabPane = new GeneralTabPane();
-        
-        //ADD GENERAL TABPANE TO FRAME
-        this.add(generalTabPane);
-        
-        //STATS
-        this.add(new StatusPanel(), BorderLayout.SOUTH);
-        
-        //CLOSE NICELY
-        this.addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-            	new ClosingDialog();
-            }
-        });
-        
-        //SHOW FRAME
-        this.pack();
-        this.setLocationRelativeTo(null);
-        this.setVisible(true);
-        
+		// MENU
+		Menu menu = new Menu();
+
+		// ADD MENU TO FRAME
+		this.setJMenuBar(menu);
+
+		// GENERAL TABPANE
+		GeneralTabPane generalTabPane = new GeneralTabPane();
+
+		// ADD GENERAL TABPANE TO FRAME
+		this.add(generalTabPane);
+
+		// STATS
+		this.add(new StatusPanel(), BorderLayout.SOUTH);
+
+		// CLOSE NICELY
+		this.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				ClosingDialog.getInstance();
+			}
+		});
+
+		// SHOW FRAME
+		this.pack();
+		this.setLocationRelativeTo(null);
+		this.setVisible(true);
+
 	}
 }

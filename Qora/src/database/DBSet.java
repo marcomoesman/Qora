@@ -1,9 +1,13 @@
 package database;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Observable;
 import java.util.Observer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
@@ -14,9 +18,11 @@ import qora.web.SharedPostsMap;
 import controller.Controller;
 import settings.Settings;
 import utils.ObserverMessage;
+import utils.SimpleFileVisitorForRecursiveFolderDeletion;
 
 public class DBSet implements Observer, IDB {
 
+	private static final Logger LOGGER = LogManager.getLogger(DBSet.class);
 	private static final int ACTIONS_BEFORE_COMMIT = 10000;
 	
 	private static DBSet instance;
@@ -67,6 +73,37 @@ public class DBSet implements Observer, IDB {
 		return instance;
 	}
 
+	public static void deleteDataDir() {
+		File dataDir = new File(Settings.getInstance().getDataDir());
+
+		if (!dataDir.exists())
+			return;
+
+		try {
+			Files.walkFileTree(dataDir.toPath(), new SimpleFileVisitorForRecursiveFolderDeletion(dataDir.toPath()));
+		} catch (IOException e) {
+			LOGGER.error(e.getMessage(),e);
+		}
+	}
+
+	public static void deleteDataBackup() {
+		File dataDir = new File(Settings.getInstance().getDataDir());
+
+		if (!dataDir.exists())
+			return;
+
+		File dataBak = new File(dataDir.getParent(), "dataBak");
+
+		if (!dataBak.exists())
+			return;
+
+		try {
+			Files.walkFileTree(dataBak.toPath(), new SimpleFileVisitorForRecursiveFolderDeletion(dataBak.toPath()));
+		} catch (IOException e) {
+			LOGGER.error(e.getMessage(),e);
+		}
+	}
+
 	public static void reCreateDatabase() {
 		//OPEN DB
 		File dbFile = new File(Settings.getInstance().getDataDir(), "data.dat");
@@ -85,12 +122,12 @@ public class DBSet implements Observer, IDB {
 		
 	}	
 	
-	public static DBSet createEmptyDatabaseSet()
-	{
-		DB database = DBMaker.newMemoryDB()
-				.make();
-		
-		return new DBSet(database);
+	public static DBSet createEmptyDatabaseSet() {
+		DB database = DBMaker.newMemoryDB().make();
+
+		instance = new DBSet(database);
+
+		return instance;
 	}
 	
 	public DBSet(DB database)

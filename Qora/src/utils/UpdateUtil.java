@@ -1,14 +1,16 @@
 package utils;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import qora.block.Block;
 import qora.block.GenesisBlock;
+import qora.crypto.Base58;
 import qora.transaction.ArbitraryTransaction;
 import qora.transaction.Transaction;
 import api.BlogPostResource;
@@ -17,130 +19,115 @@ import database.DBSet;
 import database.SortableList;
 
 public class UpdateUtil {
+	private static final Logger LOGGER = LogManager.getLogger(UpdateUtil.class);
 
-	public static void repopulateNameStorage(int height) {
+	public static void repopulateNameStorage(int height) throws Exception {
 		DBSet.getInstance().getNameStorageMap().reset();
 		DBSet.getInstance().getOrphanNameStorageHelperMap().reset();
 		DBSet.getInstance().getOrphanNameStorageMap().reset();
 		DBSet.getInstance().getHashtagPostMap().reset();
 
-		SortableList<byte[], Block> blocks = DBSet.getInstance().getBlockMap()
-				.getList();
+		SortableList<byte[], Block> blocks = DBSet.getInstance().getBlockMap().getList();
 		blocks.sort(BlockMap.HEIGHT_INDEX);
 
-		Block b = new GenesisBlock();
-		do
-		{
-			if ( b.getHeight() >= height )
-			{
-				List<Transaction> txs = b.getTransactions();
+		Block block = new GenesisBlock();
+		do {
+			if (block.getHeight() >= height) {
+				List<Transaction> txs = block.getTransactions();
 				for (Transaction tx : txs) {
-					if (tx instanceof ArbitraryTransaction) {
-						ArbitraryTransaction arbTx = (ArbitraryTransaction) tx;
-						int service = arbTx.getService();
-						if (service == 10) {
-							StorageUtils.processUpdate(arbTx.getData(),
-									arbTx.getSignature(), arbTx.getCreator(),
-									DBSet.getInstance());
-						} else if (service == 777) {
-							byte[] data = arbTx.getData();
-							String string = new String(data);
+					if (!(tx instanceof ArbitraryTransaction))
+						continue;
 
+					ArbitraryTransaction arbTx = (ArbitraryTransaction) tx;
 
+					int service = arbTx.getService();
 
-							JSONObject jsonObject = (JSONObject) JSONValue
-									.parse(string);
-							if (jsonObject != null) {
-								String post = (String) jsonObject
-										.get(BlogPostResource.POST_KEY);
+					if (service == ArbitraryTransaction.SERVICE_NAME_STORAGE) {
+						LOGGER.info("name storage tx " + Base58.encode(arbTx.getSignature()));
+						StorageUtils.processUpdate(arbTx.getData(), arbTx.getSignature(), arbTx.getCreator(), DBSet.getInstance());
+					} else if (service == ArbitraryTransaction.SERVICE_BLOG_POST) {
+						byte[] data = arbTx.getData();
 
-								String share = (String) jsonObject
-										.get(BlogPostResource.SHARE_KEY);
+						String string = new String(data);
 
+						JSONObject jsonObject = (JSONObject) JSONValue.parse(string);
 
-								boolean isShare = false;
-								if (StringUtils.isNotEmpty(share)) {
-									isShare = true;
-								}
+						if (jsonObject == null)
+							continue;
 
-								// DOES POST MET MINIMUM CRITERIUM?
-								if (StringUtils.isNotBlank(post)) {
+						String post = (String) jsonObject.get(BlogPostResource.POST_KEY);
 
-									// Shares won't be hashtagged!
-									if (!isShare) {
-										List<String> hashTags = BlogUtils
-												.getHashTags(post);
-										for (String hashTag : hashTags) {
-											DBSet.getInstance()
-											.getHashtagPostMap()
-											.add(hashTag,
-													arbTx.getSignature());
-										}
-									}
+						String share = (String) jsonObject.get(BlogPostResource.SHARE_KEY);
 
-								}
+						boolean isShare = false;
 
+						if (StringUtils.isNotEmpty(share))
+							isShare = true;
+
+						// DOES POST MEET MINIMUM CRITERIUM?
+						if (StringUtils.isNotBlank(post)) {
+							// Shares won't be hashtagged!
+							if (!isShare) {
+								List<String> hashTags = BlogUtils.getHashTags(post);
+
+								for (String hashTag : hashTags)
+									DBSet.getInstance().getHashtagPostMap().add(hashTag, arbTx.getSignature());
 							}
 						}
 					}
 				}
 			}
-			b = b.getChild();
-		}while ( b != null );
 
+			block = block.getChild();
+		} while (block != null);
 	}
-
-
 
 	public static void repopulateTransactionFinalMap() {
 		DBSet.getInstance().getTransactionFinalMap().reset();
 		DBSet.getInstance().commit();
-		Block b = new GenesisBlock();
-		do
-		{
-			List<Transaction> txs = b.getTransactions();
+		Block block = new GenesisBlock();
+
+		do {
+			List<Transaction> txs = block.getTransactions();
 			int counter = 1;
-			for (Transaction tx : txs)
-			{
-				DBSet.getInstance().getTransactionFinalMap().add(b.getHeight(), counter, tx);
+
+			for (Transaction tx : txs) {
+				DBSet.getInstance().getTransactionFinalMap().add(block.getHeight(), counter, tx);
 				counter++;
 			}
-			if ( b.getHeight()%2000 == 0 )
-			{
-				Logger.getGlobal().info("UpdateUtil - Repopulating TransactionMap : " + b.getHeight());
+
+			if (block.getHeight() % 2000 == 0) {
+				LOGGER.info("UpdateUtil - Repopulating TransactionMap : " + block.getHeight());
 				DBSet.getInstance().commit();
 			}
-			b = b.getChild();
-		}while ( b != null );
 
+			block = block.getChild();
+		} while (block != null);
 	}
-	
+
 	public static void repopulateCommentPostMap() {
 		DBSet.getInstance().getPostCommentMap().reset();
 		DBSet.getInstance().commit();
-		Block b = new GenesisBlock();
-		do
-		{
-			List<Transaction> txs = b.getTransactions();
-			for (Transaction tx : txs)
-			{
-				if(tx instanceof ArbitraryTransaction)
-				{
-					int service = ((ArbitraryTransaction) tx).getService();
-					if(service == BlogUtils.COMMENT_SERVICE_ID)
-					{
-						((ArbitraryTransaction) tx).addToCommentMapOnDemand(DBSet.getInstance());
-					}
+		Block block = new GenesisBlock();
+
+		do {
+			List<Transaction> txs = block.getTransactions();
+
+			for (Transaction tx : txs) {
+				if (tx instanceof ArbitraryTransaction) {
+					ArbitraryTransaction at = (ArbitraryTransaction) tx;
+
+					if (at.getService() == ArbitraryTransaction.SERVICE_BLOG_COMMENT)
+						BlogUtils.processBlogComment(at.getData(), at.getSignature(), at.getCreator(), DBSet.getInstance());
 				}
 			}
-			if ( b.getHeight()%2000 == 0 )
-			{
-				Logger.getGlobal().info("UpdateUtil - Repopulating CommentPostMap : " + b.getHeight());
+
+			if (block.getHeight() % 2000 == 0) {
+				LOGGER.info("UpdateUtil - Repopulating CommentPostMap : " + block.getHeight());
 				DBSet.getInstance().commit();
 			}
-			b = b.getChild();
-		}while ( b != null );
-		
+
+			block = block.getChild();
+		} while (block != null);
 	}
 }
-

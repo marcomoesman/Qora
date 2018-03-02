@@ -45,12 +45,21 @@ public class BlockMap extends DBMap<byte[], Block>
 		this.observableData.put(DBMap.NOTIFY_REMOVE, ObserverMessage.REMOVE_BLOCK_TYPE);
 		this.observableData.put(DBMap.NOTIFY_LIST, ObserverMessage.LIST_BLOCK_TYPE);
 		
-		//LAST BLOCK
+		// Last block
+		/*
+		 *  If lastBlock doesn't exist, explicitly set to 0-length byte[]
+		 *  otherwise getAtomicVar() will return "" which is the wrong type
+		 */
 		if ( !database.exists("lastBlock") )
 			database.createAtomicVar("lastBlock", new byte[0], null);
+
 		this.lastBlockVar = database.getAtomicVar("lastBlock");
 		this.lastBlockSignature = this.lastBlockVar.get();
-		
+
+		// 0-length byte[] effectively means no signature
+		if (this.lastBlockSignature.length == 0)
+			this.lastBlockSignature = null;
+
 		//PROCESSING
 		if ( !database.exists("processingBlock") )
 			database.createAtomicVar("processingBlock", false, null);
