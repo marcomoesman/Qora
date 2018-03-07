@@ -1,6 +1,7 @@
 package network;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
@@ -81,12 +82,12 @@ public class Peer extends Thread {
 	 * @see ConnectionCallback#onConnect(Peer)
 	 */
 	private void setup(boolean white) {
-		try {
-			this.messages = Collections.synchronizedMap(new HashMap<Integer, BlockingQueue<Message>>());
-			this.white = white;
-			this.pingCounter = 0;
-			this.connectionTime = NTP.getTime();
+		this.messages = Collections.synchronizedMap(new HashMap<Integer, BlockingQueue<Message>>());
+		this.white = white;
+		this.pingCounter = 0;
+		this.connectionTime = NTP.getTime();
 
+		try {
 			// Enable TCP keep-alive packets
 			// this.socket.setKeepAlive(true);
 
@@ -104,11 +105,12 @@ public class Peer extends Thread {
 
 			// Notify peer is connected
 			this.callback.onConnect(this);
-		} catch (Exception e) {
-			// Connection setup failure NO NEED TO BLACKLIST
-			LOGGER.info("Failed to connect to " + address + ": " + e.getMessage());
-			LOGGER.debug(e.getMessage(), e);
-
+		} catch (SocketException e) {
+			LOGGER.info("Failed to set socket timeout for address " + address + ": " + e.getMessage());
+			// peer no longer usable
+			this.close();
+		} catch (IOException e) {
+			LOGGER.info("Failed to get output stream for address " + address + ": " + e.getMessage());
 			// peer no longer usable
 			this.close();
 		}
@@ -269,6 +271,8 @@ public class Peer extends Thread {
 			}
 		} catch (InterruptedException e) {
 			// peer connection being closed - simply exit
+			LOGGER.debug("Peer thread interrupted " + address);
+
 			return;
 		} catch (SocketTimeoutException e) {
 			LOGGER.info(Lang.getInstance().translate("Inactivity timeout with peer") + " " + address);
@@ -277,7 +281,12 @@ public class Peer extends Thread {
 			this.callback.onDisconnect(this);
 			return;
 		} catch (SocketException e) {
-			LOGGER.info(Lang.getInstance().translate("Socket issue with peer") + " " + address);
+			// We might be finding out that peer was disconnected elsewhere
+			if (socket == null || socket.isClosed()) {
+				LOGGER.debug(Lang.getInstance().translate("Socket already closed") + " " + address);
+			} else {
+				LOGGER.info(Lang.getInstance().translate("Socket issue with peer") + " " + address, e);
+			}
 
 			// Disconnect peer
 			this.callback.onDisconnect(this);
@@ -285,6 +294,14 @@ public class Peer extends Thread {
 		} catch (MessageException e) {
 			// Suspect peer
 			this.callback.onError(this, e.getMessage());
+			return;
+		} catch (EOFException e) {
+			// We might be finding out that peer was disconnected elsewhere
+			// if (socket == null || socket.isClosed())
+			//	return;
+
+			// Disconnect peer
+			this.callback.onDisconnect(this);
 			return;
 		} catch (Exception e) {
 			// not expected as above
@@ -308,7 +325,7 @@ public class Peer extends Thread {
 			// CHECK IF SOCKET IS STILL ALIVE
 			if (!this.socket.isConnected()) {
 				// ERROR
-				callback.onError(this, Lang.getInstance().translate("socket not still alive"));
+				this.callback.onError(this, Lang.getInstance().translate("socket not still alive"));
 
 				return false;
 			}
@@ -323,8 +340,9 @@ public class Peer extends Thread {
 			return true;
 		} catch (Exception e) {
 			LOGGER.debug(e.getMessage(), e);
+
 			// ERROR
-			callback.onError(this, e.getMessage());
+			this.callback.onError(this, e.getMessage());
 
 			// RETURN
 			return false;
@@ -398,17 +416,16 @@ public class Peer extends Thread {
 	 * @see Pinger#stopPing()
 	 */
 	public void close() {
+		LOGGER.debug("Closing socket connection to peer " + address);
+
 		// Stop Pinger if applicable
 		if (this.pinger != null)
 			this.pinger.stopPing();
 
-		try {
-			// maybe interrupt() run() thread to differentiate from peer closing
-			// connection?
-			/*
-			 * if (this.isAlive()) { this.interrupt(); this.join(); }
-			 */
+		if (this.isAlive())
+			this.interrupt();
 
+		try {
 			// Close socket if applicable
 			if (socket != null && socket.isConnected())
 				socket.close();

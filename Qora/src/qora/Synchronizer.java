@@ -413,7 +413,7 @@ public class Synchronizer {
 	 * @see BlockBuffer
 	 */
 	public void synchronize(Peer peer) throws Exception {
-		LOGGER.info("Synchronizing: " + peer.getAddress().getHostAddress() + " - " + peer.getPing());
+		LOGGER.info("Synchronizing: " + peer.getAddress().getHostAddress() + " - ping " + peer.getPing() + "ms");
 
 		// Find last common block with peer
 		Block lastCommonBlock = this.findLastCommonBlock(peer);
@@ -426,6 +426,8 @@ public class Synchronizer {
 
 		// If last common block is our blockchain tip then we can forego any orphaning and simply process new blocks
 		if (Arrays.equals(lastCommonBlock.getSignature(), lastBlock.getSignature())) {
+			LOGGER.info("Synchronizing: continuing from blockchain tip " + lastBlock.getHeight() + " using " + peer.getAddress().getHostAddress());
+
 			// Request next chunk of block signatures from peer
 			List<byte[]> signatures = this.getBlockSignatures(lastCommonBlock, BlockChain.MAX_SIGNATURES, peer);
 
@@ -468,8 +470,14 @@ public class Synchronizer {
 			// Block buffer no longer needed: we've finished processing or we're shutting down
 			blockBuffer.stopThread();
 		} else {
+			LOGGER.info("Synchronizing: " + peer.getAddress().getHostAddress() + " last common block height: " + lastCommonBlock.getHeight());
+
 			// Request signatures from peer covering from last common block height to our blockchain tip height
-			final int amount = lastBlock.getHeight() - lastCommonBlock.getHeight();
+			int amount = lastBlock.getHeight() - lastCommonBlock.getHeight();
+			// ... but not too many in one go
+			if (amount > BlockChain.MAX_SIGNATURES)
+				amount = BlockChain.MAX_SIGNATURES;
+
 			List<byte[]> signatures = this.getBlockSignatures(lastCommonBlock, amount, peer);
 
 			// Request all the blocks using received signatures.
