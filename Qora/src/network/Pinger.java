@@ -8,16 +8,14 @@ import network.message.MessageFactory;
 import settings.Settings;
 
 /**
- * Pinger is a Thread that periodically pings a Peer to maintain/check
- * connectivity.
+ * Pinger is a Thread that periodically pings a Peer to maintain/check connectivity.
  */
 public class Pinger extends Thread {
 
 	private static final Logger LOGGER = LogManager.getLogger(Pinger.class);
 	private Peer peer;
 	/**
-	 * Most recent ping round-trip time in milliseconds, or Long.MAX_VALUE if no
-	 * ping yet.
+	 * Most recent ping round-trip time in milliseconds, or Long.MAX_VALUE if no ping yet.
 	 */
 	private long ping;
 
@@ -25,6 +23,7 @@ public class Pinger extends Thread {
 	 * Simple Pinger constructor
 	 * <p>
 	 * Will start Pinger thread.
+	 * 
 	 * @param peer
 	 * @see #run()
 	 */
@@ -71,13 +70,18 @@ public class Pinger extends Thread {
 				// NB: currently Peer.onPingFailure() may call Pinger.stopPing()
 				// (see below)
 				LOGGER.debug("Ping failure with " + this.peer.getAddress());
-				this.peer.onPingFailure();
+
+				// This needs to be done in a new thread to avoid mapdb/interrupt issue
+				new Thread(new PingFailure(this.peer)).start();
+
 				return;
 			}
 
 			// Calculate ping's round-trip time and notify peer
 			this.ping = System.currentTimeMillis() - start;
-			this.peer.onPingSuccess();
+
+			// This needs to be done in a new thread to avoid mapdb/interrupt issue
+			new Thread(new PingSuccess(this.peer)).start();
 
 			// Sleep until we need to send next ping
 			try {
@@ -86,6 +90,32 @@ public class Pinger extends Thread {
 				// If interrupted, usually by stopPing(), we need to exit thread
 				return;
 			}
+		}
+	}
+
+	private class PingFailure implements Runnable {
+		private final Peer peer;
+
+		public PingFailure(Peer peer) {
+			this.peer = peer;
+		}
+
+		@Override
+		public void run() {
+			this.peer.onPingFailure();
+		}
+	}
+
+	private class PingSuccess implements Runnable {
+		private final Peer peer;
+
+		public PingSuccess(Peer peer) {
+			this.peer = peer;
+		}
+
+		@Override
+		public void run() {
+			this.peer.onPingSuccess();
 		}
 	}
 
