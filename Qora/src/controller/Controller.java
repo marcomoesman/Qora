@@ -667,7 +667,7 @@ public class Controller extends Observable {
 
 	public void onConnect(Peer peer) {
 
-		if (DBSet.getInstance().isStoped())
+		if (DBSet.getInstance().isStopped())
 			return;
 
 		// GET HEIGHT

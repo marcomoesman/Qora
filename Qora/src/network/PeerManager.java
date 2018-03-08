@@ -36,7 +36,7 @@ public class PeerManager {
 	{
 		List<Peer> knownPeers = new ArrayList<Peer>();
 		//ASK DATABASE FOR A LIST OF PEERS
-		if(!DBSet.getInstance().isStoped()){
+		if(!DBSet.getInstance().isStopped()){
 			knownPeers = DBSet.getInstance().getPeerMap().getBestPeers(Settings.getInstance().getMaxReceivePeers(), true);
 		}
 		
@@ -47,7 +47,7 @@ public class PeerManager {
 	public void addPeer(Peer peer)
 	{
 		//ADD TO DATABASE
-		if(!DBSet.getInstance().isStoped()){
+		if(!DBSet.getInstance().isStopped()){
 			DBSet.getInstance().getPeerMap().addPeer(peer);
 		}
 	}
@@ -59,7 +59,7 @@ public class PeerManager {
 	
 	public boolean isBlacklisted(InetAddress address)
 	{
-		if(!DBSet.getInstance().isStoped()){
+		if(!DBSet.getInstance().isStopped()){
 			return DBSet.getInstance().getPeerMap().isBlacklisted(address);
 		}else{
 			return true;

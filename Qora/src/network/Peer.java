@@ -144,7 +144,7 @@ public class Peer extends Thread {
 	public void onPingSuccess() {
 		this.pingCounter++;
 
-		if (!DBSet.getInstance().isStoped())
+		if (!DBSet.getInstance().isStopped())
 			DBSet.getInstance().getPeerMap().addPeer(this);
 	}
 
@@ -197,7 +197,7 @@ public class Peer extends Thread {
 	public void connect(ConnectionCallback callback) {
 		// XXX we don't actually use DB so replace with cleaner "are we shutting
 		// down?" test
-		if (DBSet.getInstance().isStoped()) {
+		if (DBSet.getInstance().isStopped()) {
 			return;
 		}
 

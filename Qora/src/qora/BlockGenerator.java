@@ -112,7 +112,7 @@ public class BlockGenerator extends Thread implements Observer
 					}
 
 					// If we're shutting down - exit thread
-					if (DBSet.getInstance().isStoped())
+					if (DBSet.getInstance().isStopped())
 					    return;
 				}
 				
@@ -177,7 +177,7 @@ public class BlockGenerator extends Thread implements Observer
 	{
 	    Thread.currentThread().setName("BlockGenerator");
 
-		while(!this.stopping && !DBSet.getInstance().isStoped())
+		while(!this.stopping && !DBSet.getInstance().isStopped())
 		{
 			//CHECK IF WE ARE UPTODATE
 			if(!Controller.getInstance().isUpToDate() && !Controller.getInstance().isProcessingWalletSynchronize())
