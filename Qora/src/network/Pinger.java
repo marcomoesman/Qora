@@ -56,6 +56,32 @@ public class Pinger extends Thread {
 	public void run() {
 		Thread.currentThread().setName("Pinger " + this.peer.getAddress());
 
+		class PingFailureRunnable implements Runnable {
+			private final Peer peer;
+
+			public PingFailureRunnable(Peer peer) {
+				this.peer = peer;
+			}
+
+			@Override
+			public void run() {
+				this.peer.onPingFailure();
+			}
+		}
+
+		class PingSuccessRunnable implements Runnable {
+			private final Peer peer;
+
+			public PingSuccessRunnable(Peer peer) {
+				this.peer = peer;
+			}
+
+			@Override
+			public void run() {
+				this.peer.onPingSuccess();
+			}
+		}
+
 		while (true) {
 			// Send ping message to peer
 			long start = System.currentTimeMillis();
@@ -72,7 +98,7 @@ public class Pinger extends Thread {
 				LOGGER.debug("Ping failure with " + this.peer.getAddress());
 
 				// This needs to be done in a new thread to avoid mapdb/interrupt issue
-				new Thread(new PingFailure(this.peer)).start();
+				new Thread(new PingFailureRunnable(this.peer)).start();
 
 				return;
 			}
@@ -81,7 +107,7 @@ public class Pinger extends Thread {
 			this.ping = System.currentTimeMillis() - start;
 
 			// This needs to be done in a new thread to avoid mapdb/interrupt issue
-			new Thread(new PingSuccess(this.peer)).start();
+			new Thread(new PingSuccessRunnable(this.peer)).start();
 
 			// Sleep until we need to send next ping
 			try {
@@ -90,32 +116,6 @@ public class Pinger extends Thread {
 				// If interrupted, usually by stopPing(), we need to exit thread
 				return;
 			}
-		}
-	}
-
-	private class PingFailure implements Runnable {
-		private final Peer peer;
-
-		public PingFailure(Peer peer) {
-			this.peer = peer;
-		}
-
-		@Override
-		public void run() {
-			this.peer.onPingFailure();
-		}
-	}
-
-	private class PingSuccess implements Runnable {
-		private final Peer peer;
-
-		public PingSuccess(Peer peer) {
-			this.peer = peer;
-		}
-
-		@Override
-		public void run() {
-			this.peer.onPingSuccess();
 		}
 	}
 

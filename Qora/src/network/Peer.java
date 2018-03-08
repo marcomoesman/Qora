@@ -72,10 +72,8 @@ public class Peer extends Thread {
 	/**
 	 * Set up initial peer values
 	 * <p>
-	 * Set up initial peer settings, e.g. socket timeout, ping thread & counter,
-	 * etc.<br>
-	 * Will close peer if setup fails. On success, will call
-	 * <code>ConnectionCallback.onConnect</code>
+	 * Set up initial peer settings, e.g. socket timeout, ping thread & counter, etc.<br>
+	 * Will close peer if setup fails. On success, will call <code>ConnectionCallback.onConnect</code>
 	 * 
 	 * @param white
 	 * @see Pinger
@@ -151,8 +149,7 @@ public class Peer extends Thread {
 	/**
 	 * Callback, used by Pinger, on ping failure.
 	 * <p>
-	 * Disconnects peer using <code>ConnectionCallback.onDisconnect(Peer)</code>
-	 * which is typically a <code>Network</code> object.
+	 * Disconnects peer using <code>ConnectionCallback.onDisconnect(Peer)</code> which is typically a <code>Network</code> object.
 	 * 
 	 * @see Pinger#run()
 	 * @see ConnectionCallback#onDisconnect(Peer)
@@ -225,9 +222,8 @@ public class Peer extends Thread {
 	 * <p>
 	 * Waits for incoming messages from peer, unless inactivity timeout reached.
 	 * <p>
-	 * If something is waiting for a message with a specific ID then they are
-	 * notified so it can be processed. Otherwise the message is added to our
-	 * queue, keyed by message ID.
+	 * If something is waiting for a message with a specific ID then they are notified so it can be processed. Otherwise the message is added to our queue,
+	 * keyed by message ID.
 	 * 
 	 * @see #getResponse(Message)
 	 * @see MessageFactory#parse(Peer, DataInputStream)
@@ -236,6 +232,21 @@ public class Peer extends Thread {
 	 */
 	public void run() {
 		Thread.currentThread().setName("Peer " + this.address.toString());
+
+		class MessageCallbackRunnable implements Runnable {
+			private ConnectionCallback callback;
+			private Message message;
+
+			public MessageCallbackRunnable(ConnectionCallback callback, Message message) {
+				this.callback = callback;
+				this.message = message;
+			}
+
+			@Override
+			public void run() {
+				this.callback.onMessage(this.message);
+			}
+		}
 
 		try {
 			DataInputStream in = new DataInputStream(socket.getInputStream());
@@ -247,26 +258,23 @@ public class Peer extends Thread {
 
 				if (!Arrays.equals(messageMagic, Controller.getInstance().getMessageMagic())) {
 					// Didn't receive valid Message "magic"
-					this.callback.onError(this,
-							Lang.getInstance().translate("received message with wrong magic") + " " + address);
+					this.callback.onError(this, Lang.getInstance().translate("received message with wrong magic") + " " + address);
 					return;
 				}
 
 				// Attempt to parse incoming message - throws on failure
 				Message message = MessageFactory.getInstance().parse(this, in);
 
-				// LOGGER.debug("Received message (type " + message.getType() +
-				// ") from " + this.address);
+				// LOGGER.debug("Received message (type " + message.getType() + ") from " + this.address);
 
-				// If there's a queue for this message ID then add message to
-				// queue
+				// If there's a queue for this message ID then add message to queue
 				if (message.hasId() && this.messages.containsKey(message.getId())) {
-					// Adding message to queue will unblock waiting caller (if
-					// any)
+					// Adding message to queue will unblock waiting caller (if any)
 					this.messages.get(message.getId()).add(message);
 				} else {
 					// Generic message callback
-					this.callback.onMessage(message);
+					// This needs to be done in a new thread to avoid mapdb/interrupt issue
+					new Thread(new MessageCallbackRunnable(this.callback, message)).start();
 				}
 			}
 		} catch (InterruptedException e) {
@@ -298,7 +306,7 @@ public class Peer extends Thread {
 		} catch (EOFException e) {
 			// We might be finding out that peer was disconnected elsewhere
 			// if (socket == null || socket.isClosed())
-			//	return;
+			// return;
 
 			// Disconnect peer
 			this.callback.onDisconnect(this);
@@ -317,8 +325,7 @@ public class Peer extends Thread {
 	 * Attempt to send Message to peer
 	 * 
 	 * @param message
-	 * @return <code>true</code> if message successfully sent;
-	 *         <code>false</code> otherwise
+	 * @return <code>true</code> if message successfully sent; <code>false</code> otherwise
 	 */
 	public boolean sendMessage(Message message) {
 		try {
@@ -352,16 +359,13 @@ public class Peer extends Thread {
 	/**
 	 * Send message to peer and await response.
 	 * <p>
-	 * Message is assigned a random ID and sent. If a response with matching ID
-	 * is received then it is returned to caller.
+	 * Message is assigned a random ID and sent. If a response with matching ID is received then it is returned to caller.
 	 * <p>
-	 * If no response with matching ID within timeout, or some other
-	 * error/exception occurs, then return <code>null</code>. (Assume peer will
-	 * be rapidly disconnected after this).
+	 * If no response with matching ID within timeout, or some other error/exception occurs, then return <code>null</code>. (Assume peer will be rapidly
+	 * disconnected after this).
 	 * 
 	 * @param message
-	 * @return <code>Message</code> if valid response received;
-	 *         <code>null</code> if not or error/exception occurs
+	 * @return <code>Message</code> if valid response received; <code>null</code> if not or error/exception occurs
 	 */
 	public Message getResponse(Message message) {
 		// Assign random ID to this message
@@ -410,8 +414,7 @@ public class Peer extends Thread {
 	/**
 	 * Close connection to peer
 	 * <p>
-	 * Can be called during normal operation or also in case of error, shutdown,
-	 * etc.
+	 * Can be called during normal operation or also in case of error, shutdown, etc.
 	 * 
 	 * @see Pinger#stopPing()
 	 */
