@@ -90,22 +90,19 @@ import webserver.WebService;
 
 public class Controller extends Observable {
 
-	
-	
-	
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.6";
-	private String buildTime = "2018-03-02 09:55:00 UTC";
+	private String version = "0.26.7";
+	private String buildTime = "2018-03-09 08:56:00 UTC";
 	private long buildTimestamp;
-	
-	public static final String releaseVersion = "0.26.6";
 
-//	TODO ENUM would be better here
+	public static final String releaseVersion = "0.26.7";
+
+	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
 	public static final int STATUS_SYNCHRONIZING = 1;
 	public static final int STATUS_OK = 2;
 
-	private boolean processingWalletSynchronize = false; 
+	private boolean processingWalletSynchronize = false;
 	private int status;
 	private Network network;
 	private ApiService rpcService;
@@ -121,8 +118,8 @@ public class Controller extends Observable {
 	private Random random = new SecureRandom();
 	private byte[] foundMyselfID = new byte[128];
 	private byte[] messageMagic;
-	private long toOfflineTime; 
-	
+	private long toOfflineTime;
+
 	private Map<Peer, Integer> peerHeight;
 
 	private Map<Peer, Pair<String, Long>> peersVersions;
@@ -132,126 +129,114 @@ public class Controller extends Observable {
 	public boolean isProcessingWalletSynchronize() {
 		return processingWalletSynchronize;
 	}
-	
+
 	public void setProcessingWalletSynchronize(boolean isPocessing) {
 		this.processingWalletSynchronize = isPocessing;
 	}
-	
+
 	public String getVersion() {
 		return version;
 	}
 
 	public int getNetworkPort() {
-		if(Settings.getInstance().isTestnet()) {
+		if (Settings.getInstance().isTestnet()) {
 			return Network.TESTNET_PORT;
 		} else {
 			return Network.MAINNET_PORT;
 		}
 	}
-	
-	public String getBuildDateTimeString(){
+
+	public String getBuildDateTimeString() {
 		return DateTimeFormat.timestamptoString(this.getBuildTimestamp(), "yyyy-MM-dd HH:mm:ss z", "UTC");
 	}
-	
-	public String getBuildDateString(){
+
+	public String getBuildDateString() {
 		return DateTimeFormat.timestamptoString(this.getBuildTimestamp(), "yyyy-MM-dd", "UTC");
 	}
-	
+
 	public long getBuildTimestamp() {
-	    if(this.buildTimestamp == 0) {
-		    Date date = new Date();
-		    URL resource = getClass().getResource(getClass().getSimpleName() + ".class");
-		    if (resource != null) {
-		        if (!resource.getProtocol().equals("file")) {
-		        	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-		        	try {
-						date = (Date)formatter.parse(this.buildTime);
+		if (this.buildTimestamp == 0) {
+			Date date = new Date();
+			URL resource = getClass().getResource(getClass().getSimpleName() + ".class");
+			if (resource != null) {
+				if (!resource.getProtocol().equals("file")) {
+					DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+					try {
+						date = (Date) formatter.parse(this.buildTime);
 					} catch (ParseException e) {
-						LOGGER.error(e.getMessage(),e);
+						LOGGER.error(e.getMessage(), e);
 					}
-		        }
-		    }
-		    this.buildTimestamp = date.getTime();
-	    }
-	    return this.buildTimestamp;
+				}
+			}
+			this.buildTimestamp = date.getTime();
+		}
+		return this.buildTimestamp;
 	}
-	
+
 	public byte[] getMessageMagic() {
-		if(this.messageMagic == null) {
-			long longTestNetStamp = Settings.getInstance().getGenesisStamp();
-			if(Settings.getInstance().isTestnet()){
+		if (this.messageMagic == null) {
+			if (Settings.getInstance().isTestnet()) {
+				long longTestNetStamp = Settings.getInstance().getGenesisStamp();
 				byte[] seedTestNetStamp = Crypto.getInstance().digest(Longs.toByteArray(longTestNetStamp));
-				this.messageMagic =  Arrays.copyOfRange(seedTestNetStamp, 0, Message.MAGIC_LENGTH);	
+				this.messageMagic = Arrays.copyOfRange(seedTestNetStamp, 0, Message.MAGIC_LENGTH);
 			} else {
 				this.messageMagic = Message.MAINNET_MAGIC;
 			}
 		}
 		return this.messageMagic;
 	}
-	
-	public void statusInfo()
-	{
-		LOGGER.info(
-			Lang.getInstance().translate("STATUS OK") + "\n" 
-			+ "| " + Lang.getInstance().translate("Last Block Signature") + ": " + Base58.encode(this.blockChain.getLastBlock().getSignature()) + "\n"
-			+ "| " + Lang.getInstance().translate("Last Block Height") + ": " + this.blockChain.getLastBlock().getHeight() + "\n"
-			+ "| " + Lang.getInstance().translate("Last Block Time") + ": " + DateTimeFormat.timestamptoString(this.blockChain.getLastBlock().getTimestamp()) + "\n"
-			+ "| " + Lang.getInstance().translate("Last Block Found %time% ago.").replace("%time%", DateTimeFormat.timeAgo(this.blockChain.getLastBlock().getTimestamp()))
-			);
+
+	public void statusInfo() {
+		LOGGER.info(Lang.getInstance().translate("STATUS OK") + "\n" + "| " + Lang.getInstance().translate("Last Block Signature") + ": "
+				+ Base58.encode(this.blockChain.getLastBlock().getSignature()) + "\n" + "| " + Lang.getInstance().translate("Last Block Height") + ": "
+				+ this.blockChain.getLastBlock().getHeight() + "\n" + "| " + Lang.getInstance().translate("Last Block Time") + ": "
+				+ DateTimeFormat.timestamptoString(this.blockChain.getLastBlock().getTimestamp()) + "\n" + "| " + Lang.getInstance()
+						.translate("Last Block Found %time% ago.").replace("%time%", DateTimeFormat.timeAgo(this.blockChain.getLastBlock().getTimestamp())));
 	}
-	
+
 	public byte[] getFoundMyselfID() {
 		return this.foundMyselfID;
 	}
-	
-	public int getWalletSyncHeight()
-	{
+
+	public int getWalletSyncHeight() {
 		return this.wallet.getSyncHeight();
 	}
-	
-	public void getSendMyHeightToPeer (Peer peer) {
-	
+
+	public void getSendMyHeightToPeer(Peer peer) {
 		// GET HEIGHT
 		int height = this.blockChain.getHeight();
-				
-		// SEND HEIGTH MESSAGE
-		peer.sendMessage(MessageFactory.getInstance().createHeightMessage(
-				height));
+
+		// SEND HEIGHT MESSAGE
+		peer.sendMessage(MessageFactory.getInstance().createHeightMessage(height));
 	}
-	
+
 	public Map<Peer, Integer> getPeerHeights() {
 		return peerHeight;
 	}
-	
+
 	public Integer getHeightOfPeer(Peer peer) {
-		if(peerHeight!=null && peerHeight.containsKey(peer)){
+		synchronized (this.peerHeight) {
+			if (peerHeight == null || !peerHeight.containsKey(peer))
+				return 0;
+
 			return peerHeight.get(peer);
-		}
-		else
-		{
-			return 0;
-		}
-	}
-	
-	public Map<Peer, Pair<String, Long>> getPeersVersions() {
-		return peersVersions;
-	}
-	
-	public Pair<String, Long> getVersionOfPeer(Peer peer) {
-		if(peerHeight!=null && peersVersions.containsKey(peer)){
-			return peersVersions.get(peer);
-		}
-		else
-		{
-			return new Pair<String, Long>("", 0l); 
-			//\u22640.24.0
 		}
 	}
 
+	public Map<Peer, Pair<String, Long>> getPeersVersions() {
+		return peersVersions;
+	}
+
+	public Pair<String, Long> getVersionOfPeer(Peer peer) {
+		if (peersVersions == null || !peersVersions.containsKey(peer))
+			return new Pair<String, Long>("", 0L);
+
+		return peersVersions.get(peer);
+	}
+
 	public static Controller getInstance() {
-		if (instance == null) {
+		if (instance == null)
 			instance = new Controller();
-		}
 
 		return instance;
 	}
@@ -263,69 +248,61 @@ public class Controller extends Observable {
 	public void setNeedSync(boolean needSync) {
 		this.needSync = needSync;
 	}
-	
+
 	public boolean isNeedSync() {
 		return this.needSync;
 	}
-	
+
 	public void start() throws Exception {
-		
 		this.toOfflineTime = NTP.getTime();
-		
+
 		this.foundMyselfID = new byte[128];
 		this.random.nextBytes(this.foundMyselfID);
-		
+
 		// CHECK NETWORK PORT AVAILABLE
 		if (!Network.isPortAvailable(Controller.getInstance().getNetworkPort())) {
-			throw new Exception(Lang.getInstance().translate("Network port %port% already in use!").
-					replace("%port%", String.valueOf(Controller.getInstance().getNetworkPort())));
+			throw new Exception(Lang.getInstance().translate("Network port %port% already in use!").replace("%port%",
+					String.valueOf(Controller.getInstance().getNetworkPort())));
 		}
 
 		// CHECK RPC PORT AVAILABLE
 		if (Settings.getInstance().isRpcEnabled()) {
 			if (!Network.isPortAvailable(Settings.getInstance().getRpcPort())) {
-				throw new Exception(Lang.getInstance().translate("Rpc port %port% already in use!").
-						replace("%port%", String.valueOf(Settings.getInstance().getRpcPort())));
+				throw new Exception(
+						Lang.getInstance().translate("Rpc port %port% already in use!").replace("%port%", String.valueOf(Settings.getInstance().getRpcPort())));
 			}
 		}
 
 		// CHECK WEB PORT AVAILABLE
 		if (Settings.getInstance().isWebEnabled()) {
-			if (!Network.isPortAvailable(Settings.getInstance().getWebPort())) {	
-				LOGGER.error(Lang.getInstance().translate("Web port %port% already in use!").
-						replace("%port%", String.valueOf(Settings.getInstance().getWebPort())));
+			if (!Network.isPortAvailable(Settings.getInstance().getWebPort())) {
+				LOGGER.error(
+						Lang.getInstance().translate("Web port %port% already in use!").replace("%port%", String.valueOf(Settings.getInstance().getWebPort())));
 			}
 		}
 
-		this.peerHeight = new LinkedHashMap<Peer, Integer>(); // LINKED TO
-																// PRESERVE
-																// ORDER WHEN
-																// SYNCHRONIZING
-																// (PRIORITIZE
-																// SYNCHRONIZING
-																// FROM LONGEST
-																// CONNECTION
-																// ALIVE)
-		
+		// LINKED HashMap to preserve longest-connection-first ordering
+		this.peerHeight = new LinkedHashMap<Peer, Integer>();
+
 		this.peersVersions = new LinkedHashMap<Peer, Pair<String, Long>>();
-		
+
 		this.status = STATUS_NO_CONNECTIONS;
 		this.transactionCreator = new TransactionCreator();
 
 		SplashFrame.getInstance().updateProgress("Opening databases");
-		
+
 		// OPENING DATABASES
 		try {
 			DBSet.getInstance();
 		} catch (Throwable e) {
-			LOGGER.error(e.getMessage(),e);
+			LOGGER.error(e.getMessage(), e);
 			LOGGER.info(Lang.getInstance().translate("Error during startup detected trying to restore backup database..."));
 
 			SplashFrame.getInstance().updateProgress("Creating databases");
 			reCreateDB();
 		}
 
-//		startFromScratchOnDemand();
+		// startFromScratchOnDemand();
 
 		// If BlockMap database was closed while processing a block
 		// then assume all databases are corrupt and rebuild from scratch
@@ -333,13 +310,13 @@ public class Controller extends Observable {
 			try {
 				DBSet.getInstance().close();
 			} catch (Throwable e) {
-				LOGGER.error(e.getMessage(),e);
+				LOGGER.error(e.getMessage(), e);
 			}
 
 			SplashFrame.getInstance().updateProgress("Recreating databases");
 			reCreateDB();
 		}
-		
+
 		// Check whether DB needs updates
 		if (DBSet.getInstance().getBlockMap().getLastBlockSignature() != null) {
 			LocalDataMap localDataMap = DBSet.getInstance().getLocalDataMap();
@@ -349,7 +326,7 @@ public class Controller extends Observable {
 				SplashFrame.getInstance().updateProgress("Rebuilding name storage");
 
 				// Rebuild name storage
-				UpdateUtil.repopulateNameStorage( 70000 ); // Don't bother scanning blocks below height 70,000
+				UpdateUtil.repopulateNameStorage(70000); // Don't bother scanning blocks below height 70,000
 				localDataMap.set("nsupdate", "2");
 			}
 			// Check whether final transaction map needs rebuilding
@@ -360,7 +337,7 @@ public class Controller extends Observable {
 				UpdateUtil.repopulateTransactionFinalMap();
 				localDataMap.set("txfinalmap", "2");
 			}
-			
+
 			if (localDataMap.get("blogpostmap") == null || !localDataMap.get("blogpostmap").equals("3")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding blog comments");
 
@@ -373,7 +350,7 @@ public class Controller extends Observable {
 			DBSet.getInstance().getLocalDataMap().set("txfinalmap", "2");
 			DBSet.getInstance().getLocalDataMap().set("blogpostmap", "3");
 		}
-		
+
 		// CREATE SYNCHRONIZOR
 		SplashFrame.getInstance().updateProgress("Starting synchronizer");
 		this.synchronizer = new Synchronizer();
@@ -381,7 +358,7 @@ public class Controller extends Observable {
 		// CREATE BLOCKCHAIN
 		SplashFrame.getInstance().updateProgress("Starting blockchain");
 		this.blockChain = new BlockChain();
-		
+
 		// START API SERVICE
 		if (Settings.getInstance().isRpcEnabled()) {
 			SplashFrame.getInstance().updateProgress("Starting RPC API");
@@ -400,14 +377,14 @@ public class Controller extends Observable {
 		SplashFrame.getInstance().updateProgress("Starting wallet");
 		this.wallet = new Wallet();
 
-	    if(this.wallet.isWalletDatabaseExisting()){
-	    	this.wallet.initiateAssetsFavorites();
-	    }
-	    
-		if(Settings.getInstance().isTestnet() && this.wallet.isWalletDatabaseExisting() && this.wallet.getAccounts().size() > 0) {
-			this.wallet.synchronize();	
+		if (this.wallet.isWalletDatabaseExisting()) {
+			this.wallet.initiateAssetsFavorites();
 		}
-		
+
+		if (Settings.getInstance().isTestnet() && this.wallet.isWalletDatabaseExisting() && this.wallet.getAccounts().size() > 0) {
+			this.wallet.synchronize();
+		}
+
 		// CREATE BLOCKGENERATOR
 		SplashFrame.getInstance().updateProgress("Starting block generator");
 		this.blockGenerator = new BlockGenerator();
@@ -422,38 +399,33 @@ public class Controller extends Observable {
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-			    Thread.currentThread().setName("Controller Shutdown");
+				Thread.currentThread().setName("Controller Shutdown");
 
-			    LOGGER.info("Controller shutdown hook");
+				LOGGER.info("Controller shutdown hook");
 
 				stopAll();
 			}
 		});
-		
-		
-		//TIMER TO SEND HEIGHT TO NETWORK EVERY 5 MIN 
-		
+
+		// TIMER TO SEND HEIGHT TO NETWORK EVERY 5 MIN
+
 		this.timerPeerHeightUpdate.cancel();
 		this.timerPeerHeightUpdate = new Timer();
-		
+
 		TimerTask action = new TimerTask() {
-	        public void run() {
-	        	if(Controller.getInstance().getStatus() == STATUS_OK)
-	        	{
-	        		if(Controller.getInstance().getActivePeers().size() > 0)
-	        		{
-	        			Peer peer = Controller.getInstance().getActivePeers().get(
-	        				random.nextInt( Controller.getInstance().getActivePeers().size() )
-	        				);
-	        			if(peer != null){
-	        				Controller.getInstance().getSendMyHeightToPeer(peer);
-	        			}
-	        		}
-	        	}
-	        }
+			public void run() {
+				if (Controller.getInstance().getStatus() == STATUS_OK) {
+					if (Controller.getInstance().getActivePeers().size() > 0) {
+						Peer peer = Controller.getInstance().getActivePeers().get(random.nextInt(Controller.getInstance().getActivePeers().size()));
+						if (peer != null) {
+							Controller.getInstance().getSendMyHeightToPeer(peer);
+						}
+					}
+				}
+			}
 		};
-		
-		this.timerPeerHeightUpdate.schedule(action, 5*60*1000, 5*60*1000);
+
+		this.timerPeerHeightUpdate.schedule(action, 5 * 60 * 1000, 5 * 60 * 1000);
 
 		// REGISTER DATABASE OBSERVER
 		this.addObserver(DBSet.getInstance().getTransactionMap());
@@ -461,15 +433,15 @@ public class Controller extends Observable {
 	}
 
 	public void replaseAssetsFavorites() {
-		if(this.wallet != null) {
+		if (this.wallet != null) {
 			this.wallet.replaseAssetFavorite();
 		}
 	}
-	
+
 	public void reCreateDB() throws IOException, Exception {
 		reCreateDB(true);
 	}
-	
+
 	public void reCreateDB(boolean useDataBak) throws IOException, Exception {
 		File dataDir = new File(Settings.getInstance().getDataDir());
 
@@ -487,7 +459,7 @@ public class Controller extends Observable {
 				try {
 					DBSet.reCreateDatabase();
 				} catch (IOError e) {
-					LOGGER.error(e.getMessage(),e);
+					LOGGER.error(e.getMessage(), e);
 
 					// backup DB is buggy too - start from scratch
 
@@ -507,16 +479,13 @@ public class Controller extends Observable {
 		}
 
 		if (DBSet.getInstance().getBlockMap().isProcessing()) {
-			throw new Exception(
-					Lang.getInstance().translate("The application was not closed correctly! Delete the folder ")
-							+ dataDir.getAbsolutePath()
-							+ Lang.getInstance().translate(" and start the application again."));
+			throw new Exception(Lang.getInstance().translate("The application was not closed correctly! Delete the folder ") + dataDir.getAbsolutePath()
+					+ Lang.getInstance().translate(" and start the application again."));
 		}
 	}
 
 	public void startFromScratchOnDemand() throws IOException {
-		String dataVersion = DBSet.getInstance().getLocalDataMap()
-				.get(LocalDataMap.LOCAL_DATA_VERSION_KEY);
+		String dataVersion = DBSet.getInstance().getLocalDataMap().get(LocalDataMap.LOCAL_DATA_VERSION_KEY);
 
 		if (dataVersion == null || !dataVersion.equals(releaseVersion)) {
 			DBSet.getInstance().close();
@@ -529,10 +498,7 @@ public class Controller extends Observable {
 
 			DBSet.reCreateDatabase();
 
-			DBSet.getInstance()
-					.getLocalDataMap()
-					.set(LocalDataMap.LOCAL_DATA_VERSION_KEY,
-							Controller.releaseVersion);
+			DBSet.getInstance().getLocalDataMap().set(LocalDataMap.LOCAL_DATA_VERSION_KEY, Controller.releaseVersion);
 
 		}
 	}
@@ -597,8 +563,7 @@ public class Controller extends Observable {
 
 		// ADD OBSERVER TO CONTROLLER
 		super.addObserver(o);
-		o.update(this, new ObserverMessage(ObserverMessage.NETWORK_STATUS,
-				this.status));
+		o.update(this, new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
 	}
 
 	@Override
@@ -655,8 +620,7 @@ public class Controller extends Observable {
 	}
 
 	private void createDataCheckpoint() {
-		if (!DBSet.getInstance().getBlockMap().isProcessing()
-				&& Settings.getInstance().isCheckpointingEnabled()) {
+		if (!DBSet.getInstance().getBlockMap().isProcessing() && Settings.getInstance().isCheckpointingEnabled()) {
 			DBSet.getInstance().close();
 
 			File dataDir = new File(Settings.getInstance().getDataDir());
@@ -670,7 +634,7 @@ public class Controller extends Observable {
 			try {
 				FileUtils.copyDirectory(dataDir, dataBak);
 			} catch (IOException e) {
-				LOGGER.error(e.getMessage(),e);
+				LOGGER.error(e.getMessage(), e);
 			}
 		}
 
@@ -685,108 +649,91 @@ public class Controller extends Observable {
 
 	public void walletSyncStatusUpdate(int height) {
 		this.setChanged();
-		this.notifyObservers(new ObserverMessage(
-				ObserverMessage.WALLET_SYNC_STATUS, height));
+		this.notifyObservers(new ObserverMessage(ObserverMessage.WALLET_SYNC_STATUS, height));
 	}
-	
+
 	public void blockchainSyncStatusUpdate(int height) {
 		this.setChanged();
-		this.notifyObservers(new ObserverMessage(
-				ObserverMessage.BLOCKCHAIN_SYNC_STATUS, height));
+		this.notifyObservers(new ObserverMessage(ObserverMessage.BLOCKCHAIN_SYNC_STATUS, height));
 	}
-		
+
 	public long getToOfflineTime() {
 		return this.toOfflineTime;
 	}
-	
+
 	public void setToOfflineTime(long time) {
 		this.toOfflineTime = time;
 	}
-		
+
 	public void onConnect(Peer peer) {
 
-		if(DBSet.getInstance().isStoped())
+		if (DBSet.getInstance().isStopped())
 			return;
-		
+
 		// GET HEIGHT
 		int height = this.blockChain.getHeight();
 
-		if(NTP.getTime() >= Transaction.getPOWFIX_RELEASE())
-		{
+		if (NTP.getTime() >= Transaction.getPOWFIX_RELEASE()) {
 			// SEND FOUNDMYSELF MESSAGE
-			peer.sendMessage( MessageFactory.getInstance().createFindMyselfMessage( 
-				Controller.getInstance().getFoundMyselfID() 
-				));
+			peer.sendMessage(MessageFactory.getInstance().createFindMyselfMessage(Controller.getInstance().getFoundMyselfID()));
 
 			// SEND VERSION MESSAGE
-			peer.sendMessage( MessageFactory.getInstance().createVersionMessage( 
-				Controller.getInstance().getVersion(),
-				this.getBuildTimestamp() ));
+			peer.sendMessage(MessageFactory.getInstance().createVersionMessage(Controller.getInstance().getVersion(), this.getBuildTimestamp()));
 		}
-		
+
 		// SEND HEIGTH MESSAGE
-		peer.sendMessage(MessageFactory.getInstance().createHeightMessage(
-				height));
-		
+		peer.sendMessage(MessageFactory.getInstance().createHeightMessage(height));
+
 		if (this.status == STATUS_NO_CONNECTIONS) {
 			// UPDATE STATUS
 			this.status = STATUS_OK;
 
 			// NOTIFY
 			this.setChanged();
-			this.notifyObservers(new ObserverMessage(
-					ObserverMessage.NETWORK_STATUS, this.status));
-			
+			this.notifyObservers(new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
+
 			this.actionAfterConnect();
 		}
 	}
 
-	public void actionAfterConnect() 
-	{
+	public void actionAfterConnect() {
 		this.timer.cancel();
 		this.timer = new Timer();
 
 		TimerTask action = new TimerTask() {
-	        public void run() {
-	        	
-	        	if(Controller.getInstance().getStatus() == STATUS_OK)
-		        {
-	    			Controller.getInstance().statusInfo();
+			public void run() {
 
-		        	Controller.getInstance().setToOfflineTime(0L);
-		        	
-			       	if(Controller.getInstance().isNeedSync() && !Controller.getInstance().isProcessingWalletSynchronize())
-			       	{
-			       		Controller.getInstance().synchronizeWallet();
-			       	}
-		        }
-	        }
+				if (Controller.getInstance().getStatus() == STATUS_OK) {
+					Controller.getInstance().statusInfo();
+
+					Controller.getInstance().setToOfflineTime(0L);
+
+					if (Controller.getInstance().isNeedSync() && !Controller.getInstance().isProcessingWalletSynchronize()) {
+						Controller.getInstance().synchronizeWallet();
+					}
+				}
+			}
 		};
-			
+
 		this.timer.schedule(action, Settings.getInstance().getConnectionTimeout());
 	}
-	
-	
+
 	public void forgingStatusChanged(ForgingStatus status) {
 		this.setChanged();
-		this.notifyObservers(new ObserverMessage(
-				ObserverMessage.FORGING_STATUS, status));
+		this.notifyObservers(new ObserverMessage(ObserverMessage.FORGING_STATUS, status));
 	}
 
 	public void onDisconnect(Peer peer) {
 		synchronized (this.peerHeight) {
-			
 			this.peerHeight.remove(peer);
-			
 			this.peersVersions.remove(peer);
-			
+
 			if (this.peerHeight.size() == 0) {
-				
-				if(this.getToOfflineTime() == 0L) {
-					//SET START OFFLINE TIME
+				if (this.getToOfflineTime() == 0L) {
+					// SET START OFFLINE TIME
 					this.setToOfflineTime(NTP.getTime());
 				}
-				
+
 				// UPDATE STATUS
 				this.status = STATUS_NO_CONNECTIONS;
 
@@ -794,11 +741,10 @@ public class Controller extends Observable {
 				// in case they attempt to access DB
 				if (this.isStopping)
 					return;
-				
+
 				// NOTIFY
 				this.setChanged();
-				this.notifyObservers(new ObserverMessage(
-						ObserverMessage.NETWORK_STATUS, this.status));
+				this.notifyObservers(new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
 			}
 		}
 	}
@@ -814,165 +760,151 @@ public class Controller extends Observable {
 
 		synchronized (this) {
 			switch (message.getType()) {
-			case Message.PING_TYPE:
+				case Message.PING_TYPE:
 
-				// CREATE PING
-				response = MessageFactory.getInstance().createPingMessage();
+					// CREATE PING
+					response = MessageFactory.getInstance().createPingMessage();
 
-				// SET ID
-				response.setId(message.getId());
+					// SET ID
+					response.setId(message.getId());
 
-				// SEND BACK TO SENDER
-				message.getSender().sendMessage(response);
+					// SEND BACK TO SENDER
+					message.getSender().sendMessage(response);
 
-				break;
-
-			case Message.HEIGHT_TYPE:
-
-				HeightMessage heightMessage = (HeightMessage) message;
-
-				// ADD TO LIST
-				synchronized (this.peerHeight) {
-					this.peerHeight.put(heightMessage.getSender(),
-							heightMessage.getHeight());
-				}
-
-				break;
-
-			case Message.GET_SIGNATURES_TYPE:
-
-				GetSignaturesMessage getHeadersMessage = (GetSignaturesMessage) message;
-
-				// ASK SIGNATURES FROM BLOCKCHAIN
-				List<byte[]> headers = this.blockChain
-						.getSignatures(getHeadersMessage.getParent());
-
-				// CREATE RESPONSE WITH SAME ID
-				response = MessageFactory.getInstance().createHeadersMessage(
-						headers);
-				response.setId(message.getId());
-
-				// SEND RESPONSE BACK WITH SAME ID
-				message.getSender().sendMessage(response);
-
-				break;
-
-			case Message.GET_BLOCK_TYPE:
-
-				GetBlockMessage getBlockMessage = (GetBlockMessage) message;
-
-				// ASK BLOCK FROM BLOCKCHAIN
-				block = this.blockChain
-						.getBlock(getBlockMessage.getSignature());
-
-				// CREATE RESPONSE WITH SAME ID
-				response = MessageFactory.getInstance().createBlockMessage(
-						block);
-				response.setId(message.getId());
-
-				// SEND RESPONSE BACK WITH SAME ID
-				message.getSender().sendMessage(response);
-
-				break;
-
-			case Message.BLOCK_TYPE:
-
-				BlockMessage blockMessage = (BlockMessage) message;
-
-				// ASK BLOCK FROM BLOCKCHAIN
-				block = blockMessage.getBlock();
-
-				boolean isNewBlockValid = this.blockChain.isNewBlockValid(block);
-				
-				if(isNewBlockValid)	{
-					synchronized (this.peerHeight) {
-						this.peerHeight.put(message.getSender(),
-								blockMessage.getHeight());
-					}
-				}
-					
-				if(this.isProcessingWalletSynchronize()) {
-					
 					break;
-				}
-				
-				// CHECK IF VALID
-				if (isNewBlockValid
-						&& this.synchronizer.process(block)) {
-					LOGGER.info(Lang.getInstance().translate("received new valid block"));
 
-					// PROCESS
-					// this.synchronizer.process(block);
+				case Message.HEIGHT_TYPE:
 
-					// BROADCAST
-					List<Peer> excludes = new ArrayList<Peer>();
-					excludes.add(message.getSender());
-					this.network.broadcast(message, excludes);
+					HeightMessage heightMessage = (HeightMessage) message;
 
-					// UPDATE ALL PEER HEIGHTS TO OUR HEIGHT
-					/*
-					 * synchronized(this.peerHeight) { for(Peer peer:
-					 * this.peerHeight.keySet()) { this.peerHeight.put(peer,
-					 * this.blockChain.getHeight()); } }
-					 */
-				} 
+					// ADD TO LIST
+					synchronized (this.peerHeight) {
+						this.peerHeight.put(heightMessage.getSender(), heightMessage.getHeight());
+					}
 
-				break;
+					break;
 
-			case Message.TRANSACTION_TYPE:
+				case Message.GET_SIGNATURES_TYPE:
 
-				TransactionMessage transactionMessage = (TransactionMessage) message;
+					GetSignaturesMessage getHeadersMessage = (GetSignaturesMessage) message;
 
-				// GET TRANSACTION
-				Transaction transaction = transactionMessage.getTransaction();
+					// ASK SIGNATURES FROM BLOCKCHAIN
+					List<byte[]> headers = this.blockChain.getSignatures(getHeadersMessage.getParent());
 
-				// CHECK IF SIGNATURE IS VALID OR GENESIS TRANSACTION
-				if (!transaction.isSignatureValid()
-						|| transaction.getType() == Transaction.GENESIS_TRANSACTION) {
-					// DISHONEST PEER
-					this.network.onError(message.getSender(), Lang.getInstance().translate("invalid transaction signature"));
+					// CREATE RESPONSE WITH SAME ID
+					response = MessageFactory.getInstance().createHeadersMessage(headers);
+					response.setId(message.getId());
 
-					return;
-				}
+					// SEND RESPONSE BACK WITH SAME ID
+					message.getSender().sendMessage(response);
 
-				// CHECK IF TRANSACTION HAS MINIMUM FEE AND MINIMUM FEE PER BYTE
-				// AND UNCONFIRMED
-				if (transaction.hasMinimumFee()
-						&& transaction.hasMinimumFeePerByte()
-						&& !DBSet.getInstance().getTransactionParentMap()
-								.contains(transaction.getSignature())) {
-					// ADD TO UNCONFIRMED TRANSACTIONS
-					this.blockGenerator.addUnconfirmedTransaction(transaction);
+					break;
 
-					// NOTIFY OBSERVERS
-					// this.setChanged();
-					// this.notifyObservers(new
-					// ObserverMessage(ObserverMessage.LIST_TRANSACTION_TYPE,
-					// DatabaseSet.getInstance().getTransactionsDatabase().getTransactions()));
+				case Message.GET_BLOCK_TYPE:
 
-					this.setChanged();
-					this.notifyObservers(new ObserverMessage(
-							ObserverMessage.ADD_TRANSACTION_TYPE, transaction));
+					GetBlockMessage getBlockMessage = (GetBlockMessage) message;
 
-					// BROADCAST
-					List<Peer> excludes = new ArrayList<Peer>();
-					excludes.add(message.getSender());
-					this.network.broadcast(message, excludes);
-				}
+					// ASK BLOCK FROM BLOCKCHAIN
+					block = this.blockChain.getBlock(getBlockMessage.getSignature());
 
-				break;
-				
-			case Message.VERSION_TYPE:
+					// CREATE RESPONSE WITH SAME ID
+					response = MessageFactory.getInstance().createBlockMessage(block);
+					response.setId(message.getId());
 
-				VersionMessage versionMessage = (VersionMessage) message;
+					// SEND RESPONSE BACK WITH SAME ID
+					message.getSender().sendMessage(response);
 
-				// ADD TO LIST
-				synchronized (this.peersVersions) {
-					this.peersVersions.put(versionMessage.getSender(),
-							new Pair<String, Long>(versionMessage.getStrVersion(), versionMessage.getBuildDateTime()) );
-				}
+					break;
 
-				break;
+				case Message.BLOCK_TYPE:
+
+					BlockMessage blockMessage = (BlockMessage) message;
+
+					// ASK BLOCK FROM BLOCKCHAIN
+					block = blockMessage.getBlock();
+
+					boolean isNewBlockValid = this.blockChain.isNewBlockValid(block);
+
+					if (isNewBlockValid) {
+						synchronized (this.peerHeight) {
+							this.peerHeight.put(message.getSender(), blockMessage.getHeight());
+						}
+					}
+
+					if (this.isProcessingWalletSynchronize())
+						break;
+
+					// CHECK IF VALID
+					if (isNewBlockValid && this.synchronizer.process(block)) {
+						LOGGER.info(Lang.getInstance().translate("received new valid block"));
+
+						// PROCESS
+						// this.synchronizer.process(block);
+
+						// BROADCAST
+						List<Peer> excludes = new ArrayList<Peer>();
+						excludes.add(message.getSender());
+						this.network.broadcast(message, excludes);
+
+						// UPDATE ALL PEER HEIGHTS TO OUR HEIGHT
+						/*
+						 * synchronized(this.peerHeight) { for(Peer peer: this.peerHeight.keySet()) { this.peerHeight.put(peer, this.blockChain.getHeight()); }
+						 * }
+						 */
+					}
+
+					break;
+
+				case Message.TRANSACTION_TYPE:
+
+					TransactionMessage transactionMessage = (TransactionMessage) message;
+
+					// GET TRANSACTION
+					Transaction transaction = transactionMessage.getTransaction();
+
+					// CHECK IF SIGNATURE IS VALID OR GENESIS TRANSACTION
+					if (!transaction.isSignatureValid() || transaction.getType() == Transaction.GENESIS_TRANSACTION) {
+						// DISHONEST PEER
+						this.network.onError(message.getSender(), Lang.getInstance().translate("invalid transaction signature"));
+
+						return;
+					}
+
+					// CHECK IF TRANSACTION HAS MINIMUM FEE AND MINIMUM FEE PER BYTE
+					// AND UNCONFIRMED
+					if (transaction.hasMinimumFee() && transaction.hasMinimumFeePerByte()
+							&& !DBSet.getInstance().getTransactionParentMap().contains(transaction.getSignature())) {
+						// ADD TO UNCONFIRMED TRANSACTIONS
+						this.blockGenerator.addUnconfirmedTransaction(transaction);
+
+						// NOTIFY OBSERVERS
+						// this.setChanged();
+						// this.notifyObservers(new
+						// ObserverMessage(ObserverMessage.LIST_TRANSACTION_TYPE,
+						// DatabaseSet.getInstance().getTransactionsDatabase().getTransactions()));
+
+						this.setChanged();
+						this.notifyObservers(new ObserverMessage(ObserverMessage.ADD_TRANSACTION_TYPE, transaction));
+
+						// BROADCAST
+						List<Peer> excludes = new ArrayList<Peer>();
+						excludes.add(message.getSender());
+						this.network.broadcast(message, excludes);
+					}
+
+					break;
+
+				case Message.VERSION_TYPE:
+
+					VersionMessage versionMessage = (VersionMessage) message;
+
+					// ADD TO LIST
+					synchronized (this.peersVersions) {
+						this.peersVersions.put(versionMessage.getSender(),
+								new Pair<String, Long>(versionMessage.getStrVersion(), versionMessage.getBuildDateTime()));
+					}
+
+					break;
 			}
 		}
 	}
@@ -988,8 +920,7 @@ public class Controller extends Observable {
 	private void broadcastBlock(Block newBlock) {
 
 		// CREATE MESSAGE
-		Message message = MessageFactory.getInstance().createBlockMessage(
-				newBlock);
+		Message message = MessageFactory.getInstance().createBlockMessage(newBlock);
 
 		// BROADCAST MESSAGE
 		List<Peer> excludes = new ArrayList<Peer>();
@@ -1000,8 +931,7 @@ public class Controller extends Observable {
 
 		if (Controller.getInstance().getStatus() == Controller.STATUS_OK) {
 			// CREATE MESSAGE
-			Message message = MessageFactory.getInstance()
-					.createTransactionMessage(transaction);
+			Message message = MessageFactory.getInstance().createTransactionMessage(transaction);
 
 			// BROADCAST MESSAGE
 			List<Peer> excludes = new ArrayList<Peer>();
@@ -1012,15 +942,14 @@ public class Controller extends Observable {
 	// SYNCHRONIZE
 
 	public boolean isUpToDate() {
-		if (this.peerHeight.size() == 0) {
+		if (this.peerHeight.size() == 0)
 			return true;
-		}
 
 		int maxPeerHeight = this.getMaxPeerHeight();
 		int chainHeight = this.blockChain.getHeight();
-		return maxPeerHeight <= chainHeight;
+		return chainHeight >= maxPeerHeight;
 	}
-	
+
 	public boolean isNSUpToDate() {
 		return !Settings.getInstance().updateNameStorage();
 	}
@@ -1031,22 +960,23 @@ public class Controller extends Observable {
 
 		// NOTIFY
 		this.setChanged();
-		this.notifyObservers(new ObserverMessage(
-				ObserverMessage.NETWORK_STATUS, this.status));
-		
+		this.notifyObservers(new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
+
 		Peer peer = null;
 		try {
 			// Synchronize while we're not up-to-date
-		    // (but bail out if we're shutdown while updating blockchain)
+			// (but bail out if we're shutdown while updating blockchain)
 			while (!this.isStopping && !this.isUpToDate()) {
 				// START UPDATE FROM HIGHEST HEIGHT PEER
 				peer = this.getMaxHeightPeer();
 
-				// SYNCHRONIZE FROM PEER
-				this.synchronizer.synchronize(peer);
+				if (peer != null) {
+					// SYNCHRONIZE FROM PEER
+					this.synchronizer.synchronize(peer);
+				}
 			}
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(),e);
+			LOGGER.error(e.getMessage(), e);
 
 			if (peer != null) {
 				// DISHONEST PEER
@@ -1060,44 +990,39 @@ public class Controller extends Observable {
 
 			// NOTIFY
 			this.setChanged();
-			this.notifyObservers(new ObserverMessage(
-					ObserverMessage.NETWORK_STATUS, this.status));
+			this.notifyObservers(new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
 		} else {
 			// UPDATE STATUS
 			this.status = STATUS_OK;
 
 			// NOTIFY
 			this.setChanged();
-			this.notifyObservers(new ObserverMessage(
-					ObserverMessage.NETWORK_STATUS, this.status));
-			
+			this.notifyObservers(new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
+
 			Controller.getInstance().statusInfo();
 		}
 	}
 
 	private Peer getMaxHeightPeer() {
 		Peer highestPeer = null;
-		int height = 0;
+		int bestHeight = this.blockChain.getHeight();
+		long bestPing = Long.MAX_VALUE;
 
 		try {
 			synchronized (this.peerHeight) {
 				for (Peer peer : this.peerHeight.keySet()) {
-					if (highestPeer == null && peer != null) {
-						highestPeer = peer;
-					} else {
-						// IF HEIGHT IS BIGGER
-						if (height < this.peerHeight.get(peer)) {
-							highestPeer = peer;
-							height = this.peerHeight.get(peer);
-						}
+					int height = this.peerHeight.get(peer);
+					long ping = peer.getPing();
 
-						// IF HEIGHT IS SAME
-						if (height == this.peerHeight.get(peer)) {
-							// CHECK IF PING OF PEER IS BETTER
-							if (peer.getPing() < highestPeer.getPing()) {
-								highestPeer = peer;
-							}
-						}
+					// No ping yet? skip it
+					if (ping == Long.MAX_VALUE)
+						continue;
+
+					// Favour greatest height, failing that: lowest ping
+					if (height > bestHeight || (height == bestHeight && ping < bestPing)) {
+						highestPeer = peer;
+						bestHeight = height;
+						bestPing = ping;
 					}
 				}
 			}
@@ -1109,21 +1034,22 @@ public class Controller extends Observable {
 	}
 
 	public int getMaxPeerHeight() {
-		int height = 0;
+		int bestHeight = 0;
 
 		try {
 			synchronized (this.peerHeight) {
 				for (Peer peer : this.peerHeight.keySet()) {
-					if (height < this.peerHeight.get(peer)) {
-						height = this.peerHeight.get(peer);
-					}
+					int height = this.peerHeight.get(peer);
+
+					if (height > bestHeight)
+						bestHeight = height;
 				}
 			}
 		} catch (Exception e) {
 			// PEER REMOVED WHILE ITERATING
 		}
 
-		return height;
+		return bestHeight;
 	}
 
 	// WALLET
@@ -1141,27 +1067,23 @@ public class Controller extends Observable {
 		// IF NEW WALLET CREADED
 		return this.wallet.create(seed, password, amount, false);
 	}
-	
+
 	public boolean recoverWallet(byte[] seed, String password, int amount) {
-		if(this.wallet.create(seed, password, amount, false))
-		{
+		if (this.wallet.create(seed, password, amount, false)) {
 			LOGGER.info(Lang.getInstance().translate("Wallet needs to synchronize!"));
 			this.actionAfterConnect();
 			this.setNeedSync(true);
 
 			return true;
-		}
-		else
+		} else
 			return false;
 	}
 
 	public List<Account> getAccounts() {
-
 		return this.wallet.getAccounts();
 	}
 
 	public List<PrivateKeyAccount> getPrivateKeyAccounts() {
-
 		return this.wallet.getprivateKeyAccounts();
 	}
 
@@ -1170,19 +1092,17 @@ public class Controller extends Observable {
 	}
 
 	public PrivateKeyAccount getPrivateKeyAccountByAddress(String address) {
-		if(this.doesWalletExists()) {
-			return this.wallet.getPrivateKeyAccount(address);
-		} else {
+		if (!this.doesWalletExists())
 			return null;
-		}
+
+		return this.wallet.getPrivateKeyAccount(address);
 	}
 
 	public Account getAccountByAddress(String address) {
-		if(this.doesWalletExists()) {
-			return this.wallet.getAccount(address);
-		} else {
+		if (!this.doesWalletExists())
 			return null;
-		}
+
+		return this.wallet.getAccount(address);
 	}
 
 	public BigDecimal getUnconfirmedBalance(String address) {
@@ -1217,13 +1137,11 @@ public class Controller extends Observable {
 		return this.wallet.isUnlocked();
 	}
 
-	public int checkAPICallAllowed(String json, HttpServletRequest request)
-			throws Exception {
+	public int checkAPICallAllowed(String json, HttpServletRequest request) throws Exception {
 		int result = 0;
 
 		if (request != null) {
-			Enumeration<String> headers = request
-					.getHeaders(ApiClient.APICALLKEY);
+			Enumeration<String> headers = request.getHeaders(ApiClient.APICALLKEY);
 			String uuid = null;
 			if (headers.hasMoreElements()) {
 				uuid = headers.nextElement();
@@ -1233,38 +1151,33 @@ public class Controller extends Observable {
 			}
 		}
 
-		if (!GraphicsEnvironment.isHeadless() && Gui.isGuiStarted() ) {
+		if (!GraphicsEnvironment.isHeadless() && Gui.isGuiStarted()) {
 			Gui gui = Gui.getInstance();
 			SysTray.getInstance().sendMessage(Lang.getInstance().translate("INCOMING API CALL"),
 					Lang.getInstance().translate("An API call needs authorization!"), MessageType.WARNING);
 			Object[] options = { Lang.getInstance().translate("Yes"), Lang.getInstance().translate("No") };
 
-			 StringBuilder sb = new StringBuilder(Lang.getInstance().translate("Permission Request: "));
-	            sb.append(Lang.getInstance().translate("Do you want to authorize the following API call?\n\n")
-						+ json);
-	            JTextArea jta = new JTextArea(sb.toString());
-	            jta.setLineWrap(true);
-	            jta.setEditable(false);
-	            JScrollPane jsp = new JScrollPane(jta){
-	                /**
-					 *
-					 */
-					private static final long serialVersionUID = 1L;
+			StringBuilder sb = new StringBuilder(Lang.getInstance().translate("Permission Request: "));
+			sb.append(Lang.getInstance().translate("Do you want to authorize the following API call?\n\n") + json);
+			JTextArea jta = new JTextArea(sb.toString());
+			jta.setLineWrap(true);
+			jta.setEditable(false);
+			JScrollPane jsp = new JScrollPane(jta) {
+				/**
+				 *
+				 */
+				private static final long serialVersionUID = 1L;
 
-					@Override
-	                public Dimension getPreferredSize() {
-	                    return new Dimension(480, 200);
-	                }
-	            };
+				@Override
+				public Dimension getPreferredSize() {
+					return new Dimension(480, 200);
+				}
+			};
 
 			gui.bringtoFront();
-			
-			result = JOptionPane
-					.showOptionDialog(gui,
-							jsp, Lang.getInstance().translate("INCOMING API CALL"),
-							JOptionPane.YES_NO_OPTION,
-							JOptionPane.QUESTION_MESSAGE, null, options,
-							options[1]);
+
+			result = JOptionPane.showOptionDialog(gui, jsp, Lang.getInstance().translate("INCOMING API CALL"), JOptionPane.YES_NO_OPTION,
+					JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
 		}
 
 		return result;
@@ -1287,19 +1200,15 @@ public class Controller extends Observable {
 	}
 
 	public Transaction getTransaction(byte[] signature) {
-
 		return getTransaction(signature, DBSet.getInstance());
 	}
-	
+
 	public Transaction getTransaction(byte[] signature, DBSet database) {
-		
 		// CHECK IF IN BLOCK
-		Block block = database.getTransactionParentMap()
-				.getParent(signature);
-		if (block != null) {
+		Block block = database.getTransactionParentMap().getParent(signature);
+		if (block != null)
 			return block.getTransaction(signature);
-		}
-		
+
 		// CHECK IF IN TRANSACTION DATABASE
 		return database.getTransactionMap().get(signature);
 	}
@@ -1323,22 +1232,23 @@ public class Controller extends Observable {
 	public List<Name> getNamesAsList() {
 		List<Pair<Account, Name>> names = this.wallet.getNames();
 		List<Name> result = new ArrayList<>();
+
 		for (Pair<Account, Name> pair : names) {
 			result.add(pair.getB());
 		}
 
 		return result;
-
 	}
 
 	public List<String> getNamesAsListAsString() {
 		List<Name> namesAsList = getNamesAsList();
 		List<String> results = new ArrayList<String>();
+
 		for (Name name : namesAsList) {
 			results.add(name.getName());
 		}
-		return results;
 
+		return results;
 	}
 
 	public List<Name> getNames(Account account) {
@@ -1402,38 +1312,30 @@ public class Controller extends Observable {
 	public Block getLastBlock() {
 		return this.blockChain.getLastBlock();
 	}
-	
+
 	public byte[] getWalletLastBlockSign() {
 		return this.wallet.getLastBlockSignature();
 	}
-	
+
 	public Block getBlock(byte[] header) {
 		return this.blockChain.getBlock(header);
 	}
 
-	public Pair<Block, List<Transaction>> scanTransactions(Block block,
-			int blockLimit, int transactionLimit, int type, int service,
-			Account account) {
-		return this.blockChain.scanTransactions(block, blockLimit,
-				transactionLimit, type, service, account);
-
+	public Pair<Block, List<Transaction>> scanTransactions(Block block, int blockLimit, int transactionLimit, int type, int service, Account account) {
+		return this.blockChain.scanTransactions(block, blockLimit, transactionLimit, type, service, account);
 	}
 
 	public long getNextBlockGeneratingBalance() {
-		return BlockGenerator.getNextBlockGeneratingBalance(
-				DBSet.getInstance(), DBSet.getInstance().getBlockMap()
-						.getLastBlock());
+		return BlockGenerator.getNextBlockGeneratingBalance(DBSet.getInstance(), DBSet.getInstance().getBlockMap().getLastBlock());
 	}
 
 	public long getNextBlockGeneratingBalance(Block parent) {
-		return BlockGenerator.getNextBlockGeneratingBalance(
-				DBSet.getInstance(), parent);
+		return BlockGenerator.getNextBlockGeneratingBalance(DBSet.getInstance(), parent);
 	}
 
 	// FORGE
 
 	public void newBlockGenerated(Block newBlock) {
-
 		this.synchronizer.process(newBlock);
 
 		// BROADCAST
@@ -1450,10 +1352,8 @@ public class Controller extends Observable {
 		return DBSet.getInstance().getBalanceMap().getBalancesSortableList(key);
 	}
 
-	public SortableList<Tuple2<String, Long>, BigDecimal> getBalances(
-			Account account) {
-		return DBSet.getInstance().getBalanceMap()
-				.getBalancesSortableList(account);
+	public SortableList<Tuple2<String, Long>, BigDecimal> getBalances(Account account) {
+		return DBSet.getInstance().getBalanceMap().getBalancesSortableList(account);
 	}
 
 	// NAMES
@@ -1475,7 +1375,7 @@ public class Controller extends Observable {
 	// ASSETS
 
 	public Asset getQoraAsset() {
-		return DBSet.getInstance().getAssetMap().get(0l);
+		return DBSet.getInstance().getAssetMap().get(0L);
 	}
 
 	public Asset getAsset(long key) {
@@ -1487,18 +1387,14 @@ public class Controller extends Observable {
 	}
 
 	public SortableList<BigInteger, Order> getOrders(Asset have, Asset want, boolean filter) {
-		return DBSet.getInstance().getOrderMap()
-				.getOrdersSortableList(have.getKey(), want.getKey(), filter);
-	}
-	
-	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(
-			Asset have, Asset want) {
-		return DBSet.getInstance().getTradeMap()
-				.getTradesSortableList(have.getKey(), want.getKey());
+		return DBSet.getInstance().getOrderMap().getOrdersSortableList(have.getKey(), want.getKey(), filter);
 	}
 
-	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(
-			Order order) {
+	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(Asset have, Asset want) {
+		return DBSet.getInstance().getTradeMap().getTradesSortableList(have.getKey(), want.getKey());
+	}
+
+	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(Order order) {
 		return DBSet.getInstance().getTradeMap().getTrades(order);
 	}
 
@@ -1516,57 +1412,40 @@ public class Controller extends Observable {
 
 		// NOTIFY OBSERVERS
 		this.setChanged();
-		this.notifyObservers(new ObserverMessage(
-				ObserverMessage.LIST_TRANSACTION_TYPE, DBSet.getInstance()
-						.getTransactionMap().getValues()));
+		this.notifyObservers(new ObserverMessage(ObserverMessage.LIST_TRANSACTION_TYPE, DBSet.getInstance().getTransactionMap().getValues()));
 
 		this.setChanged();
-		this.notifyObservers(new ObserverMessage(
-				ObserverMessage.ADD_TRANSACTION_TYPE, transaction));
+		this.notifyObservers(new ObserverMessage(ObserverMessage.ADD_TRANSACTION_TYPE, transaction));
 
 		// BROADCAST
 		this.broadcastTransaction(transaction);
 	}
 
-	public Pair<Transaction, Integer> sendPayment(PrivateKeyAccount sender,
-			Account recipient, BigDecimal amount, BigDecimal fee) {
+	public Pair<Transaction, Integer> sendPayment(PrivateKeyAccount sender, Account recipient, BigDecimal amount, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createPayment(sender, recipient,
-					amount, fee);
+			return this.transactionCreator.createPayment(sender, recipient, amount, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> registerName(
-			PrivateKeyAccount registrant, Account owner, String name,
-			String value, BigDecimal fee) {
+	public Pair<Transaction, Integer> registerName(PrivateKeyAccount registrant, Account owner, String name, String value, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createNameRegistration(registrant,
-					new Name(owner, name, value), fee);
+			return this.transactionCreator.createNameRegistration(registrant, new Name(owner, name, value), fee);
 		}
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForNameRegistration(
-			String name, String value) {
-		return this.transactionCreator
-				.calcRecommendedFeeForNameRegistration(new Name(new Account(
-						"QLpLzqs4DW1FNJByeJ63qaqw3eAYCxfkjR"), name, value)); // FOR
-																				// GENESIS
-																				// ADDRESS
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForNameRegistration(String name, String value) {
+		// Use genesis address
+		return this.transactionCreator.calcRecommendedFeeForNameRegistration(new Name(new Account("QLpLzqs4DW1FNJByeJ63qaqw3eAYCxfkjR"), name, value));
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForNameUpdate(
-			String name, String value) {
-		return this.transactionCreator
-				.calcRecommendedFeeForNameUpdate(new Name(new Account(
-						"QLpLzqs4DW1FNJByeJ63qaqw3eAYCxfkjR"), name, value)); // FOR
-																				// GENESIS
-																				// ADDRESS
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForNameUpdate(String name, String value) {
+		// Use genesis address
+		return this.transactionCreator.calcRecommendedFeeForNameUpdate(new Name(new Account("QLpLzqs4DW1FNJByeJ63qaqw3eAYCxfkjR"), name, value));
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForPoll(String name,
-			String description, List<String> options) {
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForPoll(String name, String description, List<String> options) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 
 		// CREATE POLL OPTIONS
@@ -1576,21 +1455,16 @@ public class Controller extends Observable {
 		}
 
 		// CREATE POLL
-		Poll poll = new Poll(new Account("QLpLzqs4DW1FNJByeJ63qaqw3eAYCxfkjR"),
-				name, description, pollOptions);
+		Poll poll = new Poll(new Account("QLpLzqs4DW1FNJByeJ63qaqw3eAYCxfkjR"), name, description, pollOptions);
 
 		return this.transactionCreator.calcRecommendedFeeForPollCreation(poll);
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForArbitraryTransaction(
-			byte[] data, List<Payment> payments) {
-		
-		if(payments == null) {
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForArbitraryTransaction(byte[] data, List<Payment> payments) {
+		if (payments == null)
 			payments = new ArrayList<Payment>();
-		}
-		
-		return this.transactionCreator
-				.calcRecommendedFeeForArbitraryTransaction(data, payments);
+
+		return this.transactionCreator.calcRecommendedFeeForArbitraryTransaction(data, payments);
 	}
 
 	public Pair<BigDecimal, Integer> calcRecommendedFeeForMessage(byte[] message) {
@@ -1610,94 +1484,66 @@ public class Controller extends Observable {
 	}
 
 	public Pair<BigDecimal, Integer> calcRecommendedFeeForCancelOrderTransaction() {
-		return this.transactionCreator
-				.calcRecommendedFeeForCancelOrderTransaction();
+		return this.transactionCreator.calcRecommendedFeeForCancelOrderTransaction();
 	}
 
 	public Pair<BigDecimal, Integer> calcRecommendedFeeForNameSale(String name) {
-		return this.transactionCreator
-				.calcRecommendedFeeForNameSale(new NameSale(name,
-						Transaction.MINIMUM_FEE));
+		return this.transactionCreator.calcRecommendedFeeForNameSale(new NameSale(name, Transaction.MINIMUM_FEE));
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForNamePurchase(
-			String name) {
-		return this.transactionCreator
-				.calcRecommendedFeeForNamePurchase(new NameSale(name,
-						Transaction.MINIMUM_FEE));
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForNamePurchase(String name) {
+		return this.transactionCreator.calcRecommendedFeeForNamePurchase(new NameSale(name, Transaction.MINIMUM_FEE));
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForCancelNameSale(
-			String name) {
-		return this.transactionCreator
-				.calcRecommendedFeeForCancelNameSale(new NameSale(name,
-						Transaction.MINIMUM_FEE));
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForCancelNameSale(String name) {
+		return this.transactionCreator.calcRecommendedFeeForCancelNameSale(new NameSale(name, Transaction.MINIMUM_FEE));
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForPollVote(
-			String pollName) {
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForPollVote(String pollName) {
 		return this.transactionCreator.calcRecommendedFeeForPollVote(pollName);
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForIssueAssetTransaction(
-			String name, String description) {
-		return this.transactionCreator
-				.calcRecommendedFeeForIssueAssetTransaction(name, description);
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForIssueAssetTransaction(String name, String description) {
+		return this.transactionCreator.calcRecommendedFeeForIssueAssetTransaction(name, description);
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForMultiPayment(
-			List<Payment> payments) {
-		return this.transactionCreator
-				.calcRecommendedFeeForMultiPayment(payments);
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForMultiPayment(List<Payment> payments) {
+		return this.transactionCreator.calcRecommendedFeeForMultiPayment(payments);
 	}
 
-	public Pair<BigDecimal, Integer> calcRecommendedFeeForDeployATTransaction(
-			String name, String description, String type, String tags,
-			byte[] creationBytes) {
-		return this.transactionCreator
-				.calcRecommendedFeeForDeployATTransaction(name, description,
-						type, tags, creationBytes);
+	public Pair<BigDecimal, Integer> calcRecommendedFeeForDeployATTransaction(String name, String description, String type, String tags, byte[] creationBytes) {
+		return this.transactionCreator.calcRecommendedFeeForDeployATTransaction(name, description, type, tags, creationBytes);
 	}
 
-	public Pair<Transaction, Integer> updateName(PrivateKeyAccount owner,
-			Account newOwner, String name, String value, BigDecimal fee) {
+	public Pair<Transaction, Integer> updateName(PrivateKeyAccount owner, Account newOwner, String name, String value, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createNameUpdate(owner, new Name(
-					newOwner, name, value), fee);
+			return this.transactionCreator.createNameUpdate(owner, new Name(newOwner, name, value), fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> sellName(PrivateKeyAccount owner,
-			String name, BigDecimal amount, BigDecimal fee) {
+	public Pair<Transaction, Integer> sellName(PrivateKeyAccount owner, String name, BigDecimal amount, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createNameSale(owner, new NameSale(
-					name, amount), fee);
+			return this.transactionCreator.createNameSale(owner, new NameSale(name, amount), fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> cancelSellName(PrivateKeyAccount owner,
-			NameSale nameSale, BigDecimal fee) {
+	public Pair<Transaction, Integer> cancelSellName(PrivateKeyAccount owner, NameSale nameSale, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createCancelNameSale(owner,
-					nameSale, fee);
+			return this.transactionCreator.createCancelNameSale(owner, nameSale, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> BuyName(PrivateKeyAccount buyer,
-			NameSale nameSale, BigDecimal fee) {
+	public Pair<Transaction, Integer> BuyName(PrivateKeyAccount buyer, NameSale nameSale, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createNamePurchase(buyer, nameSale,
-					fee);
+			return this.transactionCreator.createNamePurchase(buyer, nameSale, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> createPoll(PrivateKeyAccount creator,
-			String name, String description, List<String> options,
-			BigDecimal fee) {
+	public Pair<Transaction, Integer> createPoll(PrivateKeyAccount creator, String name, String description, List<String> options, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
 			// CREATE POLL OPTIONS
@@ -1709,110 +1555,84 @@ public class Controller extends Observable {
 			// CREATE POLL
 			Poll poll = new Poll(creator, name, description, pollOptions);
 
-			return this.transactionCreator.createPollCreation(creator, poll,
-					fee);
+			return this.transactionCreator.createPollCreation(creator, poll, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> createPollVote(PrivateKeyAccount creator,
-			Poll poll, PollOption option, BigDecimal fee) {
+	public Pair<Transaction, Integer> createPollVote(PrivateKeyAccount creator, Poll poll, PollOption option, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
 			// GET OPTION INDEX
 			int optionIndex = poll.getOptions().indexOf(option);
 
-			return this.transactionCreator.createPollVote(creator,
-					poll.getName(), optionIndex, fee);
+			return this.transactionCreator.createPollVote(creator, poll.getName(), optionIndex, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> createArbitraryTransaction(
-			PrivateKeyAccount creator, List<Payment> payments, int service, byte[] data, BigDecimal fee) {
-		
-		if(payments == null) {
+	public Pair<Transaction, Integer> createArbitraryTransaction(PrivateKeyAccount creator, List<Payment> payments, int service, byte[] data, BigDecimal fee) {
+		if (payments == null)
 			payments = new ArrayList<Payment>();
-		}
-		
+
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createArbitraryTransaction(creator, payments,
-					service, data, fee);
+			return this.transactionCreator.createArbitraryTransaction(creator, payments, service, data, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> createTransactionFromRaw(
-			byte[] rawData) {
-		
+	public Pair<Transaction, Integer> createTransactionFromRaw(byte[] rawData) {
 		synchronized (this.transactionCreator) {
 			return this.transactionCreator.createTransactionFromRaw(rawData);
 		}
 	}
-	
-	public Pair<Transaction, Integer> issueAsset(PrivateKeyAccount creator,
-			String name, String description, long quantity, boolean divisible,
-			BigDecimal fee) {
+
+	public Pair<Transaction, Integer> issueAsset(PrivateKeyAccount creator, String name, String description, long quantity, boolean divisible, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createIssueAssetTransaction(creator,
-					name, description, quantity, divisible, fee);
+			return this.transactionCreator.createIssueAssetTransaction(creator, name, description, quantity, divisible, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> createOrder(PrivateKeyAccount creator,
-			Asset have, Asset want, BigDecimal amount, BigDecimal price,
-			BigDecimal fee) {
+	public Pair<Transaction, Integer> createOrder(PrivateKeyAccount creator, Asset have, Asset want, BigDecimal amount, BigDecimal price, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createOrderTransaction(creator,
-					have, want, amount, price, fee);
+			return this.transactionCreator.createOrderTransaction(creator, have, want, amount, price, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> cancelOrder(PrivateKeyAccount creator,
-			Order order, BigDecimal fee) {
+	public Pair<Transaction, Integer> cancelOrder(PrivateKeyAccount creator, Order order, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createCancelOrderTransaction(
-					creator, order, fee);
+			return this.transactionCreator.createCancelOrderTransaction(creator, order, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> transferAsset(PrivateKeyAccount sender,
-			Account recipient, Asset asset, BigDecimal amount, BigDecimal fee) {
+	public Pair<Transaction, Integer> transferAsset(PrivateKeyAccount sender, Account recipient, Asset asset, BigDecimal amount, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createAssetTransfer(sender,
-					recipient, asset, amount, fee);
+			return this.transactionCreator.createAssetTransfer(sender, recipient, asset, amount, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> deployAT(PrivateKeyAccount creator,
-			String name, String description, String type, String tags,
-			byte[] creationBytes, BigDecimal quantity, BigDecimal fee) {
+	public Pair<Transaction, Integer> deployAT(PrivateKeyAccount creator, String name, String description, String type, String tags, byte[] creationBytes,
+			BigDecimal quantity, BigDecimal fee) {
 
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.deployATTransaction(creator, name,
-					description, type, tags, creationBytes, quantity, fee);
+			return this.transactionCreator.deployATTransaction(creator, name, description, type, tags, creationBytes, quantity, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> sendMultiPayment(
-			PrivateKeyAccount sender, List<Payment> payments, BigDecimal fee) {
+	public Pair<Transaction, Integer> sendMultiPayment(PrivateKeyAccount sender, List<Payment> payments, BigDecimal fee) {
 		// CREATE ONLY ONE TRANSACTION AT A TIME
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.sendMultiPayment(sender, payments,
-					fee);
+			return this.transactionCreator.sendMultiPayment(sender, payments, fee);
 		}
 	}
 
-	public Pair<Transaction, Integer> sendMessage(PrivateKeyAccount sender,
-			Account recipient, long key, BigDecimal amount, BigDecimal fee,
-			byte[] isText, byte[] message, byte[] encryptMessage) {
+	public Pair<Transaction, Integer> sendMessage(PrivateKeyAccount sender, Account recipient, long key, BigDecimal amount, BigDecimal fee, byte[] isText,
+			byte[] message, byte[] encryptMessage) {
 		synchronized (this.transactionCreator) {
-			return this.transactionCreator.createMessage(sender, recipient,
-					key, amount, fee, message, isText, encryptMessage);
+			return this.transactionCreator.createMessage(sender, recipient, key, amount, fee, message, isText, encryptMessage);
 		}
-
 	}
 
 	public Block getBlockByHeight(int parseInt) {
@@ -1821,30 +1641,23 @@ public class Controller extends Observable {
 	}
 
 	public byte[] getPublicKeyByAddress(String address) {
-
-		if (!Crypto.getInstance().isValidAddress(address)) {
+		// Is the address even valid?
+		if (!Crypto.getInstance().isValidAddress(address))
 			return null;
-		}
 
 		// CHECK ACCOUNT IN OWN WALLET
 		Account account = Controller.getInstance().getAccountByAddress(address);
-		if (account != null) {
-			if (Controller.getInstance().isWalletUnlocked()) {
-				return Controller.getInstance()
-						.getPrivateKeyAccountByAddress(address).getPublicKey();
-			}
-		}
+		if (account != null && Controller.getInstance().isWalletUnlocked())
+			return Controller.getInstance().getPrivateKeyAccountByAddress(address).getPublicKey();
 
-		if (!DBSet.getInstance().getReferenceMap().contains(address)) {
+		// Is there a transaction made by this address?
+		if (!DBSet.getInstance().getReferenceMap().contains(address))
 			return null;
-		}
 
-		Transaction transaction = Controller.getInstance().getTransaction(
-				DBSet.getInstance().getReferenceMap().get(address));
+		Transaction transaction = Controller.getInstance().getTransaction(DBSet.getInstance().getReferenceMap().get(address));
 
-		if (transaction == null) {
+		if (transaction == null)
 			return null;
-		}
 
 		return transaction.getCreator().getPublicKey();
 	}

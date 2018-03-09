@@ -8,16 +8,14 @@ import network.message.MessageFactory;
 import settings.Settings;
 
 /**
- * Pinger is a Thread that periodically pings a Peer to maintain/check
- * connectivity.
+ * Pinger is a Thread that periodically pings a Peer to maintain/check connectivity.
  */
 public class Pinger extends Thread {
 
 	private static final Logger LOGGER = LogManager.getLogger(Pinger.class);
 	private Peer peer;
 	/**
-	 * Most recent ping round-trip time in milliseconds, or Long.MAX_VALUE if no
-	 * ping yet.
+	 * Most recent ping round-trip time in milliseconds, or Long.MAX_VALUE if no ping yet.
 	 */
 	private long ping;
 
@@ -25,6 +23,7 @@ public class Pinger extends Thread {
 	 * Simple Pinger constructor
 	 * <p>
 	 * Will start Pinger thread.
+	 * 
 	 * @param peer
 	 * @see #run()
 	 */
@@ -57,6 +56,32 @@ public class Pinger extends Thread {
 	public void run() {
 		Thread.currentThread().setName("Pinger " + this.peer.getAddress());
 
+		class PingFailureRunnable implements Runnable {
+			private final Peer peer;
+
+			public PingFailureRunnable(Peer peer) {
+				this.peer = peer;
+			}
+
+			@Override
+			public void run() {
+				this.peer.onPingFailure();
+			}
+		}
+
+		class PingSuccessRunnable implements Runnable {
+			private final Peer peer;
+
+			public PingSuccessRunnable(Peer peer) {
+				this.peer = peer;
+			}
+
+			@Override
+			public void run() {
+				this.peer.onPingSuccess();
+			}
+		}
+
 		while (true) {
 			// Send ping message to peer
 			long start = System.currentTimeMillis();
@@ -71,13 +96,18 @@ public class Pinger extends Thread {
 				// NB: currently Peer.onPingFailure() may call Pinger.stopPing()
 				// (see below)
 				LOGGER.debug("Ping failure with " + this.peer.getAddress());
-				this.peer.onPingFailure();
+
+				// This needs to be done in a new thread to avoid mapdb/interrupt issue
+				new Thread(new PingFailureRunnable(this.peer)).start();
+
 				return;
 			}
 
 			// Calculate ping's round-trip time and notify peer
 			this.ping = System.currentTimeMillis() - start;
-			this.peer.onPingSuccess();
+
+			// This needs to be done in a new thread to avoid mapdb/interrupt issue
+			new Thread(new PingSuccessRunnable(this.peer)).start();
 
 			// Sleep until we need to send next ping
 			try {

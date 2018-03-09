@@ -417,7 +417,7 @@ public class DBSet implements Observer, IDB {
 		}
 	}
 	
-	public boolean isStoped()
+	public boolean isStopped()
 	{
 		return this.database.isClosed();
 	}
