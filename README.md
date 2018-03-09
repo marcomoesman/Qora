@@ -5,7 +5,7 @@ Public GIT for the Qora cryptocurrency project.
 * [API](http://api.qora.org)
 * [Block Explorer](http://node.qora.tech:9090/index/blockexplorer.html)
 * [Bitcointalk](https://bitcointalk.org/index.php?topic=1358722)
-* [Slack](http://slack.qora.co.in)
+* [Discord](https://discord.gg/657RfP3)
 
 ## Running Qora
 Run the program without any options to start the daemon.
