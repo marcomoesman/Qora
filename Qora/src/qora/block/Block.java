@@ -20,8 +20,11 @@ import org.mapdb.Fun.Tuple2;
 import qora.BlockGenerator;
 import qora.account.Account;
 import qora.account.PublicKeyAccount;
+import qora.assets.Order;
+import qora.assets.Trade;
 import qora.crypto.Base58;
 import qora.crypto.Crypto;
+import qora.transaction.CreateOrderTransaction;
 import qora.transaction.DeployATTransaction;
 import qora.transaction.GenesisTransaction;
 import qora.transaction.Transaction;
@@ -370,14 +373,37 @@ public class Block {
 
 		//CREATE TRANSACTIONS
 		JSONArray transactionsArray = new JSONArray();
+		boolean tradesHappened = false;
 
-		for(Transaction transaction: this.getTransactions())
-		{
+		for(Transaction transaction: this.getTransactions()) {
 			transactionsArray.add(transaction.toJson());
+
+			// If this is an asset CreateOrderTransaction then check to see if any trades happened
+			if (transaction.getType() == Transaction.CREATE_ORDER_TRANSACTION) {
+				CreateOrderTransaction orderTransaction = (CreateOrderTransaction) transaction;
+				Order order = orderTransaction.getOrder();
+
+				// XXX: can we assume use of main DB?
+				List<Trade> trades = DBSet.getInstance().getTradeMap().getTrades(order);
+
+				// Filter out trades with timestamps that don't match order transaction's timestamp
+				trades.removeIf( (Trade trade) -> trade.getTimestamp() != order.getTimestamp());
+
+				// Any trades left?
+				if (!trades.isEmpty()) {
+					tradesHappened = true;
+
+					// No need to check any further
+					break;
+				}
+			}
 		}
 
 		//ADD TRANSACTIONS TO BLOCK
 		block.put("transactions", transactionsArray);
+
+		// Add trade activity flag
+		block.put("assetTrades", tradesHappened);
 
 		//ADD AT BYTES
 		if ( atBytes != null )

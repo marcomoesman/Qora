@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+import org.json.simple.JSONObject;
+
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 
@@ -117,6 +119,28 @@ public class Trade {
 		return new Trade(initiator, target, amount, price, timestamp);
 	}	
 	
+	@SuppressWarnings("unchecked")
+	public JSONObject toJson() {
+		DBSet db = DBSet.getInstance();
+
+		JSONObject json = new JSONObject();
+
+		Order initiatorOrder = this.getInitiatorOrder(db);
+		Order targetOrder = this.getTargetOrder(db);
+
+		json.put("initiator", initiatorOrder.getCreator().getAddress());
+		json.put("initiatorAssetId", initiatorOrder.getWant());
+		json.put("initiatorAsset", initiatorOrder.getWantAsset().getName());
+		json.put("target", targetOrder.getCreator().getAddress());
+		json.put("targetAssetId", targetOrder.getWant());
+		json.put("targetAsset", targetOrder.getWantAsset().getName());
+		json.put("amount", this.amount.toPlainString());
+		json.put("price", this.price.toPlainString());
+		json.put("timestamp", this.timestamp);
+
+		return json;
+	}
+
 	public byte[] toBytes()
 	{
 		byte[] data = new byte[0];

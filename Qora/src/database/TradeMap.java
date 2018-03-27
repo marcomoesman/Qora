@@ -243,9 +243,26 @@ public class TradeMap extends DBMap<Tuple2<BigInteger, BigInteger>, Trade>
 		//RETURN
 		return trades;
 	}
-	
+
+	@SuppressWarnings( "unchecked")
+	public List<Trade> getTrades(Order order) {
+		// Use reverseKeyMap to get list of Trade keys based on order's id
+		Collection<Tuple2<BigInteger, BigInteger>> keys = ((BTreeMap<Tuple2, Tuple2<BigInteger, BigInteger>>) this.reverseKeyMap).subMap(
+				Fun.t2(order.getId(), null),
+				Fun.t2(order.getId(), Fun.HI())).values();
+
+		// Fill list of trades using keys
+		List<Trade> trades = new ArrayList<Trade>();
+
+		for(Tuple2 key: keys)
+			trades.add(this.get(key));
+
+		// Return list of trades
+		return trades;
+	}
+
 	@SuppressWarnings( "unchecked" )
-	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(Order order) 
+	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTradesSortableList(Order order)
 	{
 		//ADD REVERSE KEYS
 		Collection<Tuple2<BigInteger, BigInteger>> keys = ((BTreeMap<Tuple2, Tuple2<BigInteger, BigInteger>>) this.reverseKeyMap).subMap(

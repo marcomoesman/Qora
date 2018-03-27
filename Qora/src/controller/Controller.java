@@ -1395,7 +1395,7 @@ public class Controller extends Observable {
 	}
 
 	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(Order order) {
-		return DBSet.getInstance().getTradeMap().getTrades(order);
+		return DBSet.getInstance().getTradeMap().getTradesSortableList(order);
 	}
 
 	// ATs
