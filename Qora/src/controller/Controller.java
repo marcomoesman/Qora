@@ -1,8 +1,5 @@
 package controller;
 
-import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
-import java.awt.TrayIcon.MessageType;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -28,9 +25,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -46,7 +40,6 @@ import database.DBSet;
 import database.LocalDataMap;
 import database.SortableList;
 import gui.ClosingDialog;
-import gui.Gui;
 import gui.SplashFrame;
 import lang.Lang;
 import network.Network;
@@ -84,7 +77,6 @@ import settings.Settings;
 import utils.DateTimeFormat;
 import utils.ObserverMessage;
 import utils.Pair;
-import utils.SysTray;
 import utils.UpdateUtil;
 import webserver.WebService;
 
@@ -1149,35 +1141,6 @@ public class Controller extends Observable {
 					return ApiClient.SELF_CALL;
 				}
 			}
-		}
-
-		if (!GraphicsEnvironment.isHeadless() && Gui.isGuiStarted()) {
-			Gui gui = Gui.getInstance();
-			SysTray.getInstance().sendMessage(Lang.getInstance().translate("INCOMING API CALL"),
-					Lang.getInstance().translate("An API call needs authorization!"), MessageType.WARNING);
-			Object[] options = { Lang.getInstance().translate("Yes"), Lang.getInstance().translate("No") };
-
-			StringBuilder sb = new StringBuilder(Lang.getInstance().translate("Permission Request: "));
-			sb.append(Lang.getInstance().translate("Do you want to authorize the following API call?\n\n") + json);
-			JTextArea jta = new JTextArea(sb.toString());
-			jta.setLineWrap(true);
-			jta.setEditable(false);
-			JScrollPane jsp = new JScrollPane(jta) {
-				/**
-				 *
-				 */
-				private static final long serialVersionUID = 1L;
-
-				@Override
-				public Dimension getPreferredSize() {
-					return new Dimension(480, 200);
-				}
-			};
-
-			gui.bringtoFront();
-
-			result = JOptionPane.showOptionDialog(gui, jsp, Lang.getInstance().translate("INCOMING API CALL"), JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
 		}
 
 		return result;

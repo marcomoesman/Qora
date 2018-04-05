@@ -60,6 +60,8 @@ public class Settings {
 	
 	//GUI
 	private static final boolean DEFAULT_GUI_ENABLED = true;
+	private static final boolean DEFAULT_STARTUP_SPLASH_ENABLED = true;
+	private static final boolean DEFAULT_CLOSING_DIALOG_ENABLED = true;
 	
 	//DATA
 	private static final String DEFAULT_DATA_DIR = "data";
@@ -744,6 +746,26 @@ public class Settings {
 		}
 		
 		return DEFAULT_GUI_ENABLED;
+	}
+	
+	public boolean isStartupSplashEnabled() {
+		if (!isGuiEnabled())
+			return false;
+
+		if (this.settingsJSON.containsKey("startupSplashEnabled"))
+			return ((Boolean) this.settingsJSON.get("startupSplashEnabled")).booleanValue();
+
+		return DEFAULT_STARTUP_SPLASH_ENABLED;
+	}
+	
+	public boolean isClosingDialogEnabled() {
+		if (!isGuiEnabled())
+			return false;
+
+		if (this.settingsJSON.containsKey("closingDialogEnabled"))
+			return ((Boolean) this.settingsJSON.get("closingDialogEnabled")).booleanValue();
+
+		return DEFAULT_CLOSING_DIALOG_ENABLED;
 	}
 	
 	public String getTimeZone()
