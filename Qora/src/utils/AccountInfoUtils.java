@@ -78,30 +78,40 @@ public class AccountInfoUtils {
 		Object jsonAlias = jsonObject.get(ALIAS_KEY);
 
 		// mandatory and must be string
-		if (jsonAlias == null || !(jsonAlias instanceof String))
-			throw new Exception("Set account info transaction being processed has no \"alias\" in data");
+		if (jsonAlias == null || !(jsonAlias instanceof String)) {
+			LOGGER.info("Set account info transaction being processed has no \"alias\" in data");
+			return;
+		}
 
 		String alias = (String) jsonAlias;
-		
+
 		// Perform validity checks on alias
 		if (!isAliasValid(alias))
 			return;
-		
+
+		final String address = account.getAddress();
 		AccountInfoHelperMap accountInfoHelperMap = db.getAccountInfoHelperMap();
-		
+
 		// If this transaction is in the map then it's been processed already
-		List<byte[]> list = accountInfoHelperMap.get(account.getAddress());
-		
+		List<byte[]> list = accountInfoHelperMap.get(address);
+
 		if (list != null && ByteArrayUtils.contains(list, signature))
 			return;
-		
+
 		AccountInfoMap accountInfoMap = db.getAccountInfoMap();
 
-		// Add this transaction to list of account info setting transactions for this account
-		accountInfoHelperMap.add(account.getAddress(), signature);
+		// If requested alias already exists then it cannot belong to someone else
+		String aliasOwner = accountInfoMap.getAddressByAlias(alias);
+		if (aliasOwner != null && !aliasOwner.equals(address)) {
+			LOGGER.info("Alias \"" + alias + "\" already used by " + address);
+			return;
+		}
 
 		// Set 'new' account info for this account
-		accountInfoMap.set(account, dataAsString);
+		accountInfoMap.set(address, dataAsString);
+
+		// Add this transaction to list of account info setting transactions for this account
+		accountInfoHelperMap.add(address, signature);
 	}
 
 	/**
@@ -112,43 +122,45 @@ public class AccountInfoUtils {
 	 * @param db
 	 */
 	public static void orphanUpdate(byte[] signature, PublicKeyAccount account, DBSet db) throws Exception {
+		final String address = account.getAddress();
+
 		// Check whether this transaction has been orphaned already
 		AccountInfoHelperMap accountInfoHelperMap = db.getAccountInfoHelperMap();
-		
+
 		// If this transaction is in the map then it's been processed already
-		List<byte[]> orphanableSignatures = accountInfoHelperMap.get(account.getAddress());
+		List<byte[]> orphanableSignatures = accountInfoHelperMap.get(address);
 
 		// If this transaction isn't in list then it's been orphaned already
 		if (orphanableSignatures == null)
 			return;
-		
+
 		int signaturesIndex = ByteArrayUtils.indexOf(orphanableSignatures, signature);
-		
+
 		if (signaturesIndex == -1)
 			return;
 
 		// Surely this will be the last signature in the list?
 		if (signaturesIndex != orphanableSignatures.size() - 1)
 			LOGGER.info("Orphaning non-last account info setting transaction?");
-		
+
 		// Remove this signature from list
-		accountInfoHelperMap.remove(account.getAddress(), signature);
-		
+		accountInfoHelperMap.remove(address, signature);
+
 		AccountInfoMap accountInfoMap = db.getAccountInfoMap();
 
 		if (signaturesIndex == 0) {
 			// No previous account info
-			accountInfoMap.delete(account);
+			accountInfoMap.delete(address);
 			return;
 		}
 
 		byte[] previousSignature = orphanableSignatures.get(signaturesIndex - 1);
 		
 		TransactionMap transactionMap = db.getTransactionMap();
-		
+
 		// Grab previous account info setting transaction
 		ArbitraryTransaction previousTransaction = (ArbitraryTransaction) transactionMap.get(previousSignature);
-		
+
 		if (previousTransaction == null) {
 			LOGGER.info("Can't find previous account info setting transaction");
 			return;
@@ -158,6 +170,6 @@ public class AccountInfoUtils {
 		String dataAsString = new String(data, Charsets.UTF_8);
 		dataAsString = GZIP.webDecompress(dataAsString);
 
-		accountInfoMap.set(account, dataAsString);
+		accountInfoMap.set(address, dataAsString);
 	}
 }

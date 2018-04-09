@@ -30,8 +30,10 @@ import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
 import qora.crypto.Crypto;
+import qora.transaction.ArbitraryTransaction;
 import qora.transaction.Transaction;
 import utils.APIUtils;
+import utils.AccountInfoUtils;
 import utils.Pair;
 
 @Path("addresses")
@@ -495,6 +497,62 @@ public class AddressesResource {
 					ApiErrorFactory.ERROR_PUBLIC_KEY_NOT_FOUND);
 		} else {
 			return Base58.encode(publicKey);
+		}
+	}
+
+	@POST
+	@Path("/setinfo/{address}")
+	public String setAccountInfo(String json, @PathParam("address") String address) {
+		APIUtils.askAPICallAllowed("POST addresses/setinfo/"+ address, request);
+
+		// CHECK IF WALLET EXISTS
+		if (!Controller.getInstance().doesWalletExists()) {
+			throw ApiErrorFactory.getInstance().createError(
+					ApiErrorFactory.ERROR_WALLET_NO_EXISTS);
+		}
+
+		// CHECK WALLET UNLOCKED
+		if (!Controller.getInstance().isWalletUnlocked()) {
+			throw ApiErrorFactory.getInstance().createError(
+					ApiErrorFactory.ERROR_WALLET_LOCKED);
+		}
+
+		// Check address is valid
+		if (!Crypto.getInstance().isValidAddress(address))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
+		try {
+			// Parse JSON
+			JSONObject jsonObject = (JSONObject) JSONValue.parse(json);
+			// "alias" key must be present
+			String alias = (String) jsonObject.get("alias");
+
+			if (!AccountInfoUtils.isAliasValid(alias))
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
+		} catch (NullPointerException | ClassCastException e) {
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
+		}
+
+		PrivateKeyAccount account = Controller.getInstance().getPrivateKeyAccountByAddress(address);
+
+		if (account == null)
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_ADDRESS_NO_EXISTS);
+
+		BigDecimal fee = Transaction.MINIMUM_FEE.setScale(8);
+		Pair<Transaction, Integer> result = Controller.getInstance().createArbitraryTransaction(account, null, ArbitraryTransaction.SERVICE_ACCOUNT_INFO, json.getBytes(StandardCharsets.UTF_8), fee);
+
+		switch (result.getB()) {
+			case Transaction.VALIDATE_OK:
+				return result.getA().toJson().toJSONString();
+
+			case Transaction.FEE_LESS_REQUIRED:
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_FEE_LESS_REQUIRED);
+
+			case Transaction.NO_BALANCE:
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_NO_BALANCE);
+
+			default:
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_UNKNOWN);
 		}
 	}
 }

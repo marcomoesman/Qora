@@ -8,10 +8,10 @@ import org.json.simple.JSONValue;
 
 import org.mapdb.Bind;
 import org.mapdb.DB;
+import org.mapdb.DBMaker;
 import org.mapdb.Fun;
 import org.mapdb.HTreeMap;
 
-import qora.account.Account;
 import utils.AccountInfoUtils;
 
 // Key: Account address, e.g. QgcphUTiVHHfHg8e1LVgg5jujVES7ZDUTr
@@ -30,29 +30,38 @@ public class AccountInfoMap extends DBMap<String, String> {
 		super(parent);
 	}
 
+	protected void createIndexes(DB database) {}
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	protected void createIndexes(DB database) {
+	private Map<String, String> openMap(DB database) {
+		Map<String, String> map = database.createHashMap("account_info").makeOrGet();
+
 		aliasIndex = database.createHashMap("account_info_alias_index").makeOrGet();
 
-		Bind.secondaryKey((HTreeMap) this.map, aliasIndex, new Fun.Function2<String, String, String>() {
+		Bind.secondaryKey((HTreeMap) map, aliasIndex, new Fun.Function2<String, String, String>() {
 			@Override
 			public String run(String address, String accountInfo) {
 				// Extract alias from info, which is mandatory
 				JSONObject json = (JSONObject) JSONValue.parse(accountInfo);
-				return (String) json.get(AccountInfoUtils.ALIAS_KEY);
+				String alias = (String) json.get(AccountInfoUtils.ALIAS_KEY);
+				// Convert to lowercase as we need case-insensitive comparison
+				return alias.toLowerCase();
 			}
 		});
+
+		return map;
 	}
 
 	@Override
 	protected Map<String, String> getMap(DB database) {
-		// OPEN MAP
-		return database.createHashMap("account_info").makeOrGet();
+		return this.openMap(database);
 	}
 
 	@Override
 	protected Map<String, String> getMemoryMap() {
-		return new HashMap<String, String>();
+		DB database = DBMaker.newMemoryDB().make();
+
+		return this.getMap(database);
 	}
 
 	@Override
@@ -65,19 +74,8 @@ public class AccountInfoMap extends DBMap<String, String> {
 		return this.observableData;
 	}
 
-	public String get(Account account) {
-		return this.get(account.getAddress());
+	public String getAddressByAlias(String alias) {
+		return aliasIndex.get(alias.toLowerCase());
 	}
 
-	public String getAccountByAlias(String alias) {
-		return aliasIndex.get(alias);
-	}
-
-	public void set(Account account, String accountInfo) {
-		this.set(account.getAddress(), accountInfo);
-	}
-	
-	public void delete(Account account) {
-		this.delete(account.getAddress());
-	}
 }
