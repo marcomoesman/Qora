@@ -22,6 +22,7 @@ import qora.account.Account;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
 import qora.payment.Payment;
+import utils.AccountInfoUtils;
 import utils.BlogUtils;
 import utils.StorageUtils;
 
@@ -35,12 +36,14 @@ public abstract class ArbitraryTransaction extends Transaction {
 	private static final Logger LOGGER = LogManager.getLogger(ArbitraryTransaction.class);
 	protected List<Payment> payments;
 
+	public static final int SERVICE_ACCOUNT_INFO = 8;
 	public static final int SERVICE_NAME_STORAGE = 10;
 	public static final int SERVICE_BLOG_POST = 777;
 	public static final int SERVICE_BLOG_COMMENT = 778;
 
 	public static final Map<Integer, String> serviceNames = new HashMap<Integer, String>();
 	static {
+		serviceNames.put(SERVICE_ACCOUNT_INFO, "account info");
 		serviceNames.put(SERVICE_NAME_STORAGE, "name storage");
 		serviceNames.put(SERVICE_BLOG_POST, "blog post");
 		serviceNames.put(SERVICE_BLOG_COMMENT, "blog comment");
@@ -206,16 +209,26 @@ public abstract class ArbitraryTransaction extends Transaction {
 	// PROCESS/ORPHAN
 	@Override
 	public void process(DBSet db) {
-
 		try {
-			if (this.getService() == SERVICE_NAME_STORAGE) {
-				// NAME STORAGE UPDATE
-				StorageUtils.processUpdate(getData(), signature, this.getCreator(), db);
-			} else if (this.getService() == SERVICE_BLOG_POST) {
-				// BLOGPOST
-				BlogUtils.processBlogPost(getData(), signature, this.getCreator(), db);
-			} else if (this.getService() == SERVICE_BLOG_COMMENT) {
-				BlogUtils.processBlogComment(getData(), signature, this.getCreator(), db);
+			switch (this.getService()) {
+				case SERVICE_ACCOUNT_INFO:
+					AccountInfoUtils.processUpdate(getData(), signature, this.getCreator(), db);
+					break;
+				
+				case SERVICE_NAME_STORAGE:
+					StorageUtils.processUpdate(getData(), signature, this.getCreator(), db);
+					break;
+					
+				case SERVICE_BLOG_POST:
+					BlogUtils.processBlogPost(getData(), signature, this.getCreator(), db);
+					break;
+					
+				case SERVICE_BLOG_COMMENT:
+					BlogUtils.processBlogComment(getData(), signature, this.getCreator(), db);
+					break;
+					
+				default:
+					LOGGER.info("Don't know how to process arbitrary transaction type " + this.getService() + " - fees still applied");
 			}
 		} catch (Throwable e) {
 			// failed to process
@@ -243,14 +256,25 @@ public abstract class ArbitraryTransaction extends Transaction {
 	public void orphan(DBSet db) {
 
 		try {
-			if (this.getService() == SERVICE_NAME_STORAGE) {
-				// NAME STORAGE UPDATE
-				StorageUtils.orphanUpdate(getData(), signature, db);
-			} else if (this.getService() == SERVICE_BLOG_POST) {
-				// BLOGPOST
-				BlogUtils.orphanBlogPost(getData(), signature, this.getCreator(), db);
-			} else if (this.getService() == SERVICE_BLOG_COMMENT) {
-				BlogUtils.orphanBlogComment(getData(), signature, this.getCreator(), db);
+			switch (this.getService()) {
+				case SERVICE_ACCOUNT_INFO:
+					AccountInfoUtils.orphanUpdate(signature, this.getCreator(), db);
+					break;
+				
+				case SERVICE_NAME_STORAGE:
+					StorageUtils.orphanUpdate(getData(), signature, db);
+					break;
+					
+				case SERVICE_BLOG_POST:
+					BlogUtils.orphanBlogPost(getData(), signature, this.getCreator(), db);
+					break;
+					
+				case SERVICE_BLOG_COMMENT:
+					BlogUtils.orphanBlogComment(getData(), signature, this.getCreator(), db);
+					break;
+					
+				default:
+					// Logging unknown arbitrary transaction types already done in process() above
 			}
 		} catch (Throwable e) {
 			// failed to process

@@ -48,6 +48,7 @@ public class ApiErrorFactory {
 	public static final int ERROR_INVALID_NETWORK_ADDRESS = 123;
 	public static final int ERROR_INVALID_RESULTS_LIMIT = 124;
 	public static final int ERROR_INVALID_RESULTS_OFFSET = 125;
+	public static final int ERROR_INVALID_ACCOUNT_ALIAS = 126;
 
 	// WALLET
 	public static final int ERROR_WALLET_NO_EXISTS = 201;

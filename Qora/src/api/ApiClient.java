@@ -328,6 +328,21 @@ public class ApiClient {
 				"Errors: 102 - Invalid address."
 			},
 			{
+				"POST addresses/setinfo/{address}",
+				"Set address-related info like alias, profile picture, etc. Aliases must be 3-32 chars and not start/end with whitespace.",
+				"Errors: 2 - Not enough balance. 102 - Invalid address. 121 - Fee less than required. 124 - Invalid alias. 201 - Wallet does not exist. 203 - Wallet is locked. 202 - Wallet address does not exist. "
+			},
+			{
+				"GET addresses/info/{address}",
+				"Returns the info for that address, i.e. alias, profile picture, etc. or \"false\" if none stored.",
+				"Errors: 102 - Invalid address."
+			},
+			{
+				"GET addresses/alias/{alias}",
+				"Returns the address and info using alias or \"false\" if alias does not exist.",
+				"",
+			},
+			{
 				"GET wallet", 
 				"Returns general information about the wallet.",
 				"{\"exists\":true,\"isunlocked\":false}" 

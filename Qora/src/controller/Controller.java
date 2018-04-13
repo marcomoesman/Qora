@@ -83,11 +83,11 @@ import webserver.WebService;
 public class Controller extends Observable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.7";
-	private String buildTime = "2018-03-09 08:56:00 UTC";
+	private String version = "1.0";
+	private String buildTime = "2018-04-13 10:09:00 UTC";
 	private long buildTimestamp;
 
-	public static final String releaseVersion = "0.26.7";
+	public static final String releaseVersion = "1.0";
 
 	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -321,6 +321,7 @@ public class Controller extends Observable {
 				UpdateUtil.repopulateNameStorage(70000); // Don't bother scanning blocks below height 70,000
 				localDataMap.set("nsupdate", "2");
 			}
+
 			// Check whether final transaction map needs rebuilding
 			if (localDataMap.get("txfinalmap") == null || !localDataMap.get("txfinalmap").equals("2")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding transaction-block mapping");
@@ -330,12 +331,22 @@ public class Controller extends Observable {
 				localDataMap.set("txfinalmap", "2");
 			}
 
+			// Check whether blog post mappings need rebuilding
 			if (localDataMap.get("blogpostmap") == null || !localDataMap.get("blogpostmap").equals("3")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding blog comments");
 
 				// Recreate comment postmap
 				UpdateUtil.repopulateCommentPostMap();
 				localDataMap.set("blogpostmap", "3");
+			}
+			
+			// Check whether account info (alias, etc.) needs rebuilding
+			if (localDataMap.get("accountinfomap") == null || !localDataMap.get("accountinfomap").equals("1")) {
+				SplashFrame.getInstance().updateProgress("Rebuilding account info");
+
+				// Recreate account info data
+				UpdateUtil.repopulateAccountInfoMap();
+				localDataMap.set("accountinfomap", "1");
 			}
 		} else {
 			DBSet.getInstance().getLocalDataMap().set("nsupdate", "2");
