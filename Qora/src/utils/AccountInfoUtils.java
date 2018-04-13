@@ -65,7 +65,7 @@ public class AccountInfoUtils {
 	 * @param db
 	 * @throws Exception
 	 */
-	public static void processUpdate(byte[] data, byte[] signature, PublicKeyAccount account, DBSet db) throws Exception {
+	public static void processUpdate(byte[] data, byte[] signature, PublicKeyAccount account, DBSet db) {
 		String dataAsString = new String(data, Charsets.UTF_8);
 
 		dataAsString = GZIP.webDecompress(dataAsString);
@@ -75,33 +75,31 @@ public class AccountInfoUtils {
 		if (jsonObject == null)
 			return;
 
-		Object jsonAlias = jsonObject.get(ALIAS_KEY);
+		AccountInfoMap accountInfoMap = db.getAccountInfoMap();
+		final String address = account.getAddress();
 
-		// mandatory and must be string
+		// "alias" must be in JSON
+		Object jsonAlias = jsonObject.get(ALIAS_KEY);
 		if (jsonAlias == null || !(jsonAlias instanceof String)) {
-			LOGGER.info("Set account info transaction being processed has no \"alias\" in data");
+			LOGGER.info("Set-account-info transaction being processed has no \"alias\" in data");
 			return;
 		}
 
-		String alias = (String) jsonAlias;
-
+		final String alias = (String) jsonAlias;
+		
 		// Perform validity checks on alias
 		if (!isAliasValid(alias))
 			return;
 
-		final String address = account.getAddress();
 		AccountInfoHelperMap accountInfoHelperMap = db.getAccountInfoHelperMap();
 
 		// If this transaction is in the map then it's been processed already
 		List<byte[]> list = accountInfoHelperMap.get(address);
-
 		if (list != null && ByteArrayUtils.contains(list, signature))
 			return;
 
-		AccountInfoMap accountInfoMap = db.getAccountInfoMap();
-
 		// If requested alias already exists then it cannot belong to someone else
-		String aliasOwner = accountInfoMap.getAddressByAlias(alias);
+		final String aliasOwner = accountInfoMap.getAddressByAlias(alias);
 		if (aliasOwner != null && !aliasOwner.equals(address)) {
 			LOGGER.info("Alias \"" + alias + "\" already used by " + address);
 			return;

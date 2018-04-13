@@ -23,6 +23,7 @@ import org.json.simple.JSONValue;
 import org.mapdb.Fun.Tuple2;
 
 import controller.Controller;
+import database.AccountInfoMap;
 import database.DBSet;
 import database.SortableList;
 import qora.account.Account;
@@ -528,9 +529,9 @@ public class AddressesResource {
 			String alias = (String) jsonObject.get("alias");
 
 			if (!AccountInfoUtils.isAliasValid(alias))
-				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ACCOUNT_ALIAS);
 		} catch (NullPointerException | ClassCastException e) {
-			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ACCOUNT_ALIAS);
 		}
 
 		PrivateKeyAccount account = Controller.getInstance().getPrivateKeyAccountByAddress(address);
@@ -554,5 +555,38 @@ public class AddressesResource {
 			default:
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_UNKNOWN);
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	@GET
+	@Path("/alias/{alias}")
+	public String getAccountByAlias(@PathParam("alias") String alias) {
+		AccountInfoMap accountInfoMap = DBSet.getInstance().getAccountInfoMap();
+		final String aliasOwner = accountInfoMap.getAddressByAlias(alias);
+
+		if (aliasOwner == null)
+			return "false";
+
+		JSONObject infoJSON = new JSONObject();
+		infoJSON.put("address", aliasOwner);
+		infoJSON.put("info",  accountInfoMap.get(aliasOwner));
+		return infoJSON.toJSONString();
+	}
+
+	
+	@GET
+	@Path("/info/{address}")
+	public String getAccountInfo(@PathParam("address") String address) {
+		// Check address is valid
+		if (!Crypto.getInstance().isValidAddress(address))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
+		AccountInfoMap accountInfoMap = DBSet.getInstance().getAccountInfoMap();
+		final String info = accountInfoMap.get(address);
+
+		if (info == null)
+			return "false";
+
+		return info;
 	}
 }

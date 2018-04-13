@@ -352,6 +352,7 @@ public class Controller extends Observable {
 				UpdateUtil.repopulateNameStorage( 70000 ); // Don't bother scanning blocks below height 70,000
 				localDataMap.set("nsupdate", "2");
 			}
+
 			// Check whether final transaction map needs rebuilding
 			if (localDataMap.get("txfinalmap") == null || !localDataMap.get("txfinalmap").equals("2")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding transaction-block mapping");
@@ -360,13 +361,23 @@ public class Controller extends Observable {
 				UpdateUtil.repopulateTransactionFinalMap();
 				localDataMap.set("txfinalmap", "2");
 			}
-			
+
+			// Check whether blog post mappings need rebuilding
 			if (localDataMap.get("blogpostmap") == null || !localDataMap.get("blogpostmap").equals("3")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding blog comments");
 
 				// Recreate comment postmap
 				UpdateUtil.repopulateCommentPostMap();
 				localDataMap.set("blogpostmap", "3");
+			}
+			
+			// Check whether account info (alias, etc.) needs rebuilding
+			if (localDataMap.get("accountinfomap") == null || !localDataMap.get("accountinfomap").equals("1")) {
+				SplashFrame.getInstance().updateProgress("Rebuilding account info");
+
+				// Recreate account info data
+				UpdateUtil.repopulateAccountInfoMap();
+				localDataMap.set("accountinfomap", "1");
 			}
 		} else {
 			DBSet.getInstance().getLocalDataMap().set("nsupdate", "2");

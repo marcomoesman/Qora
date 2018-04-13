@@ -47,6 +47,7 @@ public class ApiErrorFactory
 	public static final int ERROR_FEE_LESS_REQUIRED = 121;
 	public static final int ERROR_WALLET_NOT_IN_SYNC = 122;
 	public static final int ERROR_INVALID_NETWORK_ADDRESS = 123;
+	public static final int ERROR_INVALID_ACCOUNT_ALIAS = 124;
 	
 	//WALLET
 	public static final int ERROR_WALLET_NO_EXISTS = 201;

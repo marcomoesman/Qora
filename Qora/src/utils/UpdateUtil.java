@@ -130,4 +130,31 @@ public class UpdateUtil {
 			block = block.getChild();
 		} while (block != null);
 	}
+	
+	public static void repopulateAccountInfoMap() {
+		DBSet.getInstance().getAccountInfoMap().reset();
+		DBSet.getInstance().getAccountInfoHelperMap().reset();
+		Block block = new GenesisBlock();
+
+		do {
+			List<Transaction> txs = block.getTransactions();
+
+			for (Transaction tx : txs) {
+				if (tx instanceof ArbitraryTransaction) {
+					ArbitraryTransaction at = (ArbitraryTransaction) tx;
+
+					if (at.getService() == ArbitraryTransaction.SERVICE_ACCOUNT_INFO)
+						AccountInfoUtils.processUpdate(at.getData(), at.getSignature(), at.getCreator(), DBSet.getInstance());
+				}
+			}
+
+			if (block.getHeight() % 2000 == 0) {
+				LOGGER.info("UpdateUtil - Repopulating AccountInfoMap : " + block.getHeight());
+				DBSet.getInstance().commit();
+			}
+
+			block = block.getChild();
+		} while (block != null);
+	}
+	
 }
