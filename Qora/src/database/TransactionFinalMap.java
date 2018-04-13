@@ -297,7 +297,30 @@ public class TransactionFinalMap extends DBMap<Tuple2<Integer, Integer>, Transac
 		
 		return txs;
 	}
-	
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public List<Transaction> getTransactionsByAddress(String address, int limit) {
+		Iterable senderKeys = Fun.filter(this.senderKey, address);
+		Iterable recipientKeys = Fun.filter(this.recipientKey, address);
+
+		Set<Tuple2<Integer, Integer>> treeKeys = new TreeSet<>();
+
+		treeKeys.addAll(Sets.newTreeSet(senderKeys));
+		treeKeys.addAll(Sets.newTreeSet(recipientKeys));
+
+		Iterator iter = treeKeys.iterator();
+
+		List<Transaction> txs = new ArrayList<>();
+		int counter = 0;
+
+		while (iter.hasNext() && (limit == 0 || counter < limit)) {
+			txs.add(this.map.get(iter.next()));
+			++counter;
+		}
+
+		return txs;
+	}
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public int getTransactionsByAddressCount(String address)
 	{

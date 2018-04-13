@@ -23,6 +23,7 @@ import org.json.simple.JSONValue;
 import org.mapdb.Fun.Tuple2;
 
 import controller.Controller;
+import database.AccountInfoMap;
 import database.DBSet;
 import database.SortableList;
 import qora.account.Account;
@@ -30,8 +31,10 @@ import qora.account.PrivateKeyAccount;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
 import qora.crypto.Crypto;
+import qora.transaction.ArbitraryTransaction;
 import qora.transaction.Transaction;
 import utils.APIUtils;
+import utils.AccountInfoUtils;
 import utils.Pair;
 
 @Path("addresses")
@@ -496,5 +499,94 @@ public class AddressesResource {
 		} else {
 			return Base58.encode(publicKey);
 		}
+	}
+
+	@POST
+	@Path("/setinfo/{address}")
+	public String setAccountInfo(String json, @PathParam("address") String address) {
+		APIUtils.askAPICallAllowed("POST addresses/setinfo/"+ address, request);
+
+		// CHECK IF WALLET EXISTS
+		if (!Controller.getInstance().doesWalletExists()) {
+			throw ApiErrorFactory.getInstance().createError(
+					ApiErrorFactory.ERROR_WALLET_NO_EXISTS);
+		}
+
+		// CHECK WALLET UNLOCKED
+		if (!Controller.getInstance().isWalletUnlocked()) {
+			throw ApiErrorFactory.getInstance().createError(
+					ApiErrorFactory.ERROR_WALLET_LOCKED);
+		}
+
+		// Check address is valid
+		if (!Crypto.getInstance().isValidAddress(address))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
+		try {
+			// Parse JSON
+			JSONObject jsonObject = (JSONObject) JSONValue.parse(json);
+			// "alias" key must be present
+			String alias = (String) jsonObject.get("alias");
+
+			if (!AccountInfoUtils.isAliasValid(alias))
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ACCOUNT_ALIAS);
+		} catch (NullPointerException | ClassCastException e) {
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ACCOUNT_ALIAS);
+		}
+
+		PrivateKeyAccount account = Controller.getInstance().getPrivateKeyAccountByAddress(address);
+
+		if (account == null)
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_ADDRESS_NO_EXISTS);
+
+		BigDecimal fee = Transaction.MINIMUM_FEE.setScale(8);
+		Pair<Transaction, Integer> result = Controller.getInstance().createArbitraryTransaction(account, null, ArbitraryTransaction.SERVICE_ACCOUNT_INFO, json.getBytes(StandardCharsets.UTF_8), fee);
+
+		switch (result.getB()) {
+			case Transaction.VALIDATE_OK:
+				return result.getA().toJson().toJSONString();
+
+			case Transaction.FEE_LESS_REQUIRED:
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_FEE_LESS_REQUIRED);
+
+			case Transaction.NO_BALANCE:
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_NO_BALANCE);
+
+			default:
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_UNKNOWN);
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	@GET
+	@Path("/alias/{alias}")
+	public String getAccountByAlias(@PathParam("alias") String alias) {
+		AccountInfoMap accountInfoMap = DBSet.getInstance().getAccountInfoMap();
+		final String aliasOwner = accountInfoMap.getAddressByAlias(alias);
+
+		if (aliasOwner == null)
+			return "false";
+
+		JSONObject infoJSON = new JSONObject();
+		infoJSON.put("address", aliasOwner);
+		infoJSON.put("info",  accountInfoMap.get(aliasOwner));
+		return infoJSON.toJSONString();
+	}
+
+	
+	@GET
+	@Path("/info/{address}")
+	public String getAccountInfo(@PathParam("address") String address) {
+		// Check address is valid
+		if (!Crypto.getInstance().isValidAddress(address))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
+		AccountInfoMap accountInfoMap = DBSet.getInstance().getAccountInfoMap();
+		final String info = accountInfoMap.get(address);
+
+		if (info == null)
+			return "false";
+
+		return info;
 	}
 }

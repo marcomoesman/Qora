@@ -59,6 +59,8 @@ public class DBSet implements Observer, IDB {
 	private ATStateMap atStateMap;
 	private ATTransactionMap atTransactionMap;
 	private TransactionFinalMap transactionFinalMap;
+	private AccountInfoMap accountInfoMap;
+	private AccountInfoHelperMap accountInfoHelperMap;
 	
 	private DB database;
 	private int actions;
@@ -168,6 +170,8 @@ public class DBSet implements Observer, IDB {
 			this.atMap = new ATMap(this,database);
 			this.atStateMap = new ATStateMap(this,database);
 			this.atTransactionMap = new ATTransactionMap(this,database);
+			this.accountInfoMap = new AccountInfoMap(this, database);
+			this.accountInfoHelperMap = new AccountInfoHelperMap(this, database);
 			
 		} catch (Throwable e) {
 			this.close();
@@ -209,6 +213,8 @@ public class DBSet implements Observer, IDB {
 		this.atMap = new ATMap(parent.atMap);
 		this.atStateMap = new ATStateMap(parent.atStateMap);
 		this.atTransactionMap = new ATTransactionMap(parent.atTransactionMap);
+		this.accountInfoMap = new AccountInfoMap(parent.accountInfoMap);
+		this.accountInfoHelperMap = new AccountInfoHelperMap(parent.accountInfoHelperMap);
 	}
 	
 	public void reset() {
@@ -243,6 +249,8 @@ public class DBSet implements Observer, IDB {
 		this.atMap.reset();
 		this.atStateMap.reset();
 		this.atTransactionMap.reset();
+		this.accountInfoMap.reset();
+		this.accountInfoHelperMap.reset();
 	}
 	
 	public BalanceMap getBalanceMap() 
@@ -398,6 +406,14 @@ public class DBSet implements Observer, IDB {
 	public ATTransactionMap getATTransactionMap()
 	{
 		return this.atTransactionMap;
+	}
+	
+	public AccountInfoMap getAccountInfoMap() {
+		return this.accountInfoMap;
+	}
+	
+	public AccountInfoHelperMap getAccountInfoHelperMap() {
+		return this.accountInfoHelperMap;
 	}
 	
 	public DBSet fork()

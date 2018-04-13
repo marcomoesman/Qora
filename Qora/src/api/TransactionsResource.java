@@ -2,6 +2,7 @@ package api;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -33,546 +34,498 @@ import utils.Pair;
 @Path("transactions")
 @Produces(MediaType.APPLICATION_JSON)
 public class TransactionsResource {
+	private static final Logger LOGGER = LogManager.getLogger(TransactionsResource.class);
 
-	
-	private static final Logger LOGGER = LogManager
-			.getLogger(TransactionsResource.class);
-	
 	@Context
 	HttpServletRequest request;
 
 	@GET
-	public String getTransactions()
-	{
+	public String getTransactions() {
 		return this.getTransactionsLimited(50);
 	}
-	
+
 	@POST
 	@Path("/process")
-	public String processTransactionFromRaw(String rawDataBase58)
-	{
+	public String processTransactionFromRaw(String rawDataBase58) {
 		byte[] transactionBytes = Base58.decode(rawDataBase58);
-		
+
 		Pair<Transaction, Integer> result = Controller.getInstance().createTransactionFromRaw(transactionBytes);
-		if(result.getB() == Transaction.VALIDATE_OK) {
+
+		if (result.getB() == Transaction.VALIDATE_OK) {
 			return result.getA().toJson().toJSONString();
 		} else {
 			return result.getB().toString();
 		}
 	}
-	
+
 	@GET
 	@Path("/{address}")
-	public String getTransactions(@PathParam("address") String address)
-	{
+	public String getTransactions(@PathParam("address") String address) {
 		return this.getTransactionsLimited(address, 50);
 	}
-	
+
 	@GET
 	@Path("address/{address}")
-	public String getTransactionsTwo(@PathParam("address") String address)
-	{
+	public String getTransactionsTwo(@PathParam("address") String address) {
 		return this.getTransactions(address);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("limit/{limit}")
-	public String getTransactionsLimited(@PathParam("limit") int limit)
-	{
+	public String getTransactionsLimited(@PathParam("limit") int limit) {
 		APIUtils.askAPICallAllowed("GET transactions/limit/" + limit, request);
 
-		//CHECK IF WALLET EXISTS
-		if(!Controller.getInstance().doesWalletExists())
-		{
+		// CHECK IF WALLET EXISTS
+		if (!Controller.getInstance().doesWalletExists())
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_NO_EXISTS);
-		}
-		
-		//GET TRANSACTIONS
+
+		// GET TRANSACTIONS
 		List<Pair<Account, Transaction>> transactions = Controller.getInstance().getLastTransactions(limit);
-		
-		//ORGANIZE TRANSACTIONS
+
+		// ORGANIZE TRANSACTIONS
 		Map<Account, List<Transaction>> orderedTransactions = new HashMap<Account, List<Transaction>>();
-		for(Pair<Account, Transaction> transaction: transactions)
-		{
-			if(!orderedTransactions.containsKey(transaction.getA()))
-			{
+		for (Pair<Account, Transaction> transaction : transactions) {
+			if (!orderedTransactions.containsKey(transaction.getA()))
 				orderedTransactions.put(transaction.getA(), new ArrayList<Transaction>());
-			}
-			
+
 			orderedTransactions.get(transaction.getA()).add(transaction.getB());
 		}
-		
-		//CREATE JSON OBJECT
+
+		// CREATE JSON OBJECT
 		JSONArray orderedTransactionsJSON = new JSONArray();
-		
-		for(Account account: orderedTransactions.keySet())
-		{
+
+		for (Account account : orderedTransactions.keySet()) {
 			JSONArray transactionsJSON = new JSONArray();
-			for(Transaction transaction: orderedTransactions.get(account))
-			{
+
+			for (Transaction transaction : orderedTransactions.get(account))
 				transactionsJSON.add(transaction.toJson());
-			}
-			
+
 			JSONObject accountTransactionsJSON = new JSONObject();
 			accountTransactionsJSON.put("account", account.getAddress());
 			accountTransactionsJSON.put("transactions", transactionsJSON);
-			orderedTransactionsJSON.add(accountTransactionsJSON);		
+			orderedTransactionsJSON.add(accountTransactionsJSON);
 		}
-		
+
 		return orderedTransactionsJSON.toJSONString();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("address/{address}/limit/{limit}")
-	public String getTransactionsLimited(@PathParam("address") String address, @PathParam("limit") int limit)
-	{
-		APIUtils.askAPICallAllowed("GET transactions/address/" + address + "/limit/" + limit, request);
+	public String getTransactionsLimited(@PathParam("address") String address, @PathParam("limit") int limit) {
+		// Check limit is either zero (no limit) or positive
+		if (limit < 0)
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_RESULTS_LIMIT);
 
-		//CHECK IF WALLET EXISTS
-		if(!Controller.getInstance().doesWalletExists())
-		{
-			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_NO_EXISTS);
-		}
-		
-		//CHECK ADDRESS
-		if(!Crypto.getInstance().isValidAddress(address))
-		{
+		// Check address is at least valid
+		if (!Crypto.getInstance().isValidAddress(address))
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
-		}
-		
-		//CHECK ACCOUNT IN WALLET
-		Account account = Controller.getInstance().getAccountByAddress(address);	
-		if(account == null)
-		{
-			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_ADDRESS_NO_EXISTS);
-		}
-		
+
 		JSONArray array = new JSONArray();
-		for(Transaction transaction: Controller.getInstance().getLastTransactions(account, limit))
-		{
+
+		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().getTransactionsByAddress(address, limit);
+
+		for (Transaction transaction : txs)
 			array.add(transaction.toJson());
-		}
-		
+
 		return array.toJSONString();
 	}
-	
+
+	@SuppressWarnings("unchecked")
+	@GET
+	@Path("walletAddress/{address}/limit/{limit}")
+	public String getWalletTransactionsLimited(@PathParam("address") String address, @PathParam("limit") int limit) {
+		APIUtils.askAPICallAllowed("GET transactions/address/" + address + "/limit/" + limit, request);
+
+		// CHECK IF WALLET EXISTS
+		if (!Controller.getInstance().doesWalletExists())
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_NO_EXISTS);
+
+		// CHECK ADDRESS
+		if (!Crypto.getInstance().isValidAddress(address))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
+		// CHECK ACCOUNT IN WALLET
+		Account account = Controller.getInstance().getAccountByAddress(address);
+		if (account == null)
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_ADDRESS_NO_EXISTS);
+
+		JSONArray array = new JSONArray();
+
+		for (Transaction transaction : Controller.getInstance().getLastTransactions(account, limit))
+			array.add(transaction.toJson());
+
+		return array.toJSONString();
+	}
+
 	@GET
 	@Path("signature/{signature}")
-	public static String getTransactionsBySignature(@PathParam("signature") String signature) throws Exception
-	{
-		//DECODE SIGNATURE
+	public static String getTransactionsBySignature(@PathParam("signature") String signature) throws Exception {
+		// DECODE SIGNATURE
 		byte[] signatureBytes;
-		try
-		{
+
+		try {
 			signatureBytes = Base58.decode(signature);
-		}
-		catch(Exception e)
-		{
+		} catch (Exception e) {
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_SIGNATURE);
 		}
-		
-		//GET TRANSACTION
+
+		// GET TRANSACTION
 		Transaction transaction = Controller.getInstance().getTransaction(signatureBytes);
-		
-		//CHECK IF TRANSACTION EXISTS
-		if(transaction == null)
-		{
+
+		// CHECK IF TRANSACTION EXISTS
+		if (transaction == null)
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_TRANSACTION_NO_EXISTS);
-		}
-		
+
 		return transaction.toJson().toJSONString();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("/network")
-	public String getNetworkTransactions()
-	{
+	public String getNetworkTransactions() {
 		List<Transaction> transactions = Controller.getInstance().getUnconfirmedTransactions();
 		JSONArray array = new JSONArray();
-		
-		for(Transaction transaction: transactions)
-		{
+
+		for (Transaction transaction : transactions)
 			array.add(transaction.toJson());
-		}
-		
+
 		return array.toJSONString();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("/unconfirmedof/{address}")
-	public String getNetworkTransactions(@PathParam("address") String address)
-	{
+	public String getNetworkTransactions(@PathParam("address") String address) {
 		List<Transaction> transactions = Controller.getInstance().getUnconfirmedTransactions();
 		JSONArray array = new JSONArray();
-		
-		for(Transaction transaction: transactions)
-		{
-			if(transaction.getCreator().getAddress().equals(address))
-			array.add(transaction.toJson());
+
+		for (Transaction transaction : transactions) {
+			if (transaction.getCreator().getAddress().equals(address))
+				array.add(transaction.toJson());
 		}
-		
+
 		return array.toJSONString();
 	}
-	
+
+	@SuppressWarnings("unchecked")
+	@POST
+	@Path("/unconfirmedofmany")
+	public String getManyAddressNetworkTransactions(String x) {
+		List<Account> accounts = new ArrayList<Account>();
+
+		try {
+			// READ JSON
+			JSONArray addressesJSON = (JSONArray) JSONValue.parse(x);
+
+			for (int i = 0; i < addressesJSON.size(); ++i) {
+				String address = (String) addressesJSON.get(i);
+				accounts.add(new Account(address));
+			}
+		} catch (NullPointerException | ClassCastException e) {
+			// JSON EXCEPTION
+			LOGGER.info(e);
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
+		}
+
+		List<Transaction> transactions = Controller.getInstance().getUnconfirmedTransactions();
+		JSONArray array = new JSONArray();
+
+		for (Transaction transaction : transactions) {
+			HashSet<Account> involvedAccounts = transaction.getInvolvedAccounts();
+
+			for (int i = 0; i < accounts.size(); ++i) {
+				if (involvedAccounts.contains(accounts.get(i))) {
+					array.add(transaction.toJson());
+					break;
+				}
+			}
+		}
+
+		return array.toJSONString();
+	}
+
 	@SuppressWarnings("unchecked")
 	@POST
 	@Path("/scan")
-	public String scanTransactions(String x)
-	{
-		try
-		{
-			//READ JSON
+	public String scanTransactions(String x) {
+		try {
+			// READ JSON
 			JSONObject jsonObject = (JSONObject) JSONValue.parse(x);
-			
-			//GET BLOCK
+
+			// GET BLOCK
 			Block block = null;
-			if(jsonObject.containsKey("start"))
-			{
+			if (jsonObject.containsKey("start")) {
 				byte[] signatureBytes;
-				try
-				{
+
+				try {
 					String signature = (String) jsonObject.get("start");
 					signatureBytes = Base58.decode(signature);
-				}
-				catch(Exception e)
-				{
+				} catch (Exception e) {
 					throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_SIGNATURE);
 				}
-						
+
 				block = Controller.getInstance().getBlock(signatureBytes);
-				
-				//CHECK IF BLOCK EXISTS
-				if(block == null)
-				{
+
+				// CHECK IF BLOCK EXISTS
+				if (block == null)
 					throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_BLOCK_NO_EXISTS);
-				}	
 			}
-			
-			//CHECK FOR BLOCKLIMIT
+
+			// CHECK FOR BLOCKLIMIT
 			int blockLimit = -1;
-			try
-			{
+			try {
 				blockLimit = ((Long) jsonObject.get("blocklimit")).intValue();
 
-				if (blockLimit > 360) // 360 ensures at least six hours of blocks can be queried at once
-				{
+				// 360 ensures at least six hours of blocks can be queried at once
+				if (blockLimit > 360)
 					APIUtils.disallowRemote(request);
-				}
-			}
-			catch(NullPointerException e)
-			{
-				//OPTION DOES NOT EXIST
+			} catch (NullPointerException e) {
+				// OPTION DOES NOT EXIST
 				APIUtils.disallowRemote(request);
-			}
-			catch(ClassCastException e)
-			{
-				//JSON EXCEPTION
+			} catch (ClassCastException e) {
+				// JSON EXCEPTION
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 
-			//CHECK FOR TRANSACTIONLIMIT
+			// CHECK FOR TRANSACTIONLIMIT
 			int transactionLimit = -1;
-			try
-			{
+			try {
 				transactionLimit = ((Long) jsonObject.get("transactionlimit")).intValue();
-			}
-			catch(NullPointerException e)
-			{
-				//OPTION DOES NOT EXIST
-			}
-			catch(ClassCastException e)
-			{
-				//JSON EXCEPTION
+			} catch (NullPointerException e) {
+				// OPTION DOES NOT EXIST
+			} catch (ClassCastException e) {
+				// JSON EXCEPTION
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
-			
-			//CHECK FOR TYPE
+
+			// CHECK FOR TYPE
 			int type = -1;
-			try
-			{
-				 type = ((Long) jsonObject.get("type")).intValue();
-			}
-			catch(NullPointerException e)
-			{
-				//OPTION DOES NOT EXIST
-			}
-			catch(ClassCastException e)
-			{
-				//JSON EXCEPTION
+			try {
+				type = ((Long) jsonObject.get("type")).intValue();
+			} catch (NullPointerException e) {
+				// OPTION DOES NOT EXIST
+			} catch (ClassCastException e) {
+				// JSON EXCEPTION
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
-			
-			//CHECK FOR SERVICE
+
+			// CHECK FOR SERVICE
 			int service = -1;
-			try
-			{
-				 service = ((Long) jsonObject.get("service")).intValue();
-			}
-			catch(NullPointerException e)
-			{
-				//OPTION DOES NOT EXIST
-			}
-			catch(ClassCastException e)
-			{
-				//JSON EXCEPTION
+			try {
+				service = ((Long) jsonObject.get("service")).intValue();
+			} catch (NullPointerException e) {
+				// OPTION DOES NOT EXIST
+			} catch (ClassCastException e) {
+				// JSON EXCEPTION
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
-			
-			//CHECK FOR ACCOUNT
+
+			// CHECK FOR ACCOUNT
 			Account account = null;
-			try
-			{
-				if(jsonObject.containsKey("address"))
-				{
+			try {
+				if (jsonObject.containsKey("address")) {
 					String address = (String) jsonObject.get("address");
-					 
-					//CHECK ADDRESS
-					if(!Crypto.getInstance().isValidAddress(address))
-					{
+
+					// CHECK ADDRESS
+					if (!Crypto.getInstance().isValidAddress(address))
 						throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
-					}
-					
+
 					account = new Account(address);
 				}
-				 
-			}
-			catch(NullPointerException e)
-			{
-				//OPTION DOES NOT EXIST
-			}
-			catch(ClassCastException e)
-			{
-				//JSON EXCEPTION
+
+			} catch (NullPointerException e) {
+				// OPTION DOES NOT EXIST
+			} catch (ClassCastException e) {
+				// JSON EXCEPTION
 				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
-			
-			//SCAN
+
+			// SCAN
 			Pair<Block, List<Transaction>> result = Controller.getInstance().scanTransactions(block, blockLimit, transactionLimit, type, service, account);
-			
-			//CONVERT RESULT TO JSON
+
+			// CONVERT RESULT TO JSON
 			JSONObject json = new JSONObject();
-			
+
 			json.put("lastscanned", Base58.encode(result.getA().getSignature()));
-			
-			
-			if(block != null)
-			{
+
+			if (block != null) {
 				json.put("amount", result.getA().getHeight() - block.getHeight() + 1);
-			}
-			else
-			{
+			} else {
 				json.put("amount", result.getA().getHeight());
 			}
-			
+
 			JSONArray transactions = new JSONArray();
-			for(Transaction transaction: result.getB())
-			{
+
+			for (Transaction transaction : result.getB())
 				transactions.add(transaction.toJson());
-			}
+
 			json.put("transactions", transactions);
-			
-			//RETURN
+
+			// RETURN
 			return json.toJSONString();
-		}
-		catch(NullPointerException | ClassCastException e)
-		{
-			//JSON EXCEPTION
+		} catch (NullPointerException | ClassCastException e) {
+			// JSON EXCEPTION
 			LOGGER.info(e);
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("recipient/{address}/limit/{limit}")
-	public String getTransactionsByRecipient(@PathParam("address") String address, @PathParam("limit") int limit)
-	{
+	public String getTransactionsByRecipient(@PathParam("address") String address, @PathParam("limit") int limit) {
 		JSONArray array = new JSONArray();
 		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().getTransactionsByRecipient(address, limit);
-		for(Transaction transaction: txs)
-		{
+
+		for (Transaction transaction : txs)
 			array.add(transaction.toJson());
-		}
-		
+
 		return array.toJSONString();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@POST
 	@Path("find")
-	public String getTransactionsFind(String x)
-	{
+	public String getTransactionsFind(String x) {
 		JSONObject jsonObject = null;
-		try
-		{
+		try {
 			jsonObject = (JSONObject) JSONValue.parse(x);
 		} catch (Exception e) {
-			throw ApiErrorFactory.getInstance().createError(
-				ApiErrorFactory.ERROR_JSON);
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 		}
 
 		String address = (String) jsonObject.get("address");
-		
+
 		// CHECK IF VALID ADDRESS
-		if (address != null && !Crypto.getInstance().isValidAddress(address)) {
-			throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_INVALID_ADDRESS);
-		}
-		
+		if (address != null && !Crypto.getInstance().isValidAddress(address))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
 		String sender = (String) jsonObject.get("sender");
-		
+
 		// CHECK IF VALID ADDRESS
-		if (sender != null && !Crypto.getInstance().isValidAddress(sender)) {
-			throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_INVALID_ADDRESS);
-		}
-		
+		if (sender != null && !Crypto.getInstance().isValidAddress(sender))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
 		String recipient = (String) jsonObject.get("recipient");
-		
+
 		// CHECK IF VALID ADDRESS
-		if (recipient != null && !Crypto.getInstance().isValidAddress(recipient)) {
-			throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_INVALID_ADDRESS);
-		}
-		
+		if (recipient != null && !Crypto.getInstance().isValidAddress(recipient))
+			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_INVALID_ADDRESS);
+
 		boolean count = false;
 		if (jsonObject.containsKey("count")) {
-			try
-			{
+			try {
 				count = (boolean) jsonObject.get("count");
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
-		
+
 		boolean desc = false;
 		if (jsonObject.containsKey("desc")) {
-			try
-			{
+			try {
 				desc = (boolean) jsonObject.get("desc");
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
 
 		int offset = 0;
 		if (jsonObject.containsKey("offset")) {
-			try
-			{
+			try {
 				offset = ((Long) jsonObject.get("offset")).intValue();
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
-		
+
 		int limit = 0;
 		if (jsonObject.containsKey("limit")) {
-			try
-			{
+			try {
 				limit = ((Long) jsonObject.get("limit")).intValue();
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
-		
+
 		int minHeight = 0;
 		if (jsonObject.containsKey("minHeight")) {
-			try
-			{
+			try {
 				minHeight = ((Long) jsonObject.get("minHeight")).intValue();
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
-		
+
 		int maxHeight = 0;
 		if (jsonObject.containsKey("maxHeight")) {
-			try
-			{
+			try {
 				maxHeight = ((Long) jsonObject.get("maxHeight")).intValue();
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
 
 		int type = 0;
 		if (jsonObject.containsKey("type")) {
-			try
-			{
+			try {
 				type = ((Long) jsonObject.get("type")).intValue();
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
 		}
-		
+
 		int service = -1;
-		if ((type == Transaction.ARBITRARY_TRANSACTION || type == 0)
-				&& jsonObject.containsKey("service")) {
-			try
-			{
+		if ((type == Transaction.ARBITRARY_TRANSACTION || type == 0) && jsonObject.containsKey("service")) {
+			try {
 				service = ((Long) jsonObject.get("service")).intValue();
 			} catch (Exception e) {
-				throw ApiErrorFactory.getInstance().createError(
-					ApiErrorFactory.ERROR_JSON);
+				throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_JSON);
 			}
-			
+
 			type = Transaction.ARBITRARY_TRANSACTION;
 		}
-		
+
 		if (count) {
-			return String.valueOf(DBSet.getInstance().getTransactionFinalMap().findTransactionsCount(address, sender, recipient, minHeight, maxHeight, type, service, desc, offset, limit));
+			return String.valueOf(DBSet.getInstance().getTransactionFinalMap().findTransactionsCount(address, sender, recipient, minHeight, maxHeight, type,
+					service, desc, offset, limit));
 		}
-		
+
 		JSONArray array = new JSONArray();
-		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().findTransactions(address, sender, recipient, minHeight, maxHeight, type, service, desc, offset, limit);
-		for(Transaction transaction: txs)
-		{
+		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().findTransactions(address, sender, recipient, minHeight, maxHeight, type, service,
+				desc, offset, limit);
+
+		for (Transaction transaction : txs)
 			array.add(transaction.toJson());
-		}
-		
+
 		return array.toJSONString();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("sender/{address}/limit/{limit}")
-	public String getTransactionsBySender(@PathParam("address") String address, @PathParam("limit") int limit)
-	{
-		
+	public String getTransactionsBySender(@PathParam("address") String address, @PathParam("limit") int limit) {
 		JSONArray array = new JSONArray();
 		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().getTransactionsBySender(address, limit);
-		for(Transaction transaction: txs)
-		{
+
+		for (Transaction transaction : txs)
 			array.add(transaction.toJson());
-		}
-		
+
 		return array.toJSONString();
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("address/{address}/type/{type}/limit/{limit}")
-	public String getTransactionsByTypeAndAddress(@PathParam("address") String address, @PathParam("type") int type, @PathParam("limit") int limit)
-	{
-		
+	public String getTransactionsByTypeAndAddress(@PathParam("address") String address, @PathParam("type") int type, @PathParam("limit") int limit) {
 		JSONArray array = new JSONArray();
 		List<Transaction> txs = DBSet.getInstance().getTransactionFinalMap().getTransactionsByTypeAndAddress(address, type, limit);
-		for(Transaction transaction: txs)
-		{
+
+		for (Transaction transaction : txs)
 			array.add(transaction.toJson());
-		}
-		
+
 		return array.toJSONString();
 	}
 }

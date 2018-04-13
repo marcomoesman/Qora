@@ -119,11 +119,16 @@ public class ApiClient {
 			},
 			{
 				"GET transactions/address/<address>", 
-				"Returns an array of the last 50 transactions of a specific address in your wallet.",
-				"Errors: 102 - Invalid address. 201 - Wallet does not exist. 202 - address does not exist in wallet"
+				"Returns an array of the last 50 transactions of a specific address.",
+				"Errors: 102 - Invalid address."
 			},
 			{
-				"GET transactions/address/<address>/limit/<limit>", 
+				"GET transactions/address/<address>/limit/<limit>",
+				"Returns an array of the last <limit> transactions of a specific address in your wallet.",
+				"Errors: 102 - Invalid address. 124 - Invalid results limit."
+			},
+			{
+				"GET transactions/walletAddress/<address>/limit/<limit>",
 				"Returns an array of the last <limit> transactions of a specific address in your wallet.",
 				"Errors: 102 - Invalid address. 201 - Wallet does not exist. 202 - address does not exist in wallet"
 			},
@@ -143,8 +148,13 @@ public class ApiClient {
 				""
 			},
 			{
+				"POST transactions/unconfirmedofmany [<address> [, <address> ...]]",
+				"Returns an array of all the unconfirmed transactions known to the client involving addresses.",
+				""
+			},
+			{
 				"POST transactions/scan {\"start\": \"<startBlockSign>, \"blocklimit\":<amountBlocks>, \"transactionlimit\":<amountTransactions>, \"type\":<type>, \"service\":<service>, \"address\":\"<address>\"}", 
-				"Returns all the transactions that match the filters. All filters are optional but please limit that amount of transactions or blocks to scan to avoid running into issues. Requests that don't specify a blocklimit <= 360 will be denied to remote users. Return the last block it scanned, the amount of blocks it scanned and the scanned transactions.",
+				"Returns all the transactions that match the filters. All filters are optional but please limit the amount of transactions or blocks to scan to avoid running into issues. Requests that don't specify a blocklimit <= 360 will be denied to remote users. Returns the last block scanned, the number of blocks scanned and the scanned transactions.",
 				"Filters:\nstart - The signature of the starting block. \nblocklimit - The maximum amount of blocks to scan. \ntransactionlimit - The maximum amount of transactions to return.\ntype - Only return transactions with the given type.\nservice - Only return Arbitrary Transactions with the given service.\naddress - Only return transactions where the given address is involved.\nErrors: 1 -Json error. 102 - Invalid address. 101 - Invalid signature. 301 - Block does not exist.",
 			},
 			{
@@ -316,6 +326,21 @@ public class ApiClient {
 				"GET addresses/lastreference/{address}/unconfirmed", 
 				"Returns the 64-byte long base58-encoded signature of last transaction including unconfirmed where the address is delivered as creator. Or the first incoming transaction. Returns \"false\" if there is no transactions.",
 				"Errors: 102 - Invalid address."
+			},
+			{
+				"POST addresses/setinfo/{address}",
+				"Set address-related info like alias, profile picture, etc. Aliases must be 3-32 chars and not start/end with whitespace.",
+				"Errors: 2 - Not enough balance. 102 - Invalid address. 121 - Fee less than required. 124 - Invalid alias. 201 - Wallet does not exist. 203 - Wallet is locked. 202 - Wallet address does not exist. "
+			},
+			{
+				"GET addresses/info/{address}",
+				"Returns the info for that address, i.e. alias, profile picture, etc. or \"false\" if none stored.",
+				"Errors: 102 - Invalid address."
+			},
+			{
+				"GET addresses/alias/{alias}",
+				"Returns the address and info using alias or \"false\" if alias does not exist.",
+				"",
 			},
 			{
 				"GET wallet", 
@@ -571,6 +596,11 @@ public class ApiClient {
 				"GET assets/<key>/full", 
 				"Returns full information about asset with the given key.",
 				"Errors: 601 - Invalid asset ID."
+			},
+			{
+				"POST assets/trades {\"key\": \"<key>\", \"addresses\": [\"<address>\", ...], \"minTimestamp\": <minTimestamp>, \"limit\": <limit>, \"offset\": <offset>}",
+				"Caller must supply at least one of \"key\" or \"addresses\". Returns matching trades.",
+				"Errors: 124 - Invalid results limit. 125 - Invalid results offset. 601 - Invalid asset ID."
 			},
 			{
 				"POST blogpost/<blogname> {\"fee\": \"<fee>\", \"creator\": \"<creator>\", \"author\": \"<author>\", \"title\": \"<title>\", \"body\": \"<body>\", \"share\": \"<share>\", \"delete\": \"<delete>\"}",

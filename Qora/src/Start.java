@@ -87,7 +87,7 @@ public class Start {
 			
 			// Controller started OK, inform GUI
 			if (Settings.getInstance().isGuiEnabled() && maingui != null)
-				maingui.startupCompleted();
+				maingui.onStartupCompleted();
 		} else {
 			Scanner scanner = new Scanner(System.in);
 			ApiClient client = new ApiClient();

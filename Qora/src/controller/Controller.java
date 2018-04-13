@@ -1,8 +1,5 @@
 package controller;
 
-import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
-import java.awt.TrayIcon.MessageType;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -28,9 +25,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -46,7 +40,6 @@ import database.DBSet;
 import database.LocalDataMap;
 import database.SortableList;
 import gui.ClosingDialog;
-import gui.Gui;
 import gui.SplashFrame;
 import lang.Lang;
 import network.Network;
@@ -84,18 +77,17 @@ import settings.Settings;
 import utils.DateTimeFormat;
 import utils.ObserverMessage;
 import utils.Pair;
-import utils.SysTray;
 import utils.UpdateUtil;
 import webserver.WebService;
 
 public class Controller extends Observable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.7";
-	private String buildTime = "2018-03-09 08:56:00 UTC";
+	private String version = "1.0";
+	private String buildTime = "2018-04-13 10:09:00 UTC";
 	private long buildTimestamp;
 
-	public static final String releaseVersion = "0.26.7";
+	public static final String releaseVersion = "1.0";
 
 	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -329,6 +321,7 @@ public class Controller extends Observable {
 				UpdateUtil.repopulateNameStorage(70000); // Don't bother scanning blocks below height 70,000
 				localDataMap.set("nsupdate", "2");
 			}
+
 			// Check whether final transaction map needs rebuilding
 			if (localDataMap.get("txfinalmap") == null || !localDataMap.get("txfinalmap").equals("2")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding transaction-block mapping");
@@ -338,12 +331,22 @@ public class Controller extends Observable {
 				localDataMap.set("txfinalmap", "2");
 			}
 
+			// Check whether blog post mappings need rebuilding
 			if (localDataMap.get("blogpostmap") == null || !localDataMap.get("blogpostmap").equals("3")) {
 				SplashFrame.getInstance().updateProgress("Rebuilding blog comments");
 
 				// Recreate comment postmap
 				UpdateUtil.repopulateCommentPostMap();
 				localDataMap.set("blogpostmap", "3");
+			}
+			
+			// Check whether account info (alias, etc.) needs rebuilding
+			if (localDataMap.get("accountinfomap") == null || !localDataMap.get("accountinfomap").equals("1")) {
+				SplashFrame.getInstance().updateProgress("Rebuilding account info");
+
+				// Recreate account info data
+				UpdateUtil.repopulateAccountInfoMap();
+				localDataMap.set("accountinfomap", "1");
 			}
 		} else {
 			DBSet.getInstance().getLocalDataMap().set("nsupdate", "2");
@@ -1151,35 +1154,6 @@ public class Controller extends Observable {
 			}
 		}
 
-		if (!GraphicsEnvironment.isHeadless() && Gui.isGuiStarted()) {
-			Gui gui = Gui.getInstance();
-			SysTray.getInstance().sendMessage(Lang.getInstance().translate("INCOMING API CALL"),
-					Lang.getInstance().translate("An API call needs authorization!"), MessageType.WARNING);
-			Object[] options = { Lang.getInstance().translate("Yes"), Lang.getInstance().translate("No") };
-
-			StringBuilder sb = new StringBuilder(Lang.getInstance().translate("Permission Request: "));
-			sb.append(Lang.getInstance().translate("Do you want to authorize the following API call?\n\n") + json);
-			JTextArea jta = new JTextArea(sb.toString());
-			jta.setLineWrap(true);
-			jta.setEditable(false);
-			JScrollPane jsp = new JScrollPane(jta) {
-				/**
-				 *
-				 */
-				private static final long serialVersionUID = 1L;
-
-				@Override
-				public Dimension getPreferredSize() {
-					return new Dimension(480, 200);
-				}
-			};
-
-			gui.bringtoFront();
-
-			result = JOptionPane.showOptionDialog(gui, jsp, Lang.getInstance().translate("INCOMING API CALL"), JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
-		}
-
 		return result;
 	}
 
@@ -1395,7 +1369,7 @@ public class Controller extends Observable {
 	}
 
 	public SortableList<Tuple2<BigInteger, BigInteger>, Trade> getTrades(Order order) {
-		return DBSet.getInstance().getTradeMap().getTrades(order);
+		return DBSet.getInstance().getTradeMap().getTradesSortableList(order);
 	}
 
 	// ATs
