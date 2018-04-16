@@ -85,6 +85,7 @@ public class ConnectionAcceptor extends Thread{
 					else
 					{
 						//CREATE PEER
+						LOGGER.debug("Connection accepted from " + connectionSocket.getInetAddress());
 						new Peer(callback, connectionSocket);
 					}
 				}

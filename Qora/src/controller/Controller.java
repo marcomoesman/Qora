@@ -91,11 +91,11 @@ import webserver.WebService;
 public class Controller extends Observable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.7";
-	private String buildTime = "2018-03-09 08:56:00 UTC";
+	private String version = "0.26.8";
+	private String buildTime = "2018-04-16 22:11:00 UTC";
 	private long buildTimestamp;
 
-	public static final String releaseVersion = "0.26.7";
+	public static final String releaseVersion = "0.26.8";
 
 	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -681,7 +681,8 @@ public class Controller extends Observable {
 			peer.sendMessage(MessageFactory.getInstance().createVersionMessage(Controller.getInstance().getVersion(), this.getBuildTimestamp()));
 		}
 
-		// SEND HEIGTH MESSAGE
+		// SEND HEIGHT MESSAGE
+		LOGGER.trace("Sending our height " + height + " to peer " + peer.getAddress());
 		peer.sendMessage(MessageFactory.getInstance().createHeightMessage(height));
 
 		if (this.status == STATUS_NO_CONNECTIONS) {
@@ -753,7 +754,7 @@ public class Controller extends Observable {
 		this.onDisconnect(peer);
 	}
 
-	// SYNCHRONIZED DO NOT PROCESSS MESSAGES SIMULTANEOUSLY
+	// SYNCHRONIZED DO NOT PROCESS MESSAGES SIMULTANEOUSLY
 	public void onMessage(Message message) {
 		Message response;
 		Block block;
@@ -776,6 +777,7 @@ public class Controller extends Observable {
 				case Message.HEIGHT_TYPE:
 
 					HeightMessage heightMessage = (HeightMessage) message;
+					LOGGER.trace("Received height " + heightMessage.getHeight() + " from peer " + heightMessage.getSender().getAddress());
 
 					// ADD TO LIST
 					synchronized (this.peerHeight) {
@@ -786,10 +788,15 @@ public class Controller extends Observable {
 
 				case Message.GET_SIGNATURES_TYPE:
 
+					// Don't send if we're synchronizing
+					if (this.status == STATUS_SYNCHRONIZING)
+						break;
+
 					GetSignaturesMessage getHeadersMessage = (GetSignaturesMessage) message;
 
 					// ASK SIGNATURES FROM BLOCKCHAIN
 					List<byte[]> headers = this.blockChain.getSignatures(getHeadersMessage.getParent());
+					LOGGER.trace("Found " + headers.size() + " block signatures to send to " + message.getSender().getAddress()); 
 
 					// CREATE RESPONSE WITH SAME ID
 					response = MessageFactory.getInstance().createHeadersMessage(headers);
@@ -801,6 +808,10 @@ public class Controller extends Observable {
 					break;
 
 				case Message.GET_BLOCK_TYPE:
+
+					// Don't send if we're synchronizing
+					if (this.status == STATUS_SYNCHRONIZING)
+						break;
 
 					GetBlockMessage getBlockMessage = (GetBlockMessage) message;
 
@@ -970,13 +981,18 @@ public class Controller extends Observable {
 				// START UPDATE FROM HIGHEST HEIGHT PEER
 				peer = this.getMaxHeightPeer();
 
-				if (peer != null) {
-					// SYNCHRONIZE FROM PEER
-					this.synchronizer.synchronize(peer);
+				if (peer == null) {
+					Thread.sleep(5 * 1000);
+					continue;
 				}
+
+				// SYNCHRONIZE FROM PEER
+				this.synchronizer.synchronize(peer);
 			}
+		} catch (InterruptedException e) {
+			return;
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			LOGGER.debug(e.getMessage());
 
 			if (peer != null) {
 				// DISHONEST PEER

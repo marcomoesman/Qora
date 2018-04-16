@@ -69,8 +69,10 @@ public class Synchronizer {
 		}
 
 		// If headers is still empty at this point then peer has NO common block, not even genesis block
-		if (headers.size() == 0)
-			throw new Exception("Peer has no common block - not even genesis block");
+		if (headers.size() == 0) {
+			LOGGER.debug("Peer has no common block - not even genesis block");
+			return null;
+		}
 
 		// Work back from peer's signature list to find common block
 		for (int i = headers.size() - 1; i >= 0; --i) {
@@ -160,6 +162,8 @@ public class Synchronizer {
 	private List<byte[]> getBlockSignatures(Block start, int minimumAmount, Peer peer) throws Exception {
 		// NB: "headers" refers to block signatures
 
+		LOGGER.trace("Requesting " + minimumAmount + " block signatures after height " + start.getHeight());
+
 		// Request chunk of next block signatures after "start" block from peer
 		List<byte[]> headers = this.getBlockSignatures(start.getSignature(), peer);
 
@@ -210,7 +214,7 @@ public class Synchronizer {
 		SignaturesMessage response = (SignaturesMessage) peer.getResponse(message);
 
 		if (response == null) {
-			LOGGER.info("Peer didn't respond with block signatures");
+			LOGGER.debug("Peer didn't respond with block signatures");
 			return null;
 		}
 
@@ -356,11 +360,17 @@ public class Synchronizer {
 		// We keep these extras for validation/reapplying. They are prepended to newBlocks.
 		this.orphanBackToCommonBlock(fork, lastCommonBlock, newBlocks, null);
 
+		int expectedBlockHeight = lastCommonBlock.getHeight() + 1;
+
 		// Validate new blocks
 		for (Block block : newBlocks) {
 			// Early bail-out if shutting down
 			if (!this.run)
 				return orphanedTransactions;
+
+			// Check received block height matches our expectations
+			if (block.getHeight() != expectedBlockHeight)
+				throw new Exception("Peer sent out-of-order block " + block.getHeight() + ", we expected block " + expectedBlockHeight);
 
 			// Check block is valid
 			if (!block.isValid(fork)) {
@@ -373,6 +383,8 @@ public class Synchronizer {
 
 			// Process and continue
 			block.process(fork);
+
+			expectedBlockHeight++;
 		}
 
 		// Switch AT platform back from fork to main DB
@@ -413,7 +425,7 @@ public class Synchronizer {
 	 * @see BlockBuffer
 	 */
 	public void synchronize(Peer peer) throws Exception {
-		LOGGER.info("Synchronizing: " + peer.getAddress().getHostAddress() + " - ping " + peer.getPing() + "ms");
+		LOGGER.info("Synchronizing using peer " + peer.getAddress().getHostAddress() + " - ping " + peer.getPing() + "ms");
 
 		// Find last common block with peer
 		Block lastCommonBlock = this.findLastCommonBlock(peer);
@@ -426,7 +438,7 @@ public class Synchronizer {
 
 		// If last common block is our blockchain tip then we can forego any orphaning and simply process new blocks
 		if (Arrays.equals(lastCommonBlock.getSignature(), lastBlock.getSignature())) {
-			LOGGER.info("Synchronizing: continuing from blockchain tip " + lastBlock.getHeight() + " using " + peer.getAddress().getHostAddress());
+			LOGGER.info("Synchronisation continuing from blockchain tip " + lastBlock.getHeight() + " using " + peer.getAddress().getHostAddress());
 
 			// Request next chunk of block signatures from peer
 			List<byte[]> signatures = this.getBlockSignatures(lastCommonBlock, BlockChain.MAX_SIGNATURES, peer);
@@ -438,6 +450,8 @@ public class Synchronizer {
 			// Create block buffer to request blocks from peer
 			BlockBuffer blockBuffer = new BlockBuffer(signatures, peer);
 
+			int expectedBlockHeight = lastBlock.getHeight() + 1;
+
 			// Process block-by-block as they arrive into block buffer
 			for (byte[] signature : signatures) {
 				// Wait for block to arrive from peer into block buffer
@@ -447,12 +461,20 @@ public class Synchronizer {
 					block = blockBuffer.getBlock(signature);
 				} catch (Exception e) {
 					// We failed to receive a block or a received block had an invalid signature
-					LOGGER.info("Peer didn't send block or sent a block with invalid signature");
+					LOGGER.debug("Peer didn't send block or sent a block with invalid signature");
 					break;
 				}
 
 				if (block == null) {
-					LOGGER.info("Timed out receiving block from peer");
+					LOGGER.debug("Timed out receiving block from peer");
+					break;
+				}
+
+				// Check received block height matches our expectations
+				// A height of -1 means it's a new block (which is okay)
+				int height = block.getHeight(); 
+				if (height != -1 && height != expectedBlockHeight) {
+					LOGGER.debug("Peer sent out-of-order block " + block.getHeight() + ", we expected block " + expectedBlockHeight);
 					break;
 				}
 
@@ -463,14 +485,18 @@ public class Synchronizer {
 						break;
 
 					// Peer sent us an invalid block
-					throw new Exception("Peer sent invalid block");
+					LOGGER.debug("Peer sent invalid block");
+					break;
 				}
+
+				expectedBlockHeight++;
 			}
 
 			// Block buffer no longer needed: we've finished processing or we're shutting down
 			blockBuffer.stopThread();
 		} else {
-			LOGGER.info("Synchronizing: " + peer.getAddress().getHostAddress() + " last common block height: " + lastCommonBlock.getHeight());
+			LOGGER.info("Synchronizing using peer " + peer.getAddress().getHostAddress() + " from last common block height " + lastCommonBlock.getHeight()
+					+ ", previous tip was " + lastBlock.getHeight());
 
 			// Request signatures from peer covering from last common block height to our blockchain tip height
 			int amount = lastBlock.getHeight() - lastCommonBlock.getHeight();
@@ -480,16 +506,20 @@ public class Synchronizer {
 
 			List<byte[]> signatures = this.getBlockSignatures(lastCommonBlock, amount, peer);
 
-			// Request all the blocks using received signatures.
-			List<Block> blocks = this.getBlocks(signatures, peer);
+			try {
+				// Request all the blocks using received signatures.
+				List<Block> blocks = this.getBlocks(signatures, peer);
 
-			// Synchronize our blockchain using received blocks starting from lastCommonBlock
-			List<Transaction> orphanedTransactions = this.synchronize(DBSet.getInstance(), lastCommonBlock, blocks);
+				// Synchronize our blockchain using received blocks starting from lastCommonBlock
+				List<Transaction> orphanedTransactions = this.synchronize(DBSet.getInstance(), lastCommonBlock, blocks);
 
-			// Notify peer of any orphaned transactions in case we had some they don't know about
-			for (Transaction transaction : orphanedTransactions) {
-				TransactionMessage transactionMessage = new TransactionMessage(transaction);
-				peer.sendMessage(transactionMessage);
+				// Notify peer of any orphaned transactions in case we had some they don't know about
+				for (Transaction transaction : orphanedTransactions) {
+					TransactionMessage transactionMessage = new TransactionMessage(transaction);
+					peer.sendMessage(transactionMessage);
+				}
+			} catch (Exception e) {
+				LOGGER.debug(e.getMessage());
 			}
 		}
 	}
