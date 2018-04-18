@@ -11,6 +11,7 @@ import java.util.List;
 import ntp.NTP;
 
 import database.DBSet;
+import network.message.BlockMessage;
 import qora.BlockGenerator;
 import qora.Synchronizer;
 import qora.account.PrivateKeyAccount;
@@ -79,7 +80,7 @@ public class SynchronizerTests {
 		DBSet fork = databaseSet.fork();
 
 		// Generate next 5 blocks (on fork)
-		List<Block> newBlocks = new ArrayList<Block>();
+		List<BlockMessage> newBlockMessages = new ArrayList<BlockMessage>();
 		for (int i = 0; i < 5; ++i) {
 			// Generate next block
 			Block newBlock = blockGenerator.generateNextBlock(fork, accountB, lastBlock);
@@ -96,7 +97,7 @@ public class SynchronizerTests {
 			newBlock.process(fork);
 
 			// Add to list of new blocks
-			newBlocks.add(newBlock);
+			newBlockMessages.add(new BlockMessage(newBlock, newBlock.getHeight(fork)));
 
 			// Last block is the new block
 			lastBlock = newBlock;
@@ -112,15 +113,15 @@ public class SynchronizerTests {
 			final Block lastCommonBlock = null;
 			
 			// first newBlock's block's reference should be last firstBlock's block's signature
-			assertTrue("first newBlock's reference should be last firstBlock's block signature", Arrays.equals(newBlocks.get(0).getReference(), firstBlocks.get(4).getSignature()));
+			assertTrue("first newBlock's reference should be last firstBlock's block signature", Arrays.equals(newBlockMessages.get(0).getBlock().getReference(), firstBlocks.get(4).getSignature()));
 			
-			synchronizer.synchronize(databaseSet, lastCommonBlock, newBlocks);
+			synchronizer.synchronize(databaseSet, lastCommonBlock, newBlockMessages);
 
 			// Check last 5 blocks are the ones from newBlocks simply appended to blockchain
 			lastBlock = databaseSet.getBlockMap().getLastBlock();
 			for (int i = 4; i >= 0; --i) {
 				// Check last block is the correct block from newBlocks
-				assertTrue("lastBlock's signature should be newBlocks[" + i + "]'s signature", Arrays.equals(newBlocks.get(i).getSignature(), lastBlock.getSignature()));
+				assertTrue("lastBlock's signature should be newBlockMessages[" + i + "]'s block's signature", Arrays.equals(newBlockMessages.get(i).getBlock().getSignature(), lastBlock.getSignature()));
 				lastBlock = lastBlock.getParent(databaseSet);
 			}
 
@@ -198,7 +199,7 @@ public class SynchronizerTests {
 		// GENERATE FIRST 10 BLOCKS ON CHAIN 2 USING ACCOUNT B
 		
 		lastBlock = genesisBlock;
-		List<Block> newBlocks = new ArrayList<Block>();
+		List<BlockMessage> newBlockMessages = new ArrayList<BlockMessage>();
 		for (int i = 0; i < 10; ++i) {
 			// Generate next block
 			Block newBlock = blockGenerator.generateNextBlock(databaseSet2, accountB, lastBlock);
@@ -215,7 +216,7 @@ public class SynchronizerTests {
 			newBlock.process(databaseSet2);
 
 			// Add to list of new blocks
-			newBlocks.add(newBlock);
+			newBlockMessages.add(new BlockMessage(newBlock, newBlock.getHeight(databaseSet2)));
 
 			// Last block is the new block
 			lastBlock = newBlock;
@@ -229,13 +230,13 @@ public class SynchronizerTests {
 			// NB: Just to be explicit about last common block being genesis block
 			final Block lastCommonBlock = genesisBlock;
 
-			synchronizer.synchronize(databaseSet1, lastCommonBlock, newBlocks);
+			synchronizer.synchronize(databaseSet1, lastCommonBlock, newBlockMessages);
 
 			// Check last 10 blocks on chain 1 are from chain 2 attached after genesis block 
 			lastBlock = databaseSet1.getBlockMap().getLastBlock();
 			for (int i = 9; i >= 0; --i) {
 				// Check last block is the correct block from newBlocks
-				assertTrue("lastBlock's signature should be newBlocks[" + i + "]'s signature", Arrays.equals(newBlocks.get(i).getSignature(), lastBlock.getSignature()));
+				assertTrue("lastBlock's signature should be newBlocks[" + i + "]'s block's signature", Arrays.equals(newBlockMessages.get(i).getBlock().getSignature(), lastBlock.getSignature()));
 
 				lastBlock = lastBlock.getParent(databaseSet1);
 			}

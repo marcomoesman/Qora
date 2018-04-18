@@ -293,7 +293,7 @@ public class Peer extends Thread {
 			if (socket == null || socket.isClosed()) {
 				LOGGER.debug(Lang.getInstance().translate("Socket already closed") + " " + address);
 			} else {
-				LOGGER.info(Lang.getInstance().translate("Socket issue with peer") + " " + address, e);
+				LOGGER.info(Lang.getInstance().translate("Socket issue with peer") + " " + address + e.getMessage());
 			}
 
 			// Disconnect peer
@@ -377,6 +377,8 @@ public class Peer extends Thread {
 		BlockingQueue<Message> blockingQueue = new ArrayBlockingQueue<Message>(1);
 		this.messages.put(id, blockingQueue);
 
+		// LOGGER.trace("Sending type " + message.getType() + " message " + id + " to peer " + address);
+
 		// Try to send message
 		if (!this.sendMessage(message)) {
 			this.messages.remove(id);
@@ -387,13 +389,15 @@ public class Peer extends Thread {
 			Message response = blockingQueue.poll(Settings.getInstance().getConnectionTimeout(), TimeUnit.MILLISECONDS);
 			this.messages.remove(id);
 
-			if (response == null && this.socket.isConnected())
+			if (response == null && this.socket.isConnected()) {
+				// LOGGER.trace("Timed out while waiting for type " + message.getType() + " response " + id + " from peer " + address);
 				LOGGER.info("Timed out while waiting for response from peer " + address);
+			}
 
 			return response;
 		} catch (InterruptedException e) {
 			// Our thread was interrupted. Probably in shutdown scenario.
-			LOGGER.info("Interrupted while waiting for response from peer " + address);
+			LOGGER.debug("Interrupted while waiting for response from peer " + address);
 			this.messages.remove(id);
 			return null;
 		}
@@ -421,12 +425,16 @@ public class Peer extends Thread {
 	public void close() {
 		LOGGER.debug("Closing socket connection to peer " + address);
 
+		// Ignore any pending messages
+		this.messages.clear();
+
+		// Stop processing messages
+		if (this.isAlive())
+			this.interrupt();
+
 		// Stop Pinger if applicable
 		if (this.pinger != null)
 			this.pinger.stopPing();
-
-		if (this.isAlive())
-			this.interrupt();
 
 		try {
 			// Close socket if applicable

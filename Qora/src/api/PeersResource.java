@@ -211,6 +211,9 @@ public class PeersResource
 				o.put("lastGray", "never");
 			}
 			o.put("whitePingCounter", peerInfo.getWhitePingCouner());
+
+			if (peerInfo.isBlacklisted())
+				o.put("isBlacklisted", "true");
 		}
 		
 		if(o.size() == 0){
@@ -276,4 +279,29 @@ public class PeersResource
 		
 		return "OK";
 	}
+
+	@POST
+	@Path("/blacklist")
+	public String blacklistPeer(String address) {
+		APIUtils.askAPICallAllowed("POST peers/blacklist " + address, request);
+
+		// CHECK WALLET UNLOCKED
+		if (Controller.getInstance().doesWalletExists() && !Controller.getInstance().isWalletUnlocked()) {
+			throw ApiErrorFactory.getInstance().createError(
+					ApiErrorFactory.ERROR_WALLET_LOCKED);
+		}
+
+		Peer peer;
+		try {
+			peer = new Peer(InetAddress.getByName(address));
+		} catch (UnknownHostException e) {
+			throw ApiErrorFactory.getInstance().createError(
+					ApiErrorFactory.ERROR_INVALID_NETWORK_ADDRESS);
+		}
+
+		PeerManager.getInstance().blacklistPeer(peer);
+
+		return "OK";
+	}
+
 }

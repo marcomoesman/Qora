@@ -91,11 +91,11 @@ import webserver.WebService;
 public class Controller extends Observable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.8";
-	private String buildTime = "2018-04-16 22:11:00 UTC";
+	private String version = "0.26.9";
+	private String buildTime = "2018-04-18 16:58:00 UTC";
 	private long buildTimestamp;
 
-	public static final String releaseVersion = "0.26.8";
+	public static final String releaseVersion = "0.26.9";
 
 	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -158,16 +158,17 @@ public class Controller extends Observable {
 		if (this.buildTimestamp == 0) {
 			Date date = new Date();
 			URL resource = getClass().getResource(getClass().getSimpleName() + ".class");
-			if (resource != null) {
-				if (!resource.getProtocol().equals("file")) {
-					DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-					try {
-						date = (Date) formatter.parse(this.buildTime);
-					} catch (ParseException e) {
-						LOGGER.error(e.getMessage(), e);
-					}
+
+			if (resource == null || !resource.getProtocol().equals("file")) {
+				// Use compiled buildTime
+				DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+				try {
+					date = (Date) formatter.parse(this.buildTime);
+				} catch (ParseException e) {
+					LOGGER.error(e.getMessage(), e);
 				}
 			}
+
 			this.buildTimestamp = date.getTime();
 		}
 		return this.buildTimestamp;
@@ -796,7 +797,7 @@ public class Controller extends Observable {
 
 					// ASK SIGNATURES FROM BLOCKCHAIN
 					List<byte[]> headers = this.blockChain.getSignatures(getHeadersMessage.getParent());
-					LOGGER.trace("Found " + headers.size() + " block signatures to send to " + message.getSender().getAddress()); 
+					LOGGER.trace("Found " + headers.size() + " block signatures to send to " + message.getSender().getAddress());
 
 					// CREATE RESPONSE WITH SAME ID
 					response = MessageFactory.getInstance().createHeadersMessage(headers);
@@ -847,7 +848,7 @@ public class Controller extends Observable {
 
 					// CHECK IF VALID
 					if (isNewBlockValid && this.synchronizer.process(block)) {
-						LOGGER.info(Lang.getInstance().translate("received new valid block"));
+						LOGGER.info(Lang.getInstance().translate("received new valid block") + " " + block.getHeight());
 
 						// PROCESS
 						// this.synchronizer.process(block);
@@ -981,13 +982,13 @@ public class Controller extends Observable {
 				// START UPDATE FROM HIGHEST HEIGHT PEER
 				peer = this.getMaxHeightPeer();
 
-				if (peer == null) {
-					Thread.sleep(5 * 1000);
-					continue;
+				if (peer != null) {
+					// SYNCHRONIZE FROM PEER
+					LOGGER.info("Synchronizing using peer " + peer.getAddress().getHostAddress() + " with height " + peerHeight.get(peer) + " - ping " + peer.getPing() + "ms");
+					this.synchronizer.synchronize(peer);
 				}
 
-				// SYNCHRONIZE FROM PEER
-				this.synchronizer.synchronize(peer);
+				Thread.sleep(5 * 1000);
 			}
 		} catch (InterruptedException e) {
 			return;
@@ -1021,7 +1022,8 @@ public class Controller extends Observable {
 
 	private Peer getMaxHeightPeer() {
 		Peer highestPeer = null;
-		int bestHeight = this.blockChain.getHeight();
+		// needs to be better than our height
+		int bestHeight = this.blockChain.getHeight() + 1;
 		long bestPing = Long.MAX_VALUE;
 
 		try {

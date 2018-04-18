@@ -1,6 +1,7 @@
 package network;
 
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,7 +61,7 @@ public class Network extends Observable implements ConnectionCallback {
 
 	@Override
 	public void onConnect(Peer peer) {
-		LOGGER.info(Lang.getInstance().translate("Connection successful: ") + peer.getAddress());
+		LOGGER.debug(Lang.getInstance().translate("Connection successful: ") + peer.getAddress());
 
 		// ADD TO CONNECTED PEERS
 		synchronized (this.connectedPeers) {
@@ -232,7 +233,7 @@ public class Network extends Observable implements ConnectionCallback {
 	}
 
 	public void broadcast(Message message, List<Peer> exclude) {
-		LOGGER.info(Lang.getInstance().translate("Broadcasting"));
+		LOGGER.debug(Lang.getInstance().translate("Broadcasting"));
 
 		try {
 			synchronized (this.connectedPeers) {
@@ -248,7 +249,7 @@ public class Network extends Observable implements ConnectionCallback {
 			// Iterator fast-fail due to change in connectedPeers
 		}
 
-		LOGGER.info(Lang.getInstance().translate("Broadcasting end"));
+		LOGGER.debug(Lang.getInstance().translate("Broadcasting end"));
 	}
 
 	@Override
@@ -283,4 +284,20 @@ public class Network extends Observable implements ConnectionCallback {
 			}
 		}
 	}
+
+	public static boolean isHostLocalAddress(InetAddress address) {
+		// easy address checks first
+		if (address.isSiteLocalAddress() || address.isLoopbackAddress() || address.isAnyLocalAddress())
+			return true;
+
+		try {
+			// Is address bound to one of our interfaces?
+			NetworkInterface netIf = NetworkInterface.getByInetAddress(address);
+			return netIf != null;
+		} catch (Exception e) {
+			// Couldn't check - play safe and say it's local
+			return true;
+		}
+	}
+
 }
