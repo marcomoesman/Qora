@@ -780,7 +780,8 @@ public class Block {
 		//UPDATE LAST BLOCK
 		db.getBlockMap().setLastBlock(this);
 		
-		LOGGER.info("Processed block " + height);
+		if (db == DBSet.getInstance())
+			LOGGER.debug("Processed block " + height);
 	}
 
 	public void orphan()
