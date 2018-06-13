@@ -91,11 +91,11 @@ import webserver.WebService;
 public class Controller extends Observable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private String version = "0.26.9";
-	private String buildTime = "2018-04-18 16:58:00 UTC";
+	private String version = "0.26.10";
+	private String buildTime = "2018-06-13 07:57:00 UTC";
 	private long buildTimestamp;
 
-	public static final String releaseVersion = "0.26.9";
+	public static final String releaseVersion = "0.26.10";
 
 	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
