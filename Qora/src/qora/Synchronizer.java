@@ -378,7 +378,8 @@ public class Synchronizer {
 				AT_API_Platform_Impl.getInstance().setDBSet(db);
 
 				// Invalid block - throw exception
-				throw new Exception("Couldn't validate blocks sent from peer");
+				LOGGER.debug("Couldn't revalidate orphaned block " + (fork.getBlockMap().getLastBlock().getHeight(fork) + 1));
+				throw new Exception("Couldn't revalidate orphaned block during synchronization");
 			}
 
 			// Process and continue
@@ -413,6 +414,7 @@ public class Synchronizer {
 				AT_API_Platform_Impl.getInstance().setDBSet(db);
 
 				// Invalid block - throw exception
+				LOGGER.debug("Couldn't validate peer's block " + (fork.getBlockMap().getLastBlock().getHeight(fork) + 1));
 				throw new Exception("Couldn't validate blocks sent from peer");
 			}
 
@@ -520,6 +522,7 @@ public class Synchronizer {
 						break;
 
 					// Peer sent us an invalid block
+					LOGGER.debug("Couldn't validate peer's block " + block.getHeight());
 					throw new Exception("Peer sent invalid block");
 				}
 

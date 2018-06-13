@@ -51,6 +51,10 @@ public class ConnectionAcceptor extends Thread {
 					Socket connectionSocket = socket.accept();
 					InetAddress connectionAddress = connectionSocket.getInetAddress();
 
+					// If we're shutting down then discard new connection and exit
+					if (!isRun)
+						break;
+
 					// CHECK IF SOCKET IS NOT LOCALHOST || WE ARE ALREADY CONNECTED TO THAT SOCKET || BLACKLISTED
 					if (Network.isHostLocalAddress(connectionAddress)) {
 						// DO NOT CONNECT TO OURSELF/EXISTING CONNECTION

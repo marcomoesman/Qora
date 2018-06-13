@@ -42,7 +42,7 @@ public class ConnectionCreator extends Thread {
 						knownPeersCounter++;
 
 						// CHECK IF WE ALREADY HAVE MAX CONNECTIONS
-						if (this.isRun && callback.getActiveConnections().size() >= Settings.getInstance().getMaxConnections())
+						if (!this.isRun || callback.getActiveConnections().size() >= Settings.getInstance().getMaxConnections())
 							break;
 
 						// CHECK IF THAT PEER IS NOT BLACKLISTED
@@ -76,7 +76,7 @@ public class ConnectionCreator extends Thread {
 						Peer peer = callback.getActiveConnections().get(i);
 
 						// CHECK IF WE ALREADY HAVE MAX CONNECTIONS
-						if (this.isRun && callback.getActiveConnections().size() >= Settings.getInstance().getMaxConnections())
+						if (!this.isRun || callback.getActiveConnections().size() >= Settings.getInstance().getMaxConnections())
 							break;
 
 						// ASK PEER FOR PEERS
@@ -89,7 +89,7 @@ public class ConnectionCreator extends Thread {
 						// FOR ALL THE RECEIVED PEERS
 						for (Peer newPeer : peersMessage.getPeers()) {
 							// CHECK IF WE ALREADY HAVE MAX CONNECTIONS
-							if (this.isRun && callback.getActiveConnections().size() >= Settings.getInstance().getMaxConnections())
+							if (!this.isRun || callback.getActiveConnections().size() >= Settings.getInstance().getMaxConnections())
 								break;
 
 							// We only process a maximum number of proposed peers
