@@ -580,6 +580,10 @@ public class Block {
 			return false;
 		}
 
+		// Check parent doesn't already have a child
+		if (this.getParent(db).getChild(db) != null)
+			return false;
+
 		//CHECK IF TIMESTAMP IS VALID -500 MS ERROR MARGIN TIME
 		if(this.timestamp - 500 > NTP.getTime() || this.timestamp < this.getParent(db).timestamp)
 		{

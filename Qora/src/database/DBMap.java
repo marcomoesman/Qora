@@ -1,6 +1,7 @@
 package database;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -98,7 +99,7 @@ public abstract class DBMap<T, U> extends Observable {
 				return this.map.get(key);
 
 			// If we've deleted the entry for key, return default value
-			if (this.deleted != null && this.deleted.contains(key))
+			if (this.deletedContains(key))
 				return this.getDefaultValue();
 
 			// We don't have any entry for key (deleted or otherwise) so defer to parent (if present)
@@ -201,7 +202,7 @@ public abstract class DBMap<T, U> extends Observable {
 			return true;
 
 		// Have we deleted the entry for the key?
-		if (this.deleted != null && this.deleted.contains(key))
+		if (this.deletedContains(key))
 			return false; // deleted, so not present
 
 		// Defer to parent map (if present)
@@ -280,4 +281,36 @@ public abstract class DBMap<T, U> extends Observable {
 			this.notifyObservers(new ObserverMessage(this.getObservableData().get(NOTIFY_LIST), list));
 		}
 	}
+
+	/** 
+	 * byte[]-aware version of this.deleted.contains(key)
+	 * <p>
+	 * We can't use simplistic <tt>this.deleted.contains(key)</tt> as the underlying ArrayList implementation
+	 * uses <tt>Object.equals()</tt> to compare as this doesn't work for byte[].
+	 * <p>
+	 * This is only needed for <tt>this.deleted</tt> as <tt>this.parent</tt> is a more complex MapDB object.
+	 * <p>
+	 * @param key
+	 * @return <tt>true</tt> if <tt>this.deleted</tt> list contains key, false otherwise
+	 */
+	protected boolean deletedContains(T key) {
+		if (this.deleted == null || key == null)
+			return false;
+
+		if (!(key instanceof byte[]))
+			return this.deleted.contains(key);
+
+		// byte[]-safe
+		@SuppressWarnings("unchecked")
+		List<byte[]> deletedKeys = (List<byte[]>) this.deleted;
+
+		byte[] byteKey = (byte[]) key;
+
+		for (byte[] deletedKey : deletedKeys)
+			if (Arrays.equals(byteKey, deletedKey))
+				return true;
+
+		return false;
+	}
+
 }

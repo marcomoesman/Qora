@@ -91,11 +91,15 @@ public class BlockBuffer extends Thread
 				}
 				
 				//CHECK BLOCK SIGNATURE
+				// Don't check block signature as blocks may arrive out-of-order
+				// and signature might depend on processing of previous blocks
+				/*
 				if(!response.getBlock().isSignatureValid())
 				{
 					error = true;
 					return;
 				}
+				*/
 				
 				//ADD TO LIST
 				blockingQueue.add(response.getBlock());

@@ -266,8 +266,7 @@ public class Synchronizer {
 			lastBlock = dbOrFork.getBlockMap().getLastBlock();
 		}
 
-		// XXX: Why 11?
-		while (lastBlock.getHeight() >= height && lastBlock.getHeight() > 11) {
+		while (lastBlock.getHeight() >= height && lastBlock.getHeight() > 1) {
 			// Optionally save orphaned transactions if caller has provided
 			// storage
 			if (orphanedTransactions != null)

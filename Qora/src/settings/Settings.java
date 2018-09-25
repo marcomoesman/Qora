@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -121,7 +122,6 @@ public class Settings {
 	
 	private Settings()
 	{
-		this.localAddress = this.getCurrentIp();
 		int alreadyPassed = 0;
 		
 		File file = new File("");
@@ -211,6 +211,9 @@ public class Settings {
 			LOGGER.error(e.getMessage(),e);
 			this.peersJSON = new JSONObject();
 		}
+
+		this.localAddress = this.getCurrentIp();
+		LOGGER.debug("Our IP: " + this.localAddress);
 	}
 	
 	public JSONObject Dump()
@@ -785,7 +788,14 @@ public class Settings {
 	}
 	
 	public InetAddress getCurrentIp() {
-        try {
+		if (this.settingsJSON.containsKey("localAddress"))
+			try {
+				return InetAddress.getByName((String) this.settingsJSON.get("localAddress"));
+			} catch (UnknownHostException e) {
+				// fall through to other methods
+			}
+
+		try {
             Enumeration<NetworkInterface> networkInterfaces = NetworkInterface
                     .getNetworkInterfaces();
             while (networkInterfaces.hasMoreElements()) {

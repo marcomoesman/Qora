@@ -24,6 +24,8 @@ public class ConnectionCreator extends Thread {
 	}
 
 	public void run() {
+		Thread.currentThread().setName("ConnCreator");
+
 		this.isRun = true;
 
 		while (isRun) {

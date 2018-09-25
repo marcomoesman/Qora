@@ -78,7 +78,7 @@ public abstract class DBListValueMap<K, E, L extends List<E>> extends DBMap<K, L
 			L newList = this.newListValue();
 
 			// If we previous marked entry as deleted then we're essentially recreating a new list
-			if (this.deleted != null && this.deleted.contains(key))
+			if (this.deletedContains(key))
 				return newList;
 
 			// If the parent map contains a list for key then we need to duplicate its entries
@@ -148,7 +148,7 @@ public abstract class DBListValueMap<K, E, L extends List<E>> extends DBMap<K, L
 				return this.map.get(key);
 
 			// If we previously marked entry as deleted then we have no list
-			if (this.deleted != null && this.deleted.contains(key))
+			if (this.deletedContains(key))
 				return null;
 
 			// If we have no parent or parent has no entry then there's no list

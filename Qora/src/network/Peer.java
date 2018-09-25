@@ -293,7 +293,7 @@ public class Peer extends Thread {
 			if (socket == null || socket.isClosed()) {
 				LOGGER.debug(Lang.getInstance().translate("Socket already closed") + " " + address);
 			} else {
-				LOGGER.info(Lang.getInstance().translate("Socket issue with peer") + " " + address + e.getMessage());
+				LOGGER.info(Lang.getInstance().translate("Socket issue with peer") + " " + address + ": " + e.getMessage());
 			}
 
 			// Disconnect peer
@@ -346,7 +346,7 @@ public class Peer extends Thread {
 			// RETURN
 			return true;
 		} catch (Exception e) {
-			LOGGER.debug(e.getMessage(), e);
+			LOGGER.trace(e.getMessage(), e);
 
 			// ERROR
 			this.callback.onError(this, e.getMessage());
