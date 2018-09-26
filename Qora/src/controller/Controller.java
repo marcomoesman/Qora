@@ -581,44 +581,50 @@ public class Controller extends Observable {
 	}
 
 	private boolean isStopping = false;
+	private Object stoppingLock = new Object();
 
 	public void stopAll() {
-		// PREVENT MULTIPLE CALLS
-		if (!this.isStopping) {
-			this.isStopping = true;
+		// Prevent multiple calls.
+		// This method can be called via JVM shutdown hook (e.g. signal), API 'stop' or GUI 'exit', among others.
+		// In particular, ClosingDialog.getInstance() below can trigger a call to stopAll().
+		// We want all successive calls to block until the first call has finished.
+		synchronized (this.stoppingLock) {
+			if (!this.isStopping) {
+				this.isStopping = true;
 
-			// STOP SENDING OUR HEIGHT TO PEERS
-			this.timerPeerHeightUpdate.cancel();
+				// STOP SENDING OUR HEIGHT TO PEERS
+				this.timerPeerHeightUpdate.cancel();
 
-			// STOP BLOCK PROCESSOR
-			LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
-			ClosingDialog.getInstance().updateProgress("Stopping block processor");
-			this.synchronizer.stop();
+				// STOP BLOCK PROCESSOR
+				LOGGER.info(Lang.getInstance().translate("Stopping block processor"));
+				ClosingDialog.getInstance().updateProgress("Stopping block processor");
+				this.synchronizer.stop();
 
-			// STOP BLOCK GENERATOR
-			LOGGER.info(Lang.getInstance().translate("Stopping block generator"));
-			ClosingDialog.getInstance().updateProgress("Stopping block generator");
-			this.blockGenerator.shutdown();
+				// STOP BLOCK GENERATOR
+				LOGGER.info(Lang.getInstance().translate("Stopping block generator"));
+				ClosingDialog.getInstance().updateProgress("Stopping block generator");
+				this.blockGenerator.shutdown();
 
-			// STOP MESSAGE PROCESSOR
-			LOGGER.info(Lang.getInstance().translate("Stopping message processor"));
-			ClosingDialog.getInstance().updateProgress("Stopping message processor");
-			this.network.stop();
+				// STOP MESSAGE PROCESSOR
+				LOGGER.info(Lang.getInstance().translate("Stopping message processor"));
+				ClosingDialog.getInstance().updateProgress("Stopping message processor");
+				this.network.stop();
 
-			// CLOSE DATABASE
-			LOGGER.info(Lang.getInstance().translate("Closing database"));
-			ClosingDialog.getInstance().updateProgress("Closing database");
-			DBSet.getInstance().close();
+				// CLOSE DATABASE
+				LOGGER.info(Lang.getInstance().translate("Closing database"));
+				ClosingDialog.getInstance().updateProgress("Closing database");
+				DBSet.getInstance().close();
 
-			// CLOSE WALLET
-			LOGGER.info(Lang.getInstance().translate("Closing wallet"));
-			ClosingDialog.getInstance().updateProgress("Closing wallet");
-			this.wallet.close();
+				// CLOSE WALLET
+				LOGGER.info(Lang.getInstance().translate("Closing wallet"));
+				ClosingDialog.getInstance().updateProgress("Closing wallet");
+				this.wallet.close();
 
-			ClosingDialog.getInstance().updateProgress("Creating database backup");
-			createDataCheckpoint();
+				ClosingDialog.getInstance().updateProgress("Creating database backup");
+				createDataCheckpoint();
 
-			LOGGER.info(Lang.getInstance().translate("Closed."));
+				LOGGER.info(Lang.getInstance().translate("Closed."));
+			}
 		}
 	}
 

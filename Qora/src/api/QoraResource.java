@@ -35,12 +35,8 @@ public class QoraResource
 		}
 
 		//STOP
-		if (Gui.isGuiStarted())
-			ClosingDialog.getInstance();
-		else {
-			Controller.getInstance().stopAll();
-			System.exit(0);
-		}
+		Controller.getInstance().stopAll();
+		System.exit(0);
 
 		//RETURN
 		return String.valueOf(true);
