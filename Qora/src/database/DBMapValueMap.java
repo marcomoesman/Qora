@@ -86,7 +86,7 @@ public abstract class DBMapValueMap<K, X, Y, M extends Map<X, Y>> extends DBMap<
 			M newMap = this.newMapValue();
 
 			// If we previous marked entry as deleted then we're essentially recreating a new map
-			if (this.deleted != null && this.deleted.contains(dbKey))
+			if (this.deletedContains(dbKey))
 				return newMap;
 
 			// If the parent DBMap contains a map for dbKey then we need to duplicate its entries
@@ -156,7 +156,7 @@ public abstract class DBMapValueMap<K, X, Y, M extends Map<X, Y>> extends DBMap<
 				return this.map.get(dbKey);
 
 			// If we previously marked entry as deleted then we have no map
-			if (this.deleted != null && this.deleted.contains(dbKey))
+			if (this.deletedContains(dbKey))
 				return null;
 
 			// If we have no parent or parent has no entry then there's no map

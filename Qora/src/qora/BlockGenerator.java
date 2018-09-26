@@ -183,6 +183,7 @@ public class BlockGenerator extends Thread implements Observer
 			if(!Controller.getInstance().isUpToDate() && !Controller.getInstance().isProcessingWalletSynchronize())
 			{
 				Controller.getInstance().update();
+				continue;
 			}
 
 			//CHECK IF WE HAVE CONNECTIONS

@@ -11,6 +11,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
 import controller.Controller;
+import gui.ClosingDialog;
+import gui.Gui;
 import lang.Lang;
 import settings.Settings;
 import utils.APIUtils;
@@ -31,11 +33,11 @@ public class QoraResource
 		if(Controller.getInstance().doesWalletExists() && !Controller.getInstance().isWalletUnlocked()) {
 			throw ApiErrorFactory.getInstance().createError(ApiErrorFactory.ERROR_WALLET_LOCKED);
 		}
-		
+
 		//STOP
-		Controller.getInstance().stopAll();		
+		Controller.getInstance().stopAll();
 		System.exit(0);
-		
+
 		//RETURN
 		return String.valueOf(true);
 	}

@@ -16,6 +16,7 @@ import lang.Lang;
 import network.message.FindMyselfMessage;
 import network.message.Message;
 import network.message.MessageFactory;
+import settings.Settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -115,7 +116,7 @@ public class Network extends Observable implements ConnectionCallback {
 		}
 
 		// ADD TO BLACKLIST
-		PeerManager.getInstance().blacklistPeer(peer);
+		// PeerManager.getInstance().blacklistPeer(peer);
 
 		// PASS TO CONTROLLER
 		Controller.getInstance().onError(peer);
@@ -233,7 +234,7 @@ public class Network extends Observable implements ConnectionCallback {
 	}
 
 	public void broadcast(Message message, List<Peer> exclude) {
-		LOGGER.debug(Lang.getInstance().translate("Broadcasting"));
+		LOGGER.trace(Lang.getInstance().translate("Broadcasting") + " message type " + message.getType());
 
 		try {
 			synchronized (this.connectedPeers) {
@@ -249,7 +250,7 @@ public class Network extends Observable implements ConnectionCallback {
 			// Iterator fast-fail due to change in connectedPeers
 		}
 
-		LOGGER.debug(Lang.getInstance().translate("Broadcasting end"));
+		LOGGER.trace(Lang.getInstance().translate("Broadcasting end") + " message type " + message.getType());
 	}
 
 	@Override
@@ -287,17 +288,10 @@ public class Network extends Observable implements ConnectionCallback {
 
 	public static boolean isHostLocalAddress(InetAddress address) {
 		// easy address checks first
-		if (address.isSiteLocalAddress() || address.isLoopbackAddress() || address.isAnyLocalAddress())
+		if (address.isLoopbackAddress() || address.isAnyLocalAddress())
 			return true;
 
-		try {
-			// Is address bound to one of our interfaces?
-			NetworkInterface netIf = NetworkInterface.getByInetAddress(address);
-			return netIf != null;
-		} catch (Exception e) {
-			// Couldn't check - play safe and say it's local
-			return true;
-		}
+		return Settings.getInstance().isLocalAddress(address);
 	}
 
 }

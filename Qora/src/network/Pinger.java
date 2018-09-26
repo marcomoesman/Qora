@@ -127,16 +127,7 @@ public class Pinger extends Thread {
 	 * @see Peer#close()
 	 */
 	public void stopPing() {
-		if (this.isAlive()) {
+		if (this.isAlive())
 			this.interrupt();
-
-			try {
-				this.join();
-			} catch (InterruptedException e) {
-				// We've probably reached here from run() above calling
-				// Peer.onPingFailure() so when we return run() above will
-				// terminate
-			}
-		}
 	}
 }

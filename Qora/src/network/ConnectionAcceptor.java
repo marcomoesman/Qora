@@ -27,6 +27,8 @@ public class ConnectionAcceptor extends Thread {
 	}
 
 	public void run() {
+		Thread.currentThread().setName("ConnAcceptor");
+
 		this.isRun = true;
 
 		while (isRun) {
