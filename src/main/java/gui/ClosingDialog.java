@@ -31,7 +31,7 @@ public final class ClosingDialog {
 		return instance;
 	}
 
-	class ClosingWorker extends SwingWorker<Void, Void> {
+	private class ClosingWorker extends SwingWorker<Void, Void> {
 		@Override
 		protected Void doInBackground() {
 			Controller.getInstance().stopAll();

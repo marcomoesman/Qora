@@ -1,16 +1,24 @@
 # Qora [![release](https://img.shields.io/github/release/Qoracoin/Qora.svg)](https://github.com/Qoracoin/Qora/releases)
-Public GIT for the Qora cryptocurrency project.
+Unofficial maintenance and update GIT for the Qora cryptocurrency.
 
-* [Website](http://qora.org)
-* [API](http://api.qora.org)
-* [Block Explorer](http://node.qora.tech:9090/index/blockexplorer.html)
-* [Bitcointalk](https://bitcointalk.org/index.php?topic=1358722)
-* [Discord](https://discord.gg/657RfP3)
+* [API Documentation](http://api.qora.org)
+* [Block Explorer](http://node6.qora.org:9090/index/blockexplorer.html)
+* [Bitcointalk Thread](https://bitcointalk.org/index.php?topic=1358722)
 
 ## Running Qora
-Run the program without any options to start the daemon.
 
+Run the program without any options to start the daemon and GUI.
 Run the program with the -cli option to access the daemon using the API.
+
+## Tips
+
+Tips are welcome and can be sent to **QRHQSLEZEnVRgaAbUnunEsDy5mfMpGL1Qt (QORA)** or **QdeVYAvHFE8R2mwsJczfgWz3eaUKU6KT12 (QORTAL)**
+
+## Screenshots
+
+![Account Management](https://raw.githubusercontent.com/marcomoesman/Qora/master/screenshots/account.png "Account Management")
+
+![Messages](https://raw.githubusercontent.com/marcomoesman/Qora/master/screenshots/messages.png "Messages")
 
 ## Advanced Installer
 
