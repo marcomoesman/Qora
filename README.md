@@ -16,7 +16,7 @@ Tips are welcome and can be sent to **QRHQSLEZEnVRgaAbUnunEsDy5mfMpGL1Qt (QORA)*
 
 ## Screenshots
 
-![Account Management](https://raw.githubusercontent.com/marcomoesman/Qora/master/screenshots/account.png "Account Management")
+![Accounts](https://raw.githubusercontent.com/marcomoesman/Qora/master/screenshots/accounts.png "Accounts")
 
 ![Messages](https://raw.githubusercontent.com/marcomoesman/Qora/master/screenshots/messages.png "Messages")
 
