@@ -1,0 +1,17 @@
+{
+  "checkpoint":true,
+  "soundreceivepayment":true,
+  "rpcallowed":[],
+  "generatorkeycaching":true,
+  "webenabled":true,
+  "soundreceivemessage":true,
+  "soundnewtransaction":true,
+  "minconnections":10,
+  "weballowed":[],
+  "systray":true,
+  "rpcenabled":true,
+  "maxconnections":100,
+  "guienabled":true,
+  "lang":"en.json",
+  "knownpeers":[]
+}
