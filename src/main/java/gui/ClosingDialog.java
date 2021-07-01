@@ -93,7 +93,8 @@ public final class ClosingDialog {
 	}
 
 	public void dispose() {
-		if (Gui.isGuiStarted())
+		if (Gui.isGuiStarted()) {
 			this.closingDialog.dispose();
+		}
 	}
 }

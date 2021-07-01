@@ -1,4 +1,5 @@
 package gui.models;
+
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
@@ -17,7 +18,7 @@ import utils.DateTimeFormat;
 import utils.ObserverMessage;
 
 @SuppressWarnings("serial")
-public class PeersTableModel extends AbstractTableModel implements Observer{
+public final class PeersTableModel extends AbstractTableModel implements Observer {
 
 	private static final int COLUMN_ADDRESS = 0;
 	private static final int COLUMN_HEIGHT = 1;
@@ -27,137 +28,121 @@ public class PeersTableModel extends AbstractTableModel implements Observer{
 	private static final int COLUMN_FINDING_AGO = 5;
 	private static final int COLUMN_ONLINE_TIME = 6;
 	private static final int COLUMN_VERSION = 7;
-	
+
 	private Timer timer = new Timer();
-	
+
 	private List<Peer> peers;
-	
-	private String[] columnNames = Lang.getInstance().translate(new String[]{"IP", "Height", "Ping mc", "Reliable", "Initiator", "Finding ago", "Online Time", "Version"});
-	
-	public PeersTableModel()
-	{
+
+	private final String[] columnNames = Lang.getInstance().translate(new String[] { "IP", "Height", "Ping mc", "Reliable",
+			"Initiator", "Finding ago", "Online Time", "Version" });
+
+	public PeersTableModel() {
 		Controller.getInstance().addActivePeersObserver(this);
-		
+
 		this.timer.cancel();
 		this.timer = new Timer();
-		
+
 		TimerTask action = new TimerTask() {
-	        public void run() {
-	        		fireTableDataChanged();	        	
-	        }
+			public void run() {
+				fireTableDataChanged();
+			}
 		};
-		
-		this.timer.schedule(action, 
-				Settings.getInstance().getPingInterval(),
-				Settings.getInstance().getPingInterval()
-				);
+
+		this.timer.schedule(action, Settings.getInstance().getPingInterval(), Settings.getInstance().getPingInterval());
 	}
-	
+
 	@Override
-	public int getColumnCount() 
-	{
+	public int getColumnCount() {
 		return columnNames.length;
 	}
 
 	@Override
-	public String getColumnName(int index) 
-	{
+	public String getColumnName(int index) {
 		return columnNames[index];
 	}
 
 	@Override
-	public int getRowCount() 
-	{
-		if(peers == null)
-		{
+	public int getRowCount() {
+		if (peers == null) {
 			return 0;
 		}
-		
+
 		return peers.size();
 	}
 
 	@Override
-	public Object getValueAt(int row, int column)
-	{
-		if(peers == null || this.peers.size() -1 < row)
-		{
+	public Object getValueAt(int row, int column) {
+		if (peers == null || this.peers.size() - 1 < row) {
 			return null;
 		}
-		
-		Peer peer = peers.get(row);
-		
-		if(QoraDb.getInstance().isStopped())
+
+		final Peer peer = peers.get(row);
+
+		if (QoraDb.getInstance().isStopped()) {
 			return null;
-			
-		PeerInfo peerInfo = QoraDb.getInstance().getPeerMap().getInfo(peer.getAddress());
-		switch(column)
-		{
-			case COLUMN_ADDRESS:
-				return peer.getAddress().getHostAddress();
-
-			case COLUMN_HEIGHT:
-				return Controller.getInstance().getHeightOfPeer(peer);
-			
-			case COLUMN_PINGMC:
-				if(peer.getPing() > 1000000) {
-					return Lang.getInstance().translate("Waiting...");
-				} else {
-					return peer.getPing();
-				}
-			
-			case COLUMN_REILABLE:
-				return peerInfo.getWhitePingCouner();
-			
-			case COLUMN_INITIATOR:
-				if(peer.isWhite()) {
-					return Lang.getInstance().translate("You");
-				} else {
-					return Lang.getInstance().translate("Remote");
-				}
-			
-			case COLUMN_FINDING_AGO:
-				return DateTimeFormat.timeAgo(peerInfo.getFindingTime());
-				
-			case COLUMN_ONLINE_TIME:
-				return DateTimeFormat.timeAgo(peer.getConnectionTime());
-
-			case COLUMN_VERSION:
-				return Controller.getInstance().getVersionOfPeer(peer).getA();
-				
 		}
-		
+
+		final PeerInfo peerInfo = peer.getInfo();
+		switch (column) {
+		case COLUMN_ADDRESS:
+			return peer.getAddress().getHostAddress();
+
+		case COLUMN_HEIGHT:
+			return Controller.getInstance().getHeightOfPeer(peer);
+
+		case COLUMN_PINGMC:
+			if (peer.getPing() > 1000000) {
+				return Lang.getInstance().translate("Waiting...");
+			} else {
+				return peer.getPing();
+			}
+
+		case COLUMN_REILABLE:
+			return peerInfo.getWhitePingCounter();
+
+		case COLUMN_INITIATOR:
+			if (peer.isWhite()) {
+				return Lang.getInstance().translate("You");
+			} else {
+				return Lang.getInstance().translate("Remote");
+			}
+
+		case COLUMN_FINDING_AGO:
+			return DateTimeFormat.timeAgo(peerInfo.getFindingTime());
+
+		case COLUMN_ONLINE_TIME:
+			return DateTimeFormat.timeAgo(peer.getConnectionTime());
+
+		case COLUMN_VERSION:
+			return Controller.getInstance().getVersionOfPeer(peer).getA();
+
+		}
+
 		return null;
 	}
 
 	@Override
-	public void update(Observable o, Object arg) 
-	{	
-		try
-		{
+	public void update(Observable o, Object arg) {
+		try {
 			this.syncUpdate(o, arg);
-		}
-		catch(Exception e)
-		{
-			//GUI ERROR
+		} catch (Exception e) {
+			// GUI ERROR
 		}
 	}
-	
-	@SuppressWarnings("unchecked")	
-	public synchronized void syncUpdate(Observable o, Object arg)
-	{
+
+	@SuppressWarnings("unchecked")
+	public synchronized void syncUpdate(Observable o, Object arg) {
 		ObserverMessage message = (ObserverMessage) arg;
-		
-		if(message.getType() == ObserverMessage.LIST_PEER_TYPE)
-		{
+
+		if (message.getType() == ObserverMessage.LIST_PEER_TYPE) {
 			this.peers = (List<Peer>) message.getValue();
-		
+
 			this.fireTableDataChanged();
 		}
 	}
 
-	public void removeObservers() 
-	{
+	public void removeObservers() {
 		Controller.getInstance().removeActivePeersObserver(this);
-		
+
 	}
 }

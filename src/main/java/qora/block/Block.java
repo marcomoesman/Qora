@@ -18,6 +18,7 @@ import org.json.simple.JSONObject;
 import org.mapdb.Fun.Tuple2;
 
 import qora.BlockGenerator;
+import qora.Blockchain;
 import qora.account.Account;
 import qora.account.PublicKeyAccount;
 import qora.crypto.Base58;
@@ -41,9 +42,8 @@ import com.google.common.primitives.Longs;
 
 import database.QoraDb;
 
-
 public class Block {
-	
+
 	private static final Logger LOGGER = LogManager.getLogger(Block.class);
 	public static final int MAX_BLOCK_BYTES = 1048576;
 	public static final int VERSION_LENGTH = 4;
@@ -56,7 +56,9 @@ public class Block {
 	private static final int TRANSACTIONS_COUNT_LENGTH = 4;
 	private static final int TRANSACTION_SIZE_LENGTH = 4;
 	public static final int AT_BYTES_LENGTH = 4;
-	private static final int BASE_LENGTH = VERSION_LENGTH + REFERENCE_LENGTH + TIMESTAMP_LENGTH + GENERATING_BALANCE_LENGTH + GENERATOR_LENGTH + TRANSACTIONS_SIGNATURE_LENGTH + GENERATOR_SIGNATURE_LENGTH + TRANSACTIONS_COUNT_LENGTH;
+	private static final int BASE_LENGTH = VERSION_LENGTH + REFERENCE_LENGTH + TIMESTAMP_LENGTH
+			+ GENERATING_BALANCE_LENGTH + GENERATOR_LENGTH + TRANSACTIONS_SIGNATURE_LENGTH + GENERATOR_SIGNATURE_LENGTH
+			+ TRANSACTIONS_COUNT_LENGTH;
 	private static final int AT_FEES_LENGTH = 8;
 	private static final int AT_LENGTH = AT_FEES_LENGTH + AT_BYTES_LENGTH;
 	public static final int MAX_TRANSACTION_BYTES = MAX_BLOCK_BYTES - BASE_LENGTH;
@@ -68,7 +70,7 @@ public class Block {
 	protected PublicKeyAccount generator;
 	protected byte[] generatorSignature;
 
-	private List<Transaction> transactions;	
+	private List<Transaction> transactions;
 	private int transactionCount;
 	private byte[] rawTransactions;
 
@@ -78,8 +80,8 @@ public class Block {
 	protected Long atFees;
 
 	// VERSION 2 AND 3 BLOCKS, WITH AT AND MESSAGE
-	public Block(int version, byte[] reference, long timestamp, long generatingBalance, PublicKeyAccount generator, byte[] generatorSignature, byte[] atBytes, long atFees)
-	{
+	public Block(int version, byte[] reference, long timestamp, long generatingBalance, PublicKeyAccount generator,
+			byte[] generatorSignature, byte[] atBytes, long atFees) {
 		this.version = version;
 		this.reference = reference;
 		this.timestamp = timestamp;
@@ -94,49 +96,41 @@ public class Block {
 	}
 
 	// VERSION 1 BLOCKS
-	public Block(int version, byte[] reference, long timestamp, long generatingBalance, PublicKeyAccount generator, byte[] generatorSignature)
-	{
+	public Block(int version, byte[] reference, long timestamp, long generatingBalance, PublicKeyAccount generator,
+			byte[] generatorSignature) {
 		this(version, reference, timestamp, generatingBalance, generator, generatorSignature, new byte[0], 0);
 	}
 
-	//GETTERS/SETTERS
+	// GETTERS/SETTERS
 
-	public int getVersion()
-	{
+	public int getVersion() {
 		return version;
 	}
 
-	public byte[] getGeneratorSignature()
-	{
+	public byte[] getGeneratorSignature() {
 		return this.generatorSignature;
 	}
 
-	public long getTimestamp()
-	{
+	public long getTimestamp() {
 		return this.timestamp;
 	}
 
-	public long getGeneratingBalance()
-	{
+	public long getGeneratingBalance() {
 		return this.generatingBalance;
 	}
 
-	public byte[] getReference()
-	{
+	public byte[] getReference() {
 		return this.reference;
 	}
 
-	public PublicKeyAccount getGenerator()
-	{
+	public PublicKeyAccount getGenerator() {
 		return this.generator;
 	}
 
-	public BigDecimal getTotalFee()
-	{
+	public BigDecimal getTotalFee() {
 		BigDecimal fee = BigDecimal.ZERO.setScale(8);
 
-		for(Transaction transaction: this.getTransactions())
-		{
+		for (Transaction transaction : this.getTransactions()) {
 			fee = fee.add(transaction.getFee());
 		}
 
@@ -145,72 +139,61 @@ public class Block {
 		return fee;
 	}
 
-	public BigDecimal getATfee()
-	{
+	public BigDecimal getATfee() {
 		return BigDecimal.valueOf(this.atFees, 8);
 	}
 
-	public void setTransactionData(int transactionCount, byte[] rawTransactions)
-	{
+	public void setTransactionData(int transactionCount, byte[] rawTransactions) {
 		this.transactionCount = transactionCount;
 		this.rawTransactions = rawTransactions;
 	}
 
-	public int getTransactionCount() 
-	{	
-		return this.transactionCount;		
+	public int getTransactionCount() {
+		return this.transactionCount;
 	}
 
-	public synchronized List<Transaction> getTransactions() 
-	{
-		if(this.transactions == null)
-		{
-			//LOAD TRANSACTIONS
+	public synchronized List<Transaction> getTransactions() {
+		if (this.transactions == null) {
+			// LOAD TRANSACTIONS
 			this.transactions = new ArrayList<Transaction>();
 
-			try
-			{
+			try {
 				int position = 0;
-				for(int i=0; i<transactionCount; i++)
-				{
-					//GET TRANSACTION SIZE
-					byte[] transactionLengthBytes = Arrays.copyOfRange(this.rawTransactions, position, position + TRANSACTION_SIZE_LENGTH);
+				for (int i = 0; i < transactionCount; i++) {
+					// GET TRANSACTION SIZE
+					byte[] transactionLengthBytes = Arrays.copyOfRange(this.rawTransactions, position,
+							position + TRANSACTION_SIZE_LENGTH);
 					int transactionLength = Ints.fromByteArray(transactionLengthBytes);
 
-					//PARSE TRANSACTION
-					byte[] transactionBytes = Arrays.copyOfRange(this.rawTransactions, position + TRANSACTION_SIZE_LENGTH, position + TRANSACTION_SIZE_LENGTH + transactionLength);
+					// PARSE TRANSACTION
+					byte[] transactionBytes = Arrays.copyOfRange(this.rawTransactions,
+							position + TRANSACTION_SIZE_LENGTH, position + TRANSACTION_SIZE_LENGTH + transactionLength);
 					Transaction transaction = TransactionFactory.getInstance().parse(transactionBytes);
 
-					//ADD TO TRANSACTIONS
+					// ADD TO TRANSACTIONS
 					this.transactions.add(transaction);
 
-					//ADD TO POSITION
+					// ADD TO POSITION
 					position += TRANSACTION_SIZE_LENGTH + transactionLength;
 				}
-			}
-			catch(Exception e)
-			{
-				//FAILED TO LOAD TRANSACTIONS
+			} catch (Exception e) {
+				// FAILED TO LOAD TRANSACTIONS
 			}
 		}
 
 		return this.transactions;
 	}
 
-	public void addTransaction(Transaction transaction)
-	{
+	public void addTransaction(Transaction transaction) {
 		this.getTransactions().add(transaction);
 
 		this.transactionCount++;
 	}
 
-	public Transaction getTransaction(byte[] signature)
-	{
+	public Transaction getTransaction(byte[] signature) {
 
-		for(Transaction transaction: this.getTransactions())
-		{
-			if(Arrays.equals(transaction.getSignature(), signature))
-			{
+		for (Transaction transaction : this.getTransactions()) {
+			if (Arrays.equals(transaction.getSignature(), signature)) {
 				return transaction;
 			}
 		}
@@ -218,143 +201,126 @@ public class Block {
 		return null;
 	}
 
-
-	
-	public byte[] getBlockATs()
-	{
+	public byte[] getBlockATs() {
 		return this.atBytes;
 	}
 
-	public Block getParent()
-	{
+	public Block getParent() {
 		return this.getParent(QoraDb.getInstance());
 	}
 
-	public Block getParent(QoraDb db)
-	{
+	public Block getParent(QoraDb db) {
 		return db.getBlockMap().get(this.reference);
 	}
 
-	public Block getChild()
-	{
+	public Block getChild() {
 		return this.getChild(QoraDb.getInstance());
 	}
 
-	public Block getChild(QoraDb db)
-	{
+	public Block getChild(QoraDb db) {
 		return db.getChildMap().get(this);
 	}
 
-	public int getHeight()
-	{
+	public int getHeight() {
 		return this.getHeight(QoraDb.getInstance());
 	}
 
-	public int getHeight(QoraDb db)
-	{
-		if(db.getHeightMap().contains(this.getSignature()))
+	public int getHeight(QoraDb db) {
+		if (db.getHeightMap().contains(this.getSignature()))
 			return db.getHeightMap().get(this);
 		else
 			return -1;
 	}
 
-	public void setTransactionsSignature(byte[] transactionsSignature) 
-	{
-		this.transactionsSignature = transactionsSignature;	
+	public void setTransactionsSignature(byte[] transactionsSignature) {
+		this.transactionsSignature = transactionsSignature;
 	}
 
-	public byte[] getSignature()
-	{
+	public byte[] getSignature() {
 		return Bytes.concat(this.generatorSignature, this.transactionsSignature);
 	}
 
-	//PARSE/CONVERT
+	// PARSE/CONVERT
 
-	public static Block parse(byte[] data) throws Exception
-	{
-		//CHECK IF WE HAVE MINIMUM BLOCK LENGTH
-		if(data.length < BASE_LENGTH)
-		{
+	public static Block parse(byte[] data) throws Exception {
+		// CHECK IF WE HAVE MINIMUM BLOCK LENGTH
+		if (data.length < BASE_LENGTH) {
 			throw new Exception("Data is less then minimum block length");
 		}
 
 		int position = 0;
 
-		//READ VERSION
+		// READ VERSION
 		byte[] versionBytes = Arrays.copyOfRange(data, position, position + VERSION_LENGTH);
 		int version = Ints.fromByteArray(versionBytes);
 		position += VERSION_LENGTH;
 
-		//READ TIMESTAMP
+		// READ TIMESTAMP
 		byte[] timestampBytes = Arrays.copyOfRange(data, position, position + TIMESTAMP_LENGTH);
 		long timestamp = Longs.fromByteArray(timestampBytes);
-		position += TIMESTAMP_LENGTH;		
+		position += TIMESTAMP_LENGTH;
 
-		//READ REFERENCE
+		// READ REFERENCE
 		byte[] reference = Arrays.copyOfRange(data, position, position + REFERENCE_LENGTH);
 		position += REFERENCE_LENGTH;
 
-		//READ GENERATING BALANCE
+		// READ GENERATING BALANCE
 		byte[] generatingBalanceBytes = Arrays.copyOfRange(data, position, position + GENERATING_BALANCE_LENGTH);
 		long generatingBalance = Longs.fromByteArray(generatingBalanceBytes);
 		position += GENERATING_BALANCE_LENGTH;
 
-		//READ GENERATOR
+		// READ GENERATOR
 		byte[] generatorBytes = Arrays.copyOfRange(data, position, position + GENERATOR_LENGTH);
 		PublicKeyAccount generator = new PublicKeyAccount(generatorBytes);
 		position += GENERATOR_LENGTH;
 
-		//READ TRANSACTION SIGNATURE
-		byte[] transactionsSignature =  Arrays.copyOfRange(data, position, position + TRANSACTIONS_SIGNATURE_LENGTH);
+		// READ TRANSACTION SIGNATURE
+		byte[] transactionsSignature = Arrays.copyOfRange(data, position, position + TRANSACTIONS_SIGNATURE_LENGTH);
 		position += TRANSACTIONS_SIGNATURE_LENGTH;
 
-
-		//READ GENERATOR SIGNATURE
-		byte[] generatorSignature =  Arrays.copyOfRange(data, position, position + GENERATOR_SIGNATURE_LENGTH);
+		// READ GENERATOR SIGNATURE
+		byte[] generatorSignature = Arrays.copyOfRange(data, position, position + GENERATOR_SIGNATURE_LENGTH);
 		position += GENERATOR_SIGNATURE_LENGTH;
- 
-		//CREATE BLOCK
+
+		// CREATE BLOCK
 		Block block;
-		if(version > 1)
-		{
-			//ADD ATs BYTES
+		if (version > 1) {
+			// ADD ATs BYTES
 			byte[] atBytesCountBytes = Arrays.copyOfRange(data, position, position + AT_BYTES_LENGTH);
 			int atBytesCount = Ints.fromByteArray(atBytesCountBytes);
 			position += AT_BYTES_LENGTH;
-	
-			byte[] atBytes = Arrays.copyOfRange( data , position, position + atBytesCount);
+
+			byte[] atBytes = Arrays.copyOfRange(data, position, position + atBytesCount);
 			position += atBytesCount;
-	
-			byte[] atFees = Arrays.copyOfRange( data , position , position + 8 );
+
+			byte[] atFees = Arrays.copyOfRange(data, position, position + 8);
 			position += 8;
-	
+
 			long atFeesL = Longs.fromByteArray(atFees);
 
-			block = new Block(version, reference, timestamp, generatingBalance, generator, generatorSignature, atBytes, atFeesL);
-		}
-		else
-		{
+			block = new Block(version, reference, timestamp, generatingBalance, generator, generatorSignature, atBytes,
+					atFeesL);
+		} else {
 			block = new Block(version, reference, timestamp, generatingBalance, generator, generatorSignature);
 		}
 
-		//READ TRANSACTIONS COUNT
+		// READ TRANSACTIONS COUNT
 		byte[] transactionCountBytes = Arrays.copyOfRange(data, position, position + TRANSACTIONS_COUNT_LENGTH);
 		int transactionCount = Ints.fromByteArray(transactionCountBytes);
 		position += TRANSACTIONS_COUNT_LENGTH;
 
-		//SET TRANSACTIONDATA
+		// SET TRANSACTIONDATA
 		byte[] rawTransactions = Arrays.copyOfRange(data, position, data.length);
 		block.setTransactionData(transactionCount, rawTransactions);
 
-		//SET TRANSACTIONS SIGNATURE
+		// SET TRANSACTIONS SIGNATURE
 		block.setTransactionsSignature(transactionsSignature);
 
 		return block;
 	}
 
 	@SuppressWarnings("unchecked")
-	public JSONObject toJson()
-	{
+	public JSONObject toJson() {
 		JSONObject block = new JSONObject();
 
 		block.put("version", this.version);
@@ -365,183 +331,161 @@ public class Block {
 		block.put("fee", this.getTotalFee().toPlainString());
 		block.put("transactionsSignature", Base58.encode(this.transactionsSignature));
 		block.put("generatorSignature", Base58.encode(this.generatorSignature));
-		block.put("signature",  Base58.encode(this.getSignature()));
+		block.put("signature", Base58.encode(this.getSignature()));
 		block.put("height", this.getHeight());
 
-		//CREATE TRANSACTIONS
+		// CREATE TRANSACTIONS
 		JSONArray transactionsArray = new JSONArray();
 
-		for(Transaction transaction: this.getTransactions())
-		{
+		for (Transaction transaction : this.getTransactions()) {
 			transactionsArray.add(transaction.toJson());
 		}
 
-		//ADD TRANSACTIONS TO BLOCK
+		// ADD TRANSACTIONS TO BLOCK
 		block.put("transactions", transactionsArray);
 
-		//ADD AT BYTES
-		if ( atBytes != null )
-		{
-			block.put("blockATs", Converter.toHex( atBytes ));
+		// ADD AT BYTES
+		if (atBytes != null) {
+			block.put("blockATs", Converter.toHex(atBytes));
 			block.put("atFees", this.atFees);
 		}
 
-		//RETURN
+		// RETURN
 		return block;
 	}
 
-	public byte[] toBytes() 
-	{
+	public byte[] toBytes() {
 		byte[] data = new byte[0];
 
-		//WRITE VERSION
+		// WRITE VERSION
 		byte[] versionBytes = Ints.toByteArray(this.version);
-		//versionBytes = Bytes.ensureCapacity(versionBytes, 4, 0);
+		// versionBytes = Bytes.ensureCapacity(versionBytes, 4, 0);
 		data = Bytes.concat(data, versionBytes);
 
-		//WRITE TIMESTAMP
+		// WRITE TIMESTAMP
 		byte[] timestampBytes = Longs.toByteArray(this.timestamp);
 		timestampBytes = Bytes.ensureCapacity(timestampBytes, 8, 0);
 		data = Bytes.concat(data, timestampBytes);
 
-		//WRITE REFERENCE
+		// WRITE REFERENCE
 		byte[] referenceBytes = Bytes.ensureCapacity(this.reference, REFERENCE_LENGTH, 0);
 		data = Bytes.concat(data, referenceBytes);
 
-		//WRITE GENERATING BALANCE
+		// WRITE GENERATING BALANCE
 		byte[] baseTargetBytes = Longs.toByteArray(this.generatingBalance);
-		//baseTargetBytes = Bytes.ensureCapacity(baseTargetBytes, 8, 0);
-		data = Bytes.concat(data,baseTargetBytes);
+		// baseTargetBytes = Bytes.ensureCapacity(baseTargetBytes, 8, 0);
+		data = Bytes.concat(data, baseTargetBytes);
 
-		//WRITE GENERATOR
+		// WRITE GENERATOR
 		byte[] generatorBytes = Bytes.ensureCapacity(this.generator.getPublicKey(), GENERATOR_LENGTH, 0);
 		data = Bytes.concat(data, generatorBytes);
 
-		//WRITE TRANSACTIONS SIGNATURE
+		// WRITE TRANSACTIONS SIGNATURE
 		data = Bytes.concat(data, this.transactionsSignature);
 
-		//WRITE GENERATOR SIGNATURE
+		// WRITE GENERATOR SIGNATURE
 		data = Bytes.concat(data, this.generatorSignature);
 
-		//ADD ATs BYTES
-		if(this.version >= 2)
-		{
-			if (atBytes!=null)
-			{
-				byte[] atBytesCount = Ints.toByteArray( atBytes.length );
+		// ADD ATs BYTES
+		if (this.version >= 2) {
+			if (atBytes != null) {
+				byte[] atBytesCount = Ints.toByteArray(atBytes.length);
 				data = Bytes.concat(data, atBytesCount);
 
 				data = Bytes.concat(data, atBytes);
 
 				byte[] atByteFees = Longs.toByteArray(atFees);
-				data = Bytes.concat(data,atByteFees);
-			}
-			else
-			{
-				byte[] atBytesCount = Ints.toByteArray( 0 );
+				data = Bytes.concat(data, atByteFees);
+			} else {
+				byte[] atBytesCount = Ints.toByteArray(0);
 				data = Bytes.concat(data, atBytesCount);
 				byte[] atByteFees = Longs.toByteArray(0L);
-				data = Bytes.concat(data,atByteFees);
+				data = Bytes.concat(data, atByteFees);
 			}
 		}
 
-		//WRITE TRANSACTION COUNT
+		// WRITE TRANSACTION COUNT
 		byte[] transactionCountBytes = Ints.toByteArray(this.getTransactionCount());
-		//transactionCountBytes = Bytes.ensureCapacity(transactionCountBytes, 4, 0);
+		// transactionCountBytes = Bytes.ensureCapacity(transactionCountBytes, 4, 0);
 		data = Bytes.concat(data, transactionCountBytes);
 
-		for(Transaction transaction: this.getTransactions())
-		{
-			//WRITE TRANSACTION LENGTH
+		for (Transaction transaction : this.getTransactions()) {
+			// WRITE TRANSACTION LENGTH
 			int transactionLength = transaction.getDataLength();
 			byte[] transactionLengthBytes = Ints.toByteArray(transactionLength);
-			//transactionLengthBytes = Bytes.ensureCapacity(transactionLengthBytes, 4, 0);
+			// transactionLengthBytes = Bytes.ensureCapacity(transactionLengthBytes, 4, 0);
 			data = Bytes.concat(data, transactionLengthBytes);
 
-			//WRITE TRANSACTION
+			// WRITE TRANSACTION
 			data = Bytes.concat(data, transaction.toBytes());
 		}
 
 		return data;
 	}
 
-	public int getDataLength()
-	{
+	public int getDataLength() {
 
 		int length = BASE_LENGTH;
 
-		if(this.version >= 2)
-		{
+		if (this.version >= 2) {
 			length += AT_LENGTH;
-			if (this.atBytes!=null)
-			{
-				length+=atBytes.length;
+			if (this.atBytes != null) {
+				length += atBytes.length;
 			}
 		}
 
-		for(Transaction transaction: this.getTransactions())
-		{
+		for (Transaction transaction : this.getTransactions()) {
 			length += 4 + transaction.getDataLength();
 		}
 
 		return length;
 	}
 
-	public byte[] getProofHash()
-	{
-		if(this.version < 3)
-		{
+	public byte[] getProofHash() {
+		if (this.version < 3) {
 			return Crypto.getInstance().digest(this.generatorSignature);
-		}
-		else
-		{
-			//newSig = sha256(prevSig || pubKey)
-			byte[] data = Bytes.concat(this.reference, generator.getPublicKey());
-
+		} else {
+			// newSig = sha256(prevSig || pubKey)
+			final byte[] data = Bytes.concat(this.reference, generator.getPublicKey());
 			return Crypto.getInstance().digest(data);
 		}
 	}
 
-	//VALIDATE
+	// VALIDATE
 
-	public boolean isSignatureValid()
-	{
-		//VALIDATE BLOCK SIGNATURE
+	public boolean isSignatureValid() {
+		// VALIDATE BLOCK SIGNATURE
 		byte[] data = new byte[0];
 
-		//WRITE PARENT GENERATOR SIGNATURE
-		byte[] generatorSignature = Arrays.copyOfRange(this.reference, 0, GENERATOR_SIGNATURE_LENGTH);
+		// WRITE PARENT GENERATOR SIGNATURE
+		final byte[] generatorSignature = Arrays.copyOfRange(this.reference, 0, GENERATOR_SIGNATURE_LENGTH);
 		data = Bytes.concat(data, generatorSignature);
 
-		//WRITE GENERATING BALANCE
-		byte[] baseTargetBytes = Longs.toByteArray(this.generatingBalance);
+		// WRITE GENERATING BALANCE
+		final byte[] baseTargetBytes = Longs.toByteArray(this.generatingBalance);
 		data = Bytes.concat(data, baseTargetBytes);
 
-		//WRITE GENERATOR
-		byte[] generatorBytes = Bytes.ensureCapacity(this.generator.getPublicKey(), GENERATOR_LENGTH, 0);
+		// WRITE GENERATOR
+		final byte[] generatorBytes = Bytes.ensureCapacity(this.generator.getPublicKey(), GENERATOR_LENGTH, 0);
 		data = Bytes.concat(data, generatorBytes);
 
-		if(!Crypto.getInstance().verify(this.generator.getPublicKey(), this.generatorSignature, data))
-		{
+		if (!Crypto.getInstance().verify(this.generator.getPublicKey(), this.generatorSignature, data)) {
 			return false;
 		}
 
-		//VALIDATE TRANSACTIONS SIGNATURE
-		data = this.generatorSignature;		
-		for(Transaction transaction: this.getTransactions())
-		{
-			//CHECK IF TRANSACTION SIGNATURE IS VALID
-			if(!transaction.isSignatureValid())
-			{
+		// VALIDATE TRANSACTIONS SIGNATURE
+		data = this.generatorSignature;
+		for (final Transaction transaction : this.getTransactions()) {
+			// CHECK IF TRANSACTION SIGNATURE IS VALID
+			if (!transaction.isSignatureValid()) {
 				return false;
 			}
 
-			//ADD SIGNATURE TO DATA
+			// ADD SIGNATURE TO DATA
 			data = Bytes.concat(data, transaction.getSignature());
 		}
 
-		if(!Crypto.getInstance().verify(this.generator.getPublicKey(), this.transactionsSignature, data))
-		{
+		if (!Crypto.getInstance().verify(this.generator.getPublicKey(), this.transactionsSignature, data)) {
 			return false;
 		}
 
@@ -549,343 +493,303 @@ public class Block {
 	}
 
 	// canonical definition of block version release schedule
-	public int getNextBlockVersion(QoraDb db)
-	{
-		int height = getHeight(db);
-
-		if(height < Transaction.getAT_BLOCK_HEIGHT_RELEASE())
-		{
+	public int getNextBlockVersion(final QoraDb db) {
+		final int height = getHeight(db);
+		if (height < Transaction.getAT_BLOCK_HEIGHT_RELEASE()) {
 			return 1;
-		}
-		else if(getTimestamp() < Transaction.getPOWFIX_RELEASE())
-		{
+		} else if (getTimestamp() < Transaction.getPOWFIX_RELEASE()) {
 			return 2;
-		}
-		else
-		{
+		} else {
 			return 3;
 		}
 	}
 
-	public boolean isValid()
-	{
-		return this.isValid(QoraDb.getInstance());
+	public boolean isValid() {
+		return isValid(QoraDb.getInstance());
 	}
 
-	public boolean isValid(QoraDb db)
-	{		
-		//CHECK IF PARENT EXISTS
-		if(this.reference == null || this.getParent(db) == null)
-		{
+	public boolean isValid(final QoraDb db) {
+		// CHECK IF PARENT EXISTS
+		if (this.reference == null || getParent(db) == null) {
 			return false;
 		}
 
 		// Check parent doesn't already have a child
-		if (this.getParent(db).getChild(db) != null)
-			return false;
-
-		//CHECK IF TIMESTAMP IS VALID -500 MS ERROR MARGIN TIME
-		if(this.timestamp - 500 > NTP.getTime() || this.timestamp < this.getParent(db).timestamp)
-		{
+		if (getParent(db).getChild(db) != null) {
 			return false;
 		}
 
-		//CHECK IF TIMESTAMP REST SAME AS PARENT TIMESTAMP REST
-		if(this.timestamp % 1000 != this.getParent(db).timestamp % 1000)
-		{
+		// CHECK IF TIMESTAMP IS VALID -500 MS ERROR MARGIN TIME
+		if (this.timestamp - 500 > NTP.getTime() || this.timestamp < getParent(db).timestamp) {
 			return false;
 		}
 
-		//CHECK IF GENERATING BALANCE IS CORRECT
-		if(this.generatingBalance != BlockGenerator.getNextBlockGeneratingBalance(db, this.getParent(db)))
-		{
+		// CHECK IF TIMESTAMP REST SAME AS PARENT TIMESTAMP REST
+		if (this.timestamp % 1000 != getParent(db).timestamp % 1000) {
 			return false;
 		}
 
-		//CHECK IF VERSION IS CORRECT
-		if(this.version != this.getParent(db).getNextBlockVersion(db))
-		{
-			return false;
-		}
-		if(this.version < 2 && (this.atBytes.length > 0 || this.atFees != 0))
-		{
+		// CHECK IF GENERATING BALANCE IS CORRECT
+		if (this.generatingBalance != BlockGenerator.getNextBlockGeneratingBalance(db, getParent(db))) {
 			return false;
 		}
 
-		//CREATE TARGET
-		byte[] targetBytes = new byte[32];
+		// CHECK IF VERSION IS CORRECT
+		if (this.version != getParent(db).getNextBlockVersion(db)) {
+			return false;
+		}
+		
+		if (this.version < 2 && (this.atBytes.length > 0 || this.atFees != 0)) {
+			return false;
+		}
+
+		// CREATE TARGET
+		final byte[] targetBytes = new byte[32];
 		Arrays.fill(targetBytes, Byte.MAX_VALUE);
 		BigInteger target = new BigInteger(1, targetBytes);
 
-		//DIVIDE TARGET BY BASE TARGET
-		BigInteger baseTarget = BigInteger.valueOf(BlockGenerator.getBaseTarget(this.generatingBalance));
+		// DIVIDE TARGET BY BASE TARGET
+		final BigInteger baseTarget = BigInteger.valueOf(BlockGenerator.getBaseTarget(this.generatingBalance));
 		target = target.divide(baseTarget);
 
-		//MULTIPLY TARGET BY USER BALANCE
+		// MULTIPLY TARGET BY USER BALANCE
 		target = target.multiply(this.generator.getGeneratingBalance(db).toBigInteger());
 
-		//MULTIPLE TARGET BY GUESSES
-		long guesses = (this.timestamp - this.getParent(db).getTimestamp()) / 1000;
-		BigInteger lowerTarget = target.multiply(BigInteger.valueOf(guesses-1));
+		// MULTIPLE TARGET BY GUESSES
+		final long guesses = (this.timestamp - this.getParent(db).getTimestamp()) / 1000;
+		final BigInteger lowerTarget = target.multiply(BigInteger.valueOf(guesses - 1));
 		target = target.multiply(BigInteger.valueOf(guesses));
 
-		//CONVERT PROOF HASH TO BIGINT
-		BigInteger hashValue = new BigInteger(1, getProofHash());
+		// CONVERT PROOF HASH TO BIGINT
+		final BigInteger hashValue = new BigInteger(1, getProofHash());
 
-		//CHECK IF HASH LOWER THEN TARGET
-		if(hashValue.compareTo(target) >= 0)
-		{
+		// CHECK IF HASH LOWER THEN TARGET
+		if (hashValue.compareTo(target) >= 0) {
 			return false;
 		}
 
-		//CHECK IF FIRST BLOCK OF USER	
-		if(hashValue.compareTo(lowerTarget) < 0)
-		{
+		// CHECK IF FIRST BLOCK OF USER
+		if (hashValue.compareTo(lowerTarget) < 0) {
 			return false;
 		}
 
-		if ( this.atBytes != null && this.atBytes.length > 0 )
-		{
-			try
-			{
-
-				AT_Block atBlock = AT_Controller.validateATs( this.getBlockATs() , db.getBlockMap().getLastBlock().getHeight(db)+1 , db);
+		if (this.atBytes != null && this.atBytes.length > 0) {
+			try {
+				final AT_Block atBlock = AT_Controller.validateATs(this.getBlockATs(),
+						db.getBlockMap().getLastBlock().getHeight(db) + 1, db);
 				this.atFees = atBlock.getTotalFees();
-			}
-			catch(NoSuchAlgorithmException | AT_Exception e)
-			{
-				LOGGER.error(e.getMessage(),e);
+			} catch (NoSuchAlgorithmException | AT_Exception e) {
+				LOGGER.error(e.getMessage(), e);
 				return false;
 			}
 		}
 
-		//CHECK TRANSACTIONS
-		QoraDb fork = db.fork();
-		for(Transaction transaction: this.getTransactions())
-		{
-			//CHECK IF NOT GENESISTRANSACTION
-			if(transaction instanceof GenesisTransaction)
-			{
+		// CHECK TRANSACTIONS
+		final QoraDb fork = db.fork();
+		for (final Transaction transaction : this.getTransactions()) {
+			// CHECK IF NOT GENESISTRANSACTION
+			if (transaction instanceof GenesisTransaction) {
 				return false;
 			}
 
 			Integer min = 0;
-			if ( db.getBlockMap().getParentList() != null )
-			{
+			if (db.getBlockMap().getParentList() != null) {
 				min = AT_API_Platform_Impl.getForkHeight(db);
 			}
 
-			//CHECK IF VALID
-			if ( transaction instanceof DeployATTransaction)
-			{
-				DeployATTransaction atTx = (DeployATTransaction)transaction;
-				if ( atTx.isValid(fork, min) != Transaction.VALIDATE_OK )
-				{
+			// CHECK IF VALID
+			if (transaction instanceof DeployATTransaction) {
+				final DeployATTransaction atTx = (DeployATTransaction) transaction;
+				if (atTx.isValid(fork, min) != Transaction.VALIDATE_OK) {
 					return false;
 				}
-			}
-			else if(transaction.isValid(fork) != Transaction.VALIDATE_OK)
-			{
+			} else if (transaction.isValid(fork) != Transaction.VALIDATE_OK) {
 				return false;
 			}
 
-			//CHECK TIMESTAMP AND DEADLINE
-			if(transaction.getTimestamp() > this.timestamp || transaction.getDeadline() <= this.timestamp)
-			{
+			// CHECK TIMESTAMP AND DEADLINE
+			if (transaction.getTimestamp() > this.timestamp || transaction.getDeadline() <= this.timestamp) {
 				return false;
 			}
 
-			//PROCESS TRANSACTION IN MEMORYDB TO MAKE SURE OTHER TRANSACTIONS VALIDATE PROPERLY
+			// PROCESS TRANSACTION IN MEMORYDB TO MAKE SURE OTHER TRANSACTIONS VALIDATE
+			// PROPERLY
 			try {
 				transaction.process(fork);
 			} catch (Exception e) {
-				LOGGER.error("Exception during transaction processing, tx " + Base58.encode(transaction.getSignature()), e);
+				LOGGER.error("Exception during transaction processing, tx " + Base58.encode(transaction.getSignature()),
+						e);
 				return false;
 			}
 		}
 
-		//BLOCK IS VALID
+		// BLOCK IS VALID
 		return true;
 	}
 
-	//PROCESS/ORPHAN
+	// PROCESS/ORPHAN
 
-	public void process()
-	{
-		this.process(QoraDb.getInstance());
+	public void process() {
+		process(QoraDb.getInstance());
 	}
 
-	public void process(QoraDb db)
-	{	
-		//PROCESS TRANSACTIONS
-		for(Transaction transaction: this.getTransactions())
-		{
-			//PROCESS
+	public void process(final QoraDb db) {
+		// PROCESS TRANSACTIONS
+		for (final Transaction transaction : this.getTransactions()) {
+			// PROCESS
 			transaction.process(db);
 
-			//SET PARENT
+			// SET PARENT
 			db.getTransactionParentMap().set(transaction, this);
 
-			//REMOVE FROM UNCONFIRMED DATABASE
+			// REMOVE FROM UNCONFIRMED DATABASE
 			db.getTransactionMap().delete(transaction);
 		}
 
-		//DELETE CONFIRMED TRANSACTIONS FROM UNCONFIRMED TRANSACTIONS LIST
-		List<Transaction> unconfirmedTransactions = new ArrayList<Transaction>(db.getTransactionMap().getValues());
-		for(Transaction transaction: unconfirmedTransactions)
-		{
-			if(db.getTransactionParentMap().contains(transaction.getSignature()))
-			{
+		// DELETE CONFIRMED TRANSACTIONS FROM UNCONFIRMED TRANSACTIONS LIST
+		final List<Transaction> unconfirmedTransactions = new ArrayList<Transaction>(db.getTransactionMap().getValues());
+		for (final Transaction transaction : unconfirmedTransactions) {
+			if (db.getTransactionParentMap().contains(transaction.getSignature())) {
 				db.getTransactionMap().delete(transaction);
 			}
 		}
 
-		//PROCESS FEE
-		BigDecimal blockFee = this.getTotalFee();
-		if(blockFee.compareTo(BigDecimal.ZERO) == 1)
-		{
-			//UPDATE GENERATOR BALANCE WITH FEE
+		// PROCESS FEE
+		final BigDecimal blockFee = this.getTotalFee();
+		if (blockFee.compareTo(BigDecimal.ZERO) == 1) {
+			// UPDATE GENERATOR BALANCE WITH FEE
 			this.generator.setConfirmedBalance(this.generator.getConfirmedBalance(db).add(blockFee), db);
 		}
 
-		Block parent = this.getParent(db);
+		final Block parent = this.getParent(db);
 		int height = 1;
-		if(parent != null)
-		{
-			//SET AS CHILD OF PARENT
-			db.getChildMap().set(parent, this);		
+		if (parent != null) {
+			// SET AS CHILD OF PARENT
+			db.getChildMap().set(parent, this);
 
-			//SET BLOCK HEIGHT
+			// SET BLOCK HEIGHT
 			height = parent.getHeight(db) + 1;
 			db.getHeightMap().set(this, height);
-		}
-		else
-		{
-			//IF NO PARENT HEIGHT IS 1
+		} else {
+			// IF NO PARENT HEIGHT IS 1
 			db.getHeightMap().set(this, 1);
 		}
 
-		//PROCESS TRANSACTIONS
+		// PROCESS TRANSACTIONS
 		int seq = 1;
-		for(Transaction transaction: this.getTransactions())
-		{
-			db.getTransactionFinalMap().add( height, seq, transaction);
+		for (final Transaction transaction : this.getTransactions()) {
+			db.getTransactionFinalMap().add(height, seq, transaction);
 			seq++;
 		}
 
-		if(height % 2000 == 0) 
-		{
+		if (height % 2000 == 0) {
 			Controller.getInstance().blockchainSyncStatusUpdate(height);
 		}
-		
-		//ADD TO DB
+
+		// ADD TO DB
 		db.getBlockMap().add(this);
 
-		//UPDATE LAST BLOCK
+		// UPDATE LAST BLOCK
 		db.getBlockMap().setLastBlock(this);
-		
-		if (db == QoraDb.getInstance())
+
+		if (db == QoraDb.getInstance()) {
 			LOGGER.debug("Processed block " + height);
+		}
 	}
 
-	public void orphan()
-	{	
-		this.orphan(QoraDb.getInstance());
+	public void orphan() {
+		orphan(QoraDb.getInstance());
 	}
 
-	public void orphan(QoraDb db)
-	{
-		//ORPHAN AT TRANSACTIONS
-		LinkedHashMap< Tuple2<Integer, Integer> , AT_Transaction > atTxs = QoraDb.getInstance().getATTransactionMap().getATTransactions(this.getHeight(db));
+	public void orphan(QoraDb db) {
+		// ORPHAN AT TRANSACTIONS
+		LinkedHashMap<Tuple2<Integer, Integer>, AT_Transaction> atTxs = QoraDb.getInstance().getATTransactionMap()
+				.getATTransactions(this.getHeight(db));
 
 		Iterator<AT_Transaction> iter = atTxs.values().iterator();
 
-		while ( iter.hasNext() )
-		{
+		while (iter.hasNext()) {
 			AT_Transaction key = iter.next();
-			Long amount  = key.getAmount();
-			if (key.getRecipientId() != null && !Arrays.equals(key.getRecipientId(), new byte[ AT_Constants.AT_ID_SIZE ]) && !key.getRecipient().equalsIgnoreCase("1") )
-			{
-				Account recipient = new Account( key.getRecipient() );
-				recipient.setConfirmedBalance( recipient.getConfirmedBalance( db ).subtract( BigDecimal.valueOf( amount, 8 ) ) , db );
-				if ( Arrays.equals(recipient.getLastReference(db),new byte[64]))
-				{
+			Long amount = key.getAmount();
+			if (key.getRecipientId() != null && !Arrays.equals(key.getRecipientId(), new byte[AT_Constants.AT_ID_SIZE])
+					&& !key.getRecipient().equalsIgnoreCase("1")) {
+				Account recipient = new Account(key.getRecipient());
+				recipient.setConfirmedBalance(recipient.getConfirmedBalance(db).subtract(BigDecimal.valueOf(amount, 8)),
+						db);
+				if (Arrays.equals(recipient.getLastReference(db), new byte[64])) {
 					recipient.removeReference(db);
 				}
 			}
-			Account sender = new Account( key.getSender() );
-			sender.setConfirmedBalance( sender.getConfirmedBalance( db ).add( BigDecimal.valueOf( amount, 8 ) ) , db );
+			Account sender = new Account(key.getSender());
+			sender.setConfirmedBalance(sender.getConfirmedBalance(db).add(BigDecimal.valueOf(amount, 8)), db);
 
 		}
 
-		//ORPHAN TRANSACTIONS
+		// ORPHAN TRANSACTIONS
 		this.orphanTransactions(this.getTransactions(), db);
 
-		//REMOVE FEE
+		// REMOVE FEE
 		BigDecimal blockFee = this.getTotalFee();
-		if(blockFee.compareTo(BigDecimal.ZERO) == 1)
-		{
-			//UPDATE GENERATOR BALANCE WITH FEE
+		if (blockFee.compareTo(BigDecimal.ZERO) == 1) {
+			// UPDATE GENERATOR BALANCE WITH FEE
 			this.generator.setConfirmedBalance(this.generator.getConfirmedBalance(db).subtract(blockFee), db);
 		}
 
-		//DELETE AT TRANSACTIONS FROM DB
+		// DELETE AT TRANSACTIONS FROM DB
 		db.getATTransactionMap().delete(this.getHeight(db));
-		
-		//DELETE TRANSACTIONS FROM FINAL MAP
+
+		// DELETE TRANSACTIONS FROM FINAL MAP
 		db.getTransactionFinalMap().delete(this.getHeight(db));
 
-		//DELETE BLOCK FROM DB
+		// DELETE BLOCK FROM DB
 		db.getBlockMap().delete(this);
 
-		//SET PARENT AS LAST BLOCK
+		// SET PARENT AS LAST BLOCK
 		db.getBlockMap().setLastBlock(this.getParent(db));
-				
-		for(Transaction transaction: this.getTransactions())
-		{
-			//ADD ORPHANED TRANASCTIONS BACK TO DATABASE
+
+		for (Transaction transaction : this.getTransactions()) {
+			// ADD ORPHANED TRANASCTIONS BACK TO DATABASE
 			db.getTransactionMap().add(transaction);
 
-			//DELETE ORPHANED TRANASCTIONS FROM PARENT DATABASE
+			// DELETE ORPHANED TRANASCTIONS FROM PARENT DATABASE
 			db.getTransactionParentMap().delete(transaction.getSignature());
 		}
 	}
 
-	private void orphanTransactions(List<Transaction> transactions, QoraDb db)
-	{
-		//ORPHAN ALL TRANSACTIONS IN DB BACK TO FRONT
-		for(int i=transactions.size() -1; i>=0; i--)
-		{
-			Transaction transaction = transactions.get(i);
+	private void orphanTransactions(final List<Transaction> transactions, final QoraDb db) {
+		// ORPHAN ALL TRANSACTIONS IN DB BACK TO FRONT
+		for (int i = transactions.size() - 1; i >= 0; i--) {
+			final Transaction transaction = transactions.get(i);
 			transaction.orphan(db);
 		}
 	}
 
-	public int getTransactionSeq(byte[] signature)
-	{
+	public int getTransactionSeq(final byte[] signature) {
 		int seq = 1;
-		for(Transaction transaction: this.getTransactions())
-		{
-			if(Arrays.equals(transaction.getSignature(), signature))
-			{
+		for (final Transaction transaction : this.getTransactions()) {
+			if (Arrays.equals(transaction.getSignature(), signature)) {
 				return seq;
 			}
-			seq ++;
+			seq++;
 		}
 
 		return -1;
 	}
-	
-	@Override 
-	public boolean equals(Object otherObject)
-	{
-		if(otherObject instanceof Block)
-		{
-			Block otherBlock = (Block) otherObject;
-			
+
+	@Override
+	public boolean equals(Object otherObject) {
+		if (otherObject instanceof Block) {
+			final Block otherBlock = (Block) otherObject;
 			return Arrays.equals(this.getSignature(), otherBlock.getSignature());
 		}
-		
+
 		return false;
+	}
+
+	public boolean passesCheckpoints() {
+		if (Blockchain.CHECKPOINTS.containsKey(getHeight())) {
+			return Arrays.equals(Base58.decode(Blockchain.CHECKPOINTS.get(getHeight())), getSignature());
+		}
+		return true;
 	}
 }

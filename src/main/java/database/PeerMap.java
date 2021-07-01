@@ -119,7 +119,7 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 		private long findingTime;
 		private long whiteConnectTime;
 		private long grayConnectTime;
-		private long whitePingCouner;
+		private long whitePingCounter;
 
 		public byte[] getAddress() {
 			return address;
@@ -141,8 +141,8 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 			return grayConnectTime;
 		}
 
-		public long getWhitePingCouner() {
-			return whitePingCouner;
+		public long getWhitePingCounter() {
+			return whitePingCounter;
 		}
 
 		public PeerInfo(byte[] address, byte[] data) {
@@ -172,14 +172,14 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 				this.findingTime = longFindTime;
 				this.whiteConnectTime = longWhiteConnectTime;
 				this.grayConnectTime = longGrayConnectTime;
-				this.whitePingCouner = longWhitePingCouner;
+				this.whitePingCounter = longWhitePingCouner;
 			} else if (Arrays.equals(data, BYTE_NOTFOUND)) {
 				this.address = address;
 				this.status = BYTE_NOTFOUND;
 				this.findingTime = 0;
 				this.whiteConnectTime = 0;
 				this.grayConnectTime = 0;
-				this.whitePingCouner = 0;
+				this.whitePingCounter = 0;
 
 				this.updateFindingTime();
 			} else {
@@ -188,14 +188,14 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 				this.findingTime = 0;
 				this.whiteConnectTime = 0;
 				this.grayConnectTime = 0;
-				this.whitePingCouner = 0;
+				this.whitePingCounter = 0;
 
 				this.updateFindingTime();
 			}
 		}
 
 		public void addWhitePingCouner(int n) {
-			this.whitePingCouner += n;
+			this.whitePingCounter += n;
 		}
 
 		public void updateWhiteConnectTime() {
@@ -228,7 +228,7 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 			byte[] grayConnectTimeBytes = Longs.toByteArray(this.grayConnectTime);
 			grayConnectTimeBytes = Bytes.ensureCapacity(grayConnectTimeBytes, TIMESTAMP_LENGTH, 0);
 
-			byte[] whitePingCounerBytes = Longs.toByteArray(this.whitePingCouner);
+			byte[] whitePingCounerBytes = Longs.toByteArray(this.whitePingCounter);
 			whitePingCounerBytes = Bytes.ensureCapacity(whitePingCounerBytes, TIMESTAMP_LENGTH, 0);
 
 			return Bytes.concat(this.status, findTimeBytes, whiteConnectTimeBytes, grayConnectTimeBytes, whitePingCounerBytes);
@@ -382,16 +382,16 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 		}
 	}
 
-	public void addPeer(Peer peer) {
-		if (this.map == null)
+	public void addPeer(final Peer peer) {
+		if (this.map == null) {
 			return;
+		}
 
 		PeerInfo peerInfo;
-		byte[] address = peer.getAddress().getAddress();
+		final byte[] address = peer.getAddress().getAddress();
 
 		if (this.map.containsKey(address)) {
-			byte[] data = this.map.get(address);
-
+			final byte[] data = this.map.get(address);
 			peerInfo = new PeerInfo(address, data);
 		} else {
 			peerInfo = new PeerInfo(address, null);
@@ -461,7 +461,7 @@ public class PeerMap extends DbMap<byte[], byte[]> {
 		PeerInfo peerInfo = new PeerInfo(addressByte, data);
 
 		boolean findMoreWeekAgo = (NTP.getTime() - peerInfo.getFindingTime() > 7 * 24 * 60 * 60 * 1000);
-		boolean neverWhite = peerInfo.getWhitePingCouner() == 0;
+		boolean neverWhite = peerInfo.getWhitePingCounter() == 0;
 
 		return findMoreWeekAgo && neverWhite;
 	}

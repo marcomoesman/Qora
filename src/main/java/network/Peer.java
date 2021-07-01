@@ -17,18 +17,18 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import lang.Lang;
-import network.message.Message;
-import network.message.MessageFactory;
-import network.message.MessageException;
-import ntp.NTP;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import settings.Settings;
 import controller.Controller;
+import database.PeerMap.PeerInfo;
 import database.QoraDb;
+import lang.Lang;
+import network.message.Message;
+import network.message.MessageException;
+import network.message.MessageFactory;
+import ntp.NTP;
+import settings.Settings;
 
 public final class Peer extends Thread {
 
@@ -67,7 +67,7 @@ public final class Peer extends Thread {
 		this.socket = socket;
 		this.address = socket.getInetAddress();
 
-		this.setup(false);
+		setup(false);
 	}
 
 	/**
@@ -80,7 +80,7 @@ public final class Peer extends Thread {
 	 * @see Pinger
 	 * @see ConnectionCallback#onConnect(Peer)
 	 */
-	private void setup(boolean white) {
+	private void setup(final boolean white) {
 		this.messages = Collections.synchronizedMap(new HashMap<Integer, BlockingQueue<Message>>());
 		this.white = white;
 		this.pingCounter = 0;
@@ -94,10 +94,10 @@ public final class Peer extends Thread {
 			this.socket.setSoTimeout(INACTIVITY_TIMEOUT);
 
 			// Grab reference to output stream
-			this.out = socket.getOutputStream();
+			this.out = this.socket.getOutputStream();
 
 			// Start main communication thread
-			this.start();
+			start();
 
 			// Start Pinger (requires main communication thread)
 			this.pinger = new Pinger(this);
@@ -107,11 +107,11 @@ public final class Peer extends Thread {
 		} catch (SocketException e) {
 			LOGGER.info("Failed to set socket timeout for address " + address + ": " + e.getMessage());
 			// peer no longer usable
-			this.close();
+			close();
 		} catch (IOException e) {
 			LOGGER.info("Failed to get output stream for address " + address + ": " + e.getMessage());
 			// peer no longer usable
-			this.close();
+			close();
 		}
 	}
 
@@ -143,8 +143,9 @@ public final class Peer extends Thread {
 	public void onPingSuccess() {
 		this.pingCounter++;
 
-		if (!QoraDb.getInstance().isStopped())
+		if (!QoraDb.getInstance().isStopped()) {
 			QoraDb.getInstance().getPeerMap().addPeer(this);
+		}
 	}
 
 	/**
@@ -192,7 +193,7 @@ public final class Peer extends Thread {
 	 * @param callback
 	 * @see ConnectionCallback#onConnect(Peer)
 	 */
-	public void connect(ConnectionCallback callback) {
+	public void connect(final ConnectionCallback callback) {
 		// XXX we don't actually use DB so replace with cleaner "are we shutting
 		// down?" test
 		if (QoraDb.getInstance().isStopped()) {
@@ -205,7 +206,7 @@ public final class Peer extends Thread {
 		this.socket = new Socket();
 
 		// Collate this.address and destination port from controller
-		InetSocketAddress socketAddress = new InetSocketAddress(address, Controller.getInstance().getNetworkPort());
+		final InetSocketAddress socketAddress = new InetSocketAddress(address, Controller.getInstance().getNetworkPort());
 
 		// Attempt to connect, with timeout from settings
 		try {
@@ -215,7 +216,7 @@ public final class Peer extends Thread {
 			return;
 		}
 
-		this.setup(true);
+		setup(true);
 	}
 
 	/**
@@ -405,7 +406,15 @@ public final class Peer extends Thread {
 	}
 
 	public boolean isBad() {
-		return QoraDb.getInstance().getPeerMap().isBad(this.getAddress());
+		return QoraDb.getInstance().getPeerMap().isBad(getAddress());
+	}
+	
+	public PeerInfo getInfo() {
+		return QoraDb.getInstance().getPeerMap().getInfo(getAddress());
+	}
+	
+	public long getReliability() {
+		return getInfo().getWhitePingCounter();
 	}
 
 	/**

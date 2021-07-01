@@ -1,15 +1,19 @@
 package network;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import lang.Lang;
 import network.message.Message;
 import network.message.MessageFactory;
 import network.message.PeersMessage;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
+import ntp.NTP;
 import settings.Settings;
 
 public final class ConnectionCreator extends Thread {
@@ -17,11 +21,14 @@ public final class ConnectionCreator extends Thread {
 	private static final Logger LOGGER = LogManager.getLogger(ConnectionCreator.class);
 	
 	private final ConnectionCallback callback;
+	private final ExecutorService executor;
+	
 	private boolean running;
 
 	public ConnectionCreator(final ConnectionCallback callback) {
 		super("Connection Creator");
 		this.callback = callback;
+		this.executor = Executors.newFixedThreadPool(Math.max(2, Runtime.getRuntime().availableProcessors() / 4));
 	}
 
 	@Override
@@ -76,7 +83,11 @@ public final class ConnectionCreator extends Thread {
 								.replace("%knownPeersCounter%", String.valueOf(knownPeersCounter))
 								.replace("%allKnownPeers%", String.valueOf(knownPeers.size())).replace(
 										"%activeConnections%", String.valueOf(callback.getActiveConnections().size())));
-						peer.connect(callback);
+						
+						// Attempt async connection
+						this.executor.execute(() -> {
+							peer.connect(callback);
+						});
 					}
 				}
 
@@ -87,9 +98,19 @@ public final class ConnectionCreator extends Thread {
 				
 				// Check if we still need new peers
 				if (Settings.getInstance().getMinConnections() >= callback.getActiveConnections().size()) {
+					// Grab peers connected for at least 15 seconds, then sort by reliability
+					final List<Peer> sortedConnections = this.callback.getActiveConnections().parallelStream()
+							.filter(peer -> (NTP.getTime() - peer.getConnectionTime()) >= 15_000L)
+							.sorted(Comparator.comparingLong(Peer::getReliability).reversed())
+							.collect(Collectors.toList());
+					
+					if (sortedConnections.size() == 0) {
+						LOGGER.warn("None of the current peers are suitable for proposing");
+					}
+					
 					// Iterate via for (int) loop to prevent exceptions
-					for (int i = 0; i < this.callback.getActiveConnections().size(); i++) {
-						final Peer peer = this.callback.getActiveConnections().get(i);
+					for (int i = 0; i < sortedConnections.size(); i++) {
+						final Peer peer = sortedConnections.get(i);
 
 						// Check if we are still running
 						if (!this.running) {
@@ -163,7 +184,8 @@ public final class ConnectionCreator extends Thread {
 									.replace("%allReceivePeers%", String.valueOf(response.getPeers().size()))
 									.replace("%activeConnections%",
 											String.valueOf(callback.getActiveConnections().size())));
-							// Attempt to connect
+							
+							// Attempt connection
 							newPeer.connect(callback);
 						}
 					}

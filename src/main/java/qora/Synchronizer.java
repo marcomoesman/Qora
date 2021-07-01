@@ -115,7 +115,12 @@ public final class Synchronizer {
 
 		// Check block signature
 		if (!block.isSignatureValid()) {
-			throw new Exception("Invalid block");
+			throw new Exception("Invalid block signature");
+		}
+		
+		// Check if block passes checkpoints
+		if (!block.passesCheckpoints()) {
+			throw new Exception("Block doesn't pass checkpoints");
 		}
 
 		// Block has valid signature - return it
@@ -485,7 +490,7 @@ public final class Synchronizer {
 	 */
 	public void synchronize(final Peer peer) throws Exception {
 		// Find last common block with peer
-		final Block lastCommonBlock = this.findLastCommonBlock(peer);
+		final Block lastCommonBlock = findLastCommonBlock(peer);
 
 		// Didn't get any response from peer
 		if (lastCommonBlock == null) {
@@ -535,7 +540,7 @@ public final class Synchronizer {
 				}
 
 				// Process block from peer
-				if (!this.process(block)) {
+				if (!process(block)) {
 					// Didn't process because we're shutting down?
 					if (!this.running) {
 						break;

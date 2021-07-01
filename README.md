@@ -7,8 +7,8 @@ Unofficial maintenance and update GIT for the Qora cryptocurrency.
 
 ## Running Qora
 
-Run the program without any options to start the daemon and GUI.
-Run the program with the -cli option to access the daemon using the API.
+**Qora needs Java 8 to run and will not run (stable) on newer versions!**  
+Run the program without any options to start the daemon and GUI, alternatively, run the program with the -cli option start the deamon without GUI.
 
 ## Tips
 

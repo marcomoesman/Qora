@@ -25,6 +25,7 @@ public final class Start {
 		for (final String arg : args) {
 			if (arg.equals("-cli")) {
 				cli = true;
+				System.out.println("QORA is running in CLI mode. Use \"quit\" to exit.");
 			} else if (arg.startsWith("-peers=") && arg.length() > 7) {
 				Settings.getInstance().setDefaultPeers(arg.substring(7).split(","));
 			} else if (arg.equals("-testnet")) {
@@ -44,7 +45,7 @@ public final class Start {
 			}
 		}
 
-		Gui maingui = null;
+		Gui gui = null;
 
 		// At least one of GUI or RPC must be enabled
 		if (!cli && !Settings.getInstance().isGuiEnabled() && !Settings.getInstance().isRpcEnabled()) {
@@ -56,10 +57,10 @@ public final class Start {
 				.replace("%version%", Controller.getInstance().getVersion()).replace("%builddate%", Controller.getInstance().getBuildDateString())
 				.replace("%qora%", Lang.getInstance().translate("Qora")));
 
-		// If GUI enabled, start it now
-		if (Settings.getInstance().isGuiEnabled()) {
+		// If GUI enabled and not CLI mode, start it now
+		if (Settings.getInstance().isGuiEnabled() && !cli) {
 			try {
-				maingui = Gui.getInstance();
+				gui = Gui.getInstance();
 				// Create splash screen
 				SplashFrame.getInstance();
 			} catch (Exception e) {
@@ -85,15 +86,13 @@ public final class Start {
 		}
 
 		// Controller started OK, inform GUI
-		if (Settings.getInstance().isGuiEnabled() && maingui != null) {
-			maingui.startupCompleted();
+		if (Settings.getInstance().isGuiEnabled() && gui != null) {
+			gui.startupCompleted();
 		}
 
 		if (cli) {
 			final Scanner scanner = new Scanner(System.in);
 			final ApiClient client = new ApiClient();
-
-			System.out.println("QORA CLI mode. Use \"quit\" to exit.");
 
 			while (true) {
 				System.out.print("[COMMAND] ");

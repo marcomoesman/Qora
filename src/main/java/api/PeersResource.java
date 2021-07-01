@@ -210,7 +210,7 @@ public class PeersResource
 			} else {
 				o.put("lastGray", "never");
 			}
-			o.put("whitePingCounter", peerInfo.getWhitePingCouner());
+			o.put("whitePingCounter", peerInfo.getWhitePingCounter());
 
 			if (peerInfo.isBlacklisted())
 				o.put("isBlacklisted", "true");

@@ -18,8 +18,8 @@ public class PeerInfoComparator implements Comparator<PeerInfo> {
 		boolean o1findMoreWeekAgo = (now - o1.getFindingTime() > 7*24*60*60*1000);  
 		boolean o2findMoreWeekAgo = (now - o2.getFindingTime() > 7*24*60*60*1000);  
 		
-		boolean o1neverWhite = o1.getWhitePingCouner() == 0;
-		boolean o2neverWhite = o2.getWhitePingCouner() == 0;
+		boolean o1neverWhite = o1.getWhitePingCounter() == 0;
+		boolean o2neverWhite = o2.getWhitePingCounter() == 0;
 		
 		boolean o1badNode = (o1neverWhite && o1findMoreWeekAgo);
 		boolean o2badNode = (o2neverWhite && o2findMoreWeekAgo);
@@ -36,9 +36,9 @@ public class PeerInfoComparator implements Comparator<PeerInfo> {
 				return 1;
 			else
 			{
-				if(o1.getWhitePingCouner() < o2.getWhitePingCouner())
+				if(o1.getWhitePingCounter() < o2.getWhitePingCounter())
 					return -1;
-				else if(o1.getWhitePingCouner() > o2.getWhitePingCouner())
+				else if(o1.getWhitePingCounter() > o2.getWhitePingCounter())
 					return 1;
 				else
 					return 0;

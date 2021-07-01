@@ -93,8 +93,8 @@ import webserver.WebService;
 public final class Controller extends Observable {
 
 	private static final Logger LOGGER = LogManager.getLogger(Controller.class);
-	private static final String VERSION = "0.26.12";
-	private static final String BUILD_TIME = "2021-06-04 22:00:00 UTC";
+	private static final String VERSION = "0.26.12-rc2";
+	private static final String BUILD_TIME = "2021-07-01 14:00:00 UTC";
 
 	// TODO ENUM would be better here
 	public static final int STATUS_NO_CONNECTIONS = 0;
@@ -148,11 +148,11 @@ public final class Controller extends Observable {
 	}
 
 	public String getBuildDateTimeString() {
-		return DateTimeFormat.timestamptoString(this.getBuildTimestamp(), "yyyy-MM-dd HH:mm:ss z", "UTC");
+		return DateTimeFormat.timestamptoString(getBuildTimestamp(), "yyyy-MM-dd HH:mm:ss z", "UTC");
 	}
 
 	public String getBuildDateString() {
-		return DateTimeFormat.timestamptoString(this.getBuildTimestamp(), "yyyy-MM-dd", "UTC");
+		return DateTimeFormat.timestamptoString(getBuildTimestamp(), "yyyy-MM-dd", "UTC");
 	}
 
 	public long getBuildTimestamp() {
@@ -188,7 +188,7 @@ public final class Controller extends Observable {
 		return this.messageMagic;
 	}
 
-	public void statusInfo() {
+	public void logStatusInfo() {
 		LOGGER.info(Lang.getInstance().translate("STATUS OK") + "\n" + "| " + Lang.getInstance().translate("Last Block Signature") + ": "
 				+ Base58.encode(this.blockchain.getLastBlock().getSignature()) + "\n" + "| " + Lang.getInstance().translate("Last Block Height") + ": "
 				+ this.blockchain.getLastBlock().getHeight() + "\n" + "| " + Lang.getInstance().translate("Last Block Time") + ": "
@@ -216,10 +216,11 @@ public final class Controller extends Observable {
 		return peerHeight;
 	}
 
-	public Integer getHeightOfPeer(Peer peer) {
+	public Integer getHeightOfPeer(final Peer peer) {
 		synchronized (this.peerHeight) {
-			if (peerHeight == null || !peerHeight.containsKey(peer))
+			if (peerHeight == null || !peerHeight.containsKey(peer)) {
 				return 0;
+			}
 
 			return peerHeight.get(peer);
 		}
@@ -237,8 +238,9 @@ public final class Controller extends Observable {
 	}
 
 	public static Controller getInstance() {
-		if (instance == null)
+		if (instance == null) {
 			instance = new Controller();
+		}
 
 		return instance;
 	}
@@ -301,7 +303,7 @@ public final class Controller extends Observable {
 			LOGGER.info(Lang.getInstance().translate("Error during startup detected trying to restore backup database..."));
 
 			SplashFrame.getInstance().updateProgress("Creating databases");
-			reCreateDB();
+			recreateDatabase();
 		}
 
 		// startFromScratchOnDemand();
@@ -316,7 +318,7 @@ public final class Controller extends Observable {
 			}
 
 			SplashFrame.getInstance().updateProgress("Recreating databases");
-			reCreateDB();
+			recreateDatabase();
 		}
 
 		// Check whether DB needs updates
@@ -437,20 +439,19 @@ public final class Controller extends Observable {
 		}
 	}
 
-	public void reCreateDB() throws IOException, Exception {
-		reCreateDB(true);
+	public void recreateDatabase() throws IOException, Exception {
+		recreateDatabase(true);
 	}
 
-	public void reCreateDB(boolean useDataBak) throws IOException, Exception {
-		File dataDir = new File(Settings.getInstance().getDataDir());
-
+	public void recreateDatabase(final boolean fromBackup) throws IOException, Exception {
+		final File dataDir = new File(Settings.getInstance().getDataDir());
 		if (dataDir.exists()) {
 			// Delete data folder (if any)
 			QoraDb.deleteDataFolder();
 
 			// Try to use backup?
-			File dataBak = getDataBakDir(dataDir);
-			if (useDataBak && dataBak.exists() && Settings.getInstance().isCheckpointingEnabled()) {
+			final File dataBak = getDataBakDir(dataDir);
+			if (fromBackup && dataBak.exists() && Settings.getInstance().isCheckpointingEnabled()) {
 				FileUtils.copyDirectory(dataBak, dataDir); // Assumes dataDir exists
 
 				LOGGER.info(Lang.getInstance().translate("restoring backup database"));
@@ -732,7 +733,7 @@ public final class Controller extends Observable {
 			public void run() {
 
 				if (Controller.getInstance().getStatus() == STATUS_OK) {
-					Controller.getInstance().statusInfo();
+					Controller.getInstance().logStatusInfo();
 
 					Controller.getInstance().setToOfflineTime(0L);
 
@@ -1084,7 +1085,7 @@ public final class Controller extends Observable {
 			this.setChanged();
 			this.notifyObservers(new ObserverMessage(ObserverMessage.NETWORK_STATUS, this.status));
 
-			Controller.getInstance().statusInfo();
+			Controller.getInstance().logStatusInfo();
 		}
 	}
 

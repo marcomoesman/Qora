@@ -8,37 +8,36 @@
 
 package at;
 
-public class AT_Block {
-	
-	long totalFees;
-	long totalAmount;
-	byte[] bytesForBlock;
-	boolean validated;
-	
-	AT_Block( long totalFees , long totalAmount ,  byte[] bytesForBlock ) {
+public final class AT_Block {
+
+	final long totalFees;
+	final long totalAmount;
+	final byte[] bytesForBlock;
+	final boolean validated;
+
+	AT_Block(long totalFees, long totalAmount, byte[] bytesForBlock) {
 		this.totalFees = totalFees;
 		this.totalAmount = totalAmount;
 		this.bytesForBlock = bytesForBlock;
 		this.validated = true;
 	}
-	
-	AT_Block( long totalFees , long totalAmount ,  byte[] bytesForBlock , boolean validated) {
+
+	AT_Block(long totalFees, long totalAmount, byte[] bytesForBlock, boolean validated) {
 		this.totalFees = totalFees;
 		this.totalAmount = totalAmount;
 		this.bytesForBlock = bytesForBlock;
 		this.validated = validated;
 	}
 
-	public long getTotalFees( )
-	{
+	public long getTotalFees() {
 		return totalFees;
 	}
-	
-	public long getTotalAmount( ) {
+
+	public long getTotalAmount() {
 		return totalAmount;
 	}
-	
-	public byte[] getBytesForBlock( ) {
+
+	public byte[] getBytesForBlock() {
 		return bytesForBlock;
 	}
 

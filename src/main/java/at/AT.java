@@ -3,15 +3,14 @@ package at;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 
 import org.json.simple.JSONObject;
 
+import database.QoraDb;
 import qora.account.Account;
 import qora.crypto.Base58;
-import database.QoraDb;
 
 public final class AT extends AT_Machine_State {
 
@@ -20,8 +19,8 @@ public final class AT extends AT_Machine_State {
 	private final String type;
 	private final String tags;
 
-	public AT(final byte[] atId, final byte[] creator, final String name, final String description, final String type, final String tags,
-			final byte[] creationBytes, final int height) {
+	public AT(final byte[] atId, final byte[] creator, final String name, final String description, final String type,
+			final String tags, final byte[] creationBytes, final int height) {
 		super(atId, creator, creationBytes, height);
 		this.name = name;
 		this.description = description;
@@ -29,9 +28,10 @@ public final class AT extends AT_Machine_State {
 		this.tags = tags;
 	}
 
-	public AT(final byte[] atId, final byte[] creator, final String name, final String description, final String type, final String tags, final short version,
-			final byte[] stateBytes, final int csize, final int dsize, final int c_user_stack_bytes, final int c_call_stack_bytes,
-			final long minActivationAmount, final int creationBlockHeight, final int sleepBetween, final byte[] apCode) {
+	public AT(final byte[] atId, final byte[] creator, final String name, final String description, final String type,
+			final String tags, final short version, final byte[] stateBytes, final int csize, final int dsize,
+			final int c_user_stack_bytes, final int c_call_stack_bytes, final long minActivationAmount,
+			final int creationBlockHeight, final int sleepBetween, final byte[] apCode) {
 		super(atId, creator, version, stateBytes, csize, dsize, c_user_stack_bytes, c_call_stack_bytes,
 				creationBlockHeight, sleepBetween, minActivationAmount, apCode);
 		this.name = name;
@@ -88,10 +88,10 @@ public final class AT extends AT_Machine_State {
 	}
 
 	public int getCreationLength() {
-		final byte[] bname = getName().getBytes(Charset.forName("UTF-8"));
-		final byte[] bdesc = description.getBytes(Charset.forName("UTF-8"));
-		final byte[] btype = type.getBytes(Charset.forName("UTF-8"));
-		final byte[] btags = tags.getBytes(Charset.forName("UTF-8"));
+		final byte[] bname = getName().getBytes(StandardCharsets.UTF_8);
+		final byte[] bdesc = description.getBytes(StandardCharsets.UTF_8);
+		final byte[] btype = type.getBytes(StandardCharsets.UTF_8);
+		final byte[] btags = tags.getBytes(StandardCharsets.UTF_8);
 		return 4 + bname.length + 4 + bdesc.length + 4 + btype.length + 4 + btags.length + getSize();
 	}
 
@@ -104,22 +104,22 @@ public final class AT extends AT_Machine_State {
 		final int nameSize = bf.getInt();
 		final byte[] bname = new byte[nameSize];
 		bf.get(bname);
-		final String name = new String(bname, Charset.forName("UTF-8"));
+		final String name = new String(bname, StandardCharsets.UTF_8);
 
 		final int descSize = bf.getInt();
 		final byte[] bdesc = new byte[descSize];
 		bf.get(bdesc);
-		final String description = new String(bdesc, Charset.forName("UTF-8"));
+		final String description = new String(bdesc, StandardCharsets.UTF_8);
 
 		final int typeSize = bf.getInt();
 		final byte[] btype = new byte[typeSize];
 		bf.get(btype);
-		final String type = new String(btype, Charset.forName("UTF-8"));
+		final String type = new String(btype, StandardCharsets.UTF_8);
 
 		final int tagsSize = bf.getInt();
 		final byte[] btags = new byte[tagsSize];
 		bf.get(btags);
-		final String tags = new String(btags, Charset.forName("UTF-8"));
+		final String tags = new String(btags, StandardCharsets.UTF_8);
 
 		final byte[] atId = new byte[AT_Constants.AT_ID_SIZE];
 		bf.get(atId);
@@ -142,8 +142,9 @@ public final class AT extends AT_Machine_State {
 		final byte[] state = new byte[bf.capacity() - bf.position()];
 		bf.get(state);
 
-		final AT at = new AT(atId, creator, name, description, type, tags, version, state, csize, dsize, c_user_stack_bytes,
-				c_call_stack_bytes, minActivationAmount, creationBlockHeight, sleepBetween, ap_code);
+		final AT at = new AT(atId, creator, name, description, type, tags, version, state, csize, dsize,
+				c_user_stack_bytes, c_call_stack_bytes, minActivationAmount, creationBlockHeight, sleepBetween,
+				ap_code);
 		return at;
 	}
 
